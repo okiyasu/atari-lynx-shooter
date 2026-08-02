@@ -94,6 +94,8 @@ void main(void)
     game_init(&game);
 
     for (;;) {
+        while (tgi_busy() != 0u) {
+        }
         game_update(&game, read_input());
         draw_game(&game);
     }
