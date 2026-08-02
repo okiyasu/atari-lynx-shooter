@@ -1,0 +1,9 @@
+.cache/
+build/
+dist/
+*.o
+*.s
+*.map
+*.lbl
+.DS_Store
+
