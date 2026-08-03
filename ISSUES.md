@@ -4,6 +4,70 @@
 
 ## 課題台帳
 
+### APS-013: 効果音とStage別BGM
+
+- 状態: 一次検収合格（Dev Front、2026-08-03）
+- 優先度: 高
+- 起票日: 2026-08-03
+- 目的: 無音の現状を解消し、7種の重要イベント効果音と、Stage 1宇宙・Stage 2惑星上空・Stage 3洞窟で異なる短いオリジナルBGMを、既存の3Stage進行・死亡・再開始へ統合する。
+- 基点: `1f019609f9aa68966c7f34b97d3e950bb206e146`。着手前の`make clean && ./scripts/verify.sh`は終了コード0、`PASS: 474 game logic checks`、ROM 32,215 bytes、SHA-256 `4dbe9a77594316e1d53e5875f8475aa52f75372766c950bd811cd2cc0a26a87d`。
+- 制約: 外部音源・権利不明素材・浮動小数・動的確保を使わない。固定小配列、整数、75Hzの決定的スケジュール、厳格C89、cc65 warnings-as-errors、ホストテスト可能なサウンド状態を維持する。コミット・push・deploy、BIOS・`lynxboot.img`・外部ROMの取得/探索/生成/同梱は禁止する。
+
+#### APS-013音源境界の確認
+
+- 固定cc65 2.19の`include/lynx.h`は`lynx_snd_init/play/stop/...`と、`MIKEY`疑似変数によるハードウェアアクセスを公開する。`include/_mikey.h`では4音源チャンネルを`0xFD20`、`0xFD28`、`0xFD30`、`0xFD38`から各8レジスタ、attenuation/panningを`0xFD40`〜`0xFD44`、stereo制御を`0xFD50`として定義する。
+- 標準`libsrc/lynx/lynx-snd.s`はTimer 7を240Hz IRQへ設定し、4チャンネルと独自コマンドストリーム/エンベロープを管理する。一方、現行TGIはTimer 0/2とVBlank IRQを使う割り込み駆動ダブルバッファである。
+- 本課題はサウンド進行をホスト側と同じ75Hzで完全再現するため、標準サウンドドライバのTimer 7/独自ストリームを使わない。純Cのサウンド状態が1フレームごとの論理出力を決め、Lynx側は初期化時にcrt0のmute値を解除する`MSTEREO`（`0xFD50`）=0を一度設定し、その後はchannel Aの`0xFD20`〜`0xFD27`だけへ反映する。Timer 0/2/7、割り込み、表示、他の3音源チャンネル、attenuation/panningへは触れない。
+
+#### APS-013確定仕様
+
+- `include/sound.h`と`src/sound.c`へプラットフォーム非依存の固定シーケンサを新設し、`GameState`から観測できる`SoundState`として保持する。BGM/SFXの固定ステップ表は音程ID、長さ、音量、波形種別だけを小配列で持ち、出力はactive、音程ID、音量、波形種別として公開する。乱数、時刻、浮動小数、動的確保は使わない。
+- Stage 1は遅く広がる宇宙アルペジオ、Stage 2は短い上昇音型を持つ速い飛行モチーフ、Stage 3は低音と休符を多くした洞窟モチーフとし、テンポ・音域・音型が明確に異なる自作ループにする。Stage 1初期化で曲頭から開始し、INTRO/NORMAL/WARNING/BOSS/STAGE CLEARでは同Stageの曲位置を維持する。Stage移行時だけ次曲の曲頭へ切り替え、GAME OVER/ALL CLEARで停止し、完全再開始でStage 1曲頭へ戻す。
+- 自機死亡32更新中だけBGMカーソルを凍結するが、自機爆発SFXは進める。通常のSFX中はBGMカーソルを無音で進め、SFX終了後はその時点のBGM位置へ戻す。非最終再出撃後は死亡開始時のBGM位置から再開する。
+- SFXは射撃、敵撃破、自機爆発、アイテム取得、WARNING、ボス撃破、ステージクリアの7種。成功した1斉射だけで射撃、通常敵命中撃破と小惑星破壊で敵撃破、実損傷の死亡開始だけで自機爆発、Lv3時を含む実取得でアイテム取得、`enter_phase(WARNING)`でWARNING、HP0確定でボス撃破、`enter_phase(STAGE_CLEAR)`でステージクリアを各1回発火する。失敗射撃、無敵損傷、単なる生成/表示更新では鳴らさない。同一更新の複数通常敵/小惑星撃破は敵撃破音1回へ集約する。
+- SFX優先度は低い順に射撃1、敵撃破2、アイテム取得3、WARNING 4、自機爆発5、STAGE CLEAR 6、Boss撃破7とする。同一以上の優先度は現在音を破棄して新音を先頭から開始し、同一IDも再発火なら再始動する。低優先度要求は破棄するが、Boss撃破中のSTAGE CLEARだけは固定1件の専用保留へ一度保存し、Boss撃破終了後に再生する。Boss撃破+STAGE CLEARの合計長は120更新未満、PLAYER EXPLOSIONは32更新以下とする。
+- GAME OVER/ALL CLEAR成立、Stage切替、完全再開始ではactive SFXと保留を必ず破棄する。Stage切替は次曲の曲頭、再開始はStage 1曲頭から開始する。Boss撃破→STAGE CLEAR連鎖は120更新内に完了させ、通常のStage切替/ALL CLEARで切断されないことをテストする。
+- Lynxバックエンドは`src/main.c`だけに置き、`game_update()`後・描画前に公開出力をvolatileな8-bitアクセスで反映する。初期化時は`MSTEREO=0`、channel Aのvolume/control=0とする。停止/休符はvolume=0、control=0。再設定はcontrol=0→shift-low/control-B/feedback→volume→reload→control=`prescaler|0x18`の公式順序とし、channel AのOUT/DAC（`0xFD22`）とCOUNT（`0xFD26`）へは書かない。レジスタ値は固定表と整数だけで生成し、cc65 2.19で警告ゼロにする。
+
+#### APS-013完了条件
+
+- APS-012の474チェックの意味を維持し、純Cサウンド単体テストとゲーム統合テストを追加する。3曲のID/曲頭/ループ/差異、休符、BGM継続/死亡凍結/Stage切替/停止/再開始、7 SFXの正しい一度だけ発火、同時イベントの優先・保留・復帰、失敗射撃/無敵接触の無音、全固定上限を境界前後で検証する。
+- `Makefile`へ共有`sound.c`のホスト/ROMビルドとテストを統合し、`make clean && ./scripts/verify.sh`、ASan/UBSan付き全ホストテスト、`sh -n scripts/*.sh`、LNX検査、`git diff --check`を成功させる。最終チェック総数、ROMサイズ/SHA-256、変更ファイル、設計差分、未確認事項を本項へ追記する。
+- Gearlynxは既存導入・設定済み環境だけを使える場合に限り、音が出ること、3曲の差、7 SFX、SFX優先、遷移時の停止/再開を可能な範囲で聴感確認する。BIOSファイル自体は探索・読取・取得・複製・同梱しない。
+- 実装・文書・実測差分をDev FrontがVERIFY以上で独立検収する。コミット・push・deployは行わない。
+
+#### APS-013実装実績
+
+- 変更ファイルは`Makefile`、`include/game.h`、新規`include/sound.h`、`src/game.c`、`src/main.c`、新規`src/sound.c`、`tests/test_game.c`、新規`tests/test_sound.c`、`README.md`、`docs/plan/design.md`、`ISSUES.md`。発行済み`.briefs/APS-001`〜`.briefs/APS-013/v002.md`、`CLAUDE.md`、`.gitignore`、`scripts/`、リンカ設定、`docs/plan/toolchain-research.md`は変更していない。
+- `SoundState`を`GameState`へ統合し、BGM/SFXそれぞれの固定カーソルと残り更新、Boss撃破中のSTAGE CLEAR専用保留1件、active/note/volume/waveの論理出力を公開した。状態と表は固定長の`unsigned char`中心で、乱数、時刻、浮動小数、動的確保を使わない。
+- Stage 1は8ステップ・各15更新・全120更新の宇宙アルペジオ、Stage 2は8ステップ・各5更新・全40更新の上昇飛行モチーフ、Stage 3は低音3音と休符3個からなる全78更新の洞窟モチーフとして実装した。初期化はStage 1曲頭、同Stageの5フェーズでは位置維持、Stage切替は次曲頭、GAME OVER/ALL CLEARは停止、完全再開始はStage 1曲頭とした。
+- SFX全長は射撃8、敵撃破12、取得15、WARNING 32、自機爆発32、STAGE CLEAR 36、Boss撃破48更新。指定の優先度1〜7、同一以上による先頭再始動、低優先度破棄、Boss撃破中のCLEARだけを冪等保留する規則を一つの要求関数へ集約した。Boss→CLEARは合計84更新で完了する。
+- ゲーム側の集中発火点へ7種を統合した。成功した1斉射、同一更新に集約した通常敵/小惑星撃破、実死亡開始、Lv3を含む実アイテム消費、`enter_phase(WARNING)`、Boss HP0確定、`enter_phase(STAGE_CLEAR)`だけが発火する。失敗射撃、アイテム生成、無敵接触は無音とした。
+- `game_update()`を全経路共通のサウンドtickで包み、通常SFX中はBGMを進め、死亡開始後の32死亡更新だけはBGMカーソルを固定した。GAME OVER/ALL CLEAR、Stage切替、完全再開始ではactive SFXと保留を明示的に破棄する。
+- `src/main.c`にだけMIKEYバックエンドを追加した。初期化時に`MSTEREO=0`とchannel AのVOL/CTLA=0を設定し、以後は`0xFD20/21/23/24/25/27`だけへvolatile 8-bitで書く。音程/波形変更時はCTLA停止→SHIFTLO/CTLB/FEEDBACK→VOL→RELOAD→CTLA=`prescaler|0x18`、音量だけの変更時はVOLだけ、休符/停止はVOL/CTLA=0とした。OUT/DAC、COUNT、Timer、他チャンネル、attenuation/panningには書かず、`lynx_snd_*`もリンクしていない。
+- `Makefile`へ共有`sound.c`のホスト/ROMオブジェクトと`test_sound`を統合した。既存474ゲームチェックの意味を保ち、ゲーム統合を33件追加して507件、純Cサウンド単体130件、合計637件とした。
+
+#### APS-013検証実績
+
+- 着手前の`make clean && ./scripts/verify.sh`: 終了コード0。`PASS: 474 game logic checks`、LNX 32,215 bytes、SHA-256 `4dbe9a77594316e1d53e5875f8475aa52f75372766c950bd811cd2cc0a26a87d`で指定基点を再確認した。
+- 実装後の`make clean && ./scripts/verify.sh`: 終了コード0。`PASS: 507 game logic checks`と`PASS: 130 sound logic checks`、clang `-std=c89 -pedantic -Wall -Wextra -Werror`のホストビルド/構文検査、cc65 2.19 `-t lynx -Oirs --standard cc65 -W error`の全C/リンク、`sh -n scripts/*.sh`、LNX検査が成功した。
+- ASan/UBSan game: `clang -std=c89 -pedantic -Wall -Wextra -Werror -fsanitize=address,undefined -fno-omit-frame-pointer -Iinclude -o build/test-game-sanitize tests/test_game.c src/game.c src/sound.c && ./build/test-game-sanitize`は終了コード0、507チェック成功。
+- ASan/UBSan sound: `clang -std=c89 -pedantic -Wall -Wextra -Werror -fsanitize=address,undefined -fno-omit-frame-pointer -Iinclude -o build/test-sound-sanitize tests/test_sound.c src/sound.c && ./build/test-sound-sanitize`は終了コード0、130チェック成功。
+- `sh -n scripts/*.sh`: 終了コード0。`git diff --check`: 終了コード0、出力なし。LNX再検査は`magic=LYNX version=1 bank0_page=1024 bank1_page=0 size=35478 bytes`。
+- MIKEY境界: `src/main.c`のアドレス定義・書込を`rg`で再確認し、`0xFD20/21/23/24/25/27/50`以外の新規ハードウェア書込がないこと、map/labelに`lynx_snd`シンボルがないことを確認した。
+- ROMは`dist/asteroid-patrol.lnx`、35,478 bytes、SHA-256 `40924836bfd0d1fe4aa5d1db36a81f7127c1946b3ecabdd6285ae5f022e0d9cf`。
+- Dev Front独立検収（2026-08-03）: `make clean && ./scripts/verify.sh`を再実行し、ゲーム507件＋サウンド130件、cc65 2.19の`-W error`、shell lint、LNX検査を確認した。別途ASan/UBSan付きゲーム・サウンド全テストも成功し、`git diff --check`と新規サウンド3ファイルの整形検査、MIKEY書込み範囲（`0xFD20/21/23/24/25/27/50`のみ）および`lynx_snd`未リンクを再確認して一次検収を合格とした。
+- コミット・push・deploy・stash・reset・checkoutは行っていない。BIOS、`lynxboot.img`、外部ROM、外部画像/音声素材の取得・探索・読取・生成・複製・同梱・操作も行っていない。
+
+#### APS-013設計差分
+
+- 確定仕様との差分なし。仕様内で未指定だった固定実測値として、3曲のループ長を120/40/78更新、7 SFXの長さを8/12/15/32/32/36/48更新、論理音量上限を31、波形をtone/metallic/noise/pulseの4種に確定した。論理音程1〜16のprescaler/reloadはcc65 2.19標準ドライバの固定表から連続16音を採用した。
+
+#### APS-013未確認事項
+
+- 自動実行環境では聴感を判定できないため、Gearlynxでの実発音、3曲の音域・テンポ・音型の差、7 SFXの聴き分け、優先割込み、Boss→CLEAR連鎖、死亡/Stage切替/終了/再開始時の聴感は未確認。BIOSファイルの探索・読取を避けるためエミュレータは起動していない。
+- Atari Lynx実機での音量、波形、音程、ノイズ特性、TGI描画と同時動作した際の聴感・処理負荷、長時間連続プレイは未確認。
+
 ### APS-012: 3Stage固有環境ギミック
 
 - 状態: 一次検収合格

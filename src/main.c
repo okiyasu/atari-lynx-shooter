@@ -41,6 +41,15 @@
 #define GAME_COLOR_WIND_ACTIVE 14u
 #define SCORE_DIGITS 5u
 
+#define SOUND_A_VOL (*(volatile unsigned char*)0xfd20u)
+#define SOUND_A_FEEDBACK (*(volatile unsigned char*)0xfd21u)
+#define SOUND_A_SHIFT_LOW (*(volatile unsigned char*)0xfd23u)
+#define SOUND_A_RELOAD (*(volatile unsigned char*)0xfd24u)
+#define SOUND_A_CONTROL_A (*(volatile unsigned char*)0xfd25u)
+#define SOUND_A_CONTROL_B (*(volatile unsigned char*)0xfd27u)
+#define SOUND_MASTER_STEREO (*(volatile unsigned char*)0xfd50u)
+#define SOUND_TIMER_ENABLE 0x18u
+
 typedef struct Star {
     unsigned char x;
     unsigned char y;
@@ -77,6 +86,40 @@ typedef struct CloudGroup {
     unsigned char x;
     unsigned char y;
 } CloudGroup;
+
+typedef struct SoundPitchRegister {
+    unsigned char reload;
+    unsigned char prescaler;
+} SoundPitchRegister;
+
+typedef struct SoundWaveRegister {
+    unsigned char feedback;
+    unsigned char shift_low;
+    unsigned char control_b;
+} SoundWaveRegister;
+
+typedef struct SoundHardwareState {
+    unsigned char active;
+    unsigned char note;
+    unsigned char volume;
+    unsigned char wave;
+} SoundHardwareState;
+
+static const SoundPitchRegister sound_pitch_registers[SOUND_NOTE_COUNT] = {
+    { 0xfau, 3u }, { 0xe7u, 3u }, { 0xd6u, 3u }, { 0xc6u, 3u },
+    { 0xb8u, 3u }, { 0xacu, 3u }, { 0xa1u, 3u }, { 0x96u, 3u },
+    { 0x8du, 3u }, { 0x84u, 3u }, { 0xfau, 2u }, { 0xebu, 2u },
+    { 0xdeu, 2u }, { 0xd2u, 2u }, { 0xc7u, 2u }, { 0xbcu, 2u }
+};
+
+static const SoundWaveRegister sound_wave_registers[SOUND_WAVE_COUNT] = {
+    { 0x3fu, 0xacu, 0u },
+    { 0x36u, 0x5au, 0u },
+    { 0x1fu, 0x7fu, 0u },
+    { 0x24u, 0xb4u, 0u }
+};
+
+static SoundHardwareState sound_hardware;
 
 static const BackgroundTheme background_themes[
     GAME_BACKGROUND_THEME_COUNT] = {
@@ -391,6 +434,58 @@ static const unsigned char falling_rock_masks[2][8] = {
     { 0x18u, 0x3cu, 0x7eu, 0xffu, 0xdbu, 0x7eu, 0x3cu, 0x18u },
     { 0x0cu, 0x3eu, 0x7fu, 0xffu, 0xbdu, 0x7eu, 0x38u, 0x10u }
 };
+
+static void sound_backend_init(void)
+{
+    SOUND_MASTER_STEREO = 0u;
+    SOUND_A_VOL = 0u;
+    SOUND_A_CONTROL_A = 0u;
+    sound_hardware.active = 0u;
+    sound_hardware.note = SOUND_NOTE_REST;
+    sound_hardware.volume = 0u;
+    sound_hardware.wave = SOUND_WAVE_TONE;
+}
+
+static void sound_backend_apply(const SoundOutput* output)
+{
+    const SoundPitchRegister* pitch;
+    const SoundWaveRegister* wave;
+
+    if (output->active == 0u || output->note == SOUND_NOTE_REST ||
+        output->note > SOUND_NOTE_COUNT ||
+        output->wave >= SOUND_WAVE_COUNT) {
+        if (sound_hardware.active != 0u) {
+            SOUND_A_VOL = 0u;
+            SOUND_A_CONTROL_A = 0u;
+        }
+        sound_hardware.active = 0u;
+        sound_hardware.note = SOUND_NOTE_REST;
+        sound_hardware.volume = 0u;
+        sound_hardware.wave = SOUND_WAVE_TONE;
+        return;
+    }
+
+    pitch = &sound_pitch_registers[output->note - 1u];
+    wave = &sound_wave_registers[output->wave];
+    if (sound_hardware.active == 0u ||
+        output->note != sound_hardware.note ||
+        output->wave != sound_hardware.wave) {
+        SOUND_A_CONTROL_A = 0u;
+        SOUND_A_SHIFT_LOW = wave->shift_low;
+        SOUND_A_CONTROL_B = wave->control_b;
+        SOUND_A_FEEDBACK = wave->feedback;
+        SOUND_A_VOL = output->volume;
+        SOUND_A_RELOAD = pitch->reload;
+        SOUND_A_CONTROL_A =
+            (unsigned char)(pitch->prescaler | SOUND_TIMER_ENABLE);
+    } else if (output->volume != sound_hardware.volume) {
+        SOUND_A_VOL = output->volume;
+    }
+    sound_hardware.active = 1u;
+    sound_hardware.note = output->note;
+    sound_hardware.volume = output->volume;
+    sound_hardware.wave = output->wave;
+}
 
 static unsigned char read_input(void)
 {
@@ -993,12 +1088,14 @@ void main(void)
     }
     tgi_setbgcolor(GAME_COLOR_BLACK);
     tgi_setframerate(75u);
+    sound_backend_init();
     game_init(&game);
 
     for (;;) {
         while (tgi_busy() != 0u) {
         }
         game_update(&game, read_input());
+        sound_backend_apply(&game.sound.output);
         draw_game(&game);
     }
 }

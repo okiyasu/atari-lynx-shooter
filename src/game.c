@@ -588,17 +588,17 @@ static unsigned char spawn_power_item(GameState* game,
     return 1u;
 }
 
-static void update_power_item(GameState* game)
+static unsigned char update_power_item(GameState* game)
 {
     if (game->power_item.active == 0u) {
-        return;
+        return 0u;
     }
     ++game->power_item.move_counter;
     if (game->power_item.move_counter == POWER_ITEM_MOVE_INTERVAL) {
         game->power_item.move_counter = 0u;
         if (game->power_item.rect.x == 0u) {
             game->power_item.active = 0u;
-            return;
+            return 0u;
         }
         --game->power_item.rect.x;
     }
@@ -608,7 +608,9 @@ static void update_power_item(GameState* game)
             ++game->weapon_level;
         }
         clear_power_item(game);
+        return 1u;
     }
+    return 0u;
 }
 
 static unsigned char spawn_enemy_bullet(GameState* game, int x, int y,
@@ -822,6 +824,7 @@ static void begin_player_death(GameState* game)
     game->dying = 1u;
     game->explosion_timer = 0u;
     game->invincibility_timer = 0u;
+    sound_request_sfx(&game->sound, SOUND_SFX_PLAYER_EXPLOSION);
 }
 
 static void update_player_death(GameState* game)
@@ -837,6 +840,7 @@ static void update_player_death(GameState* game)
         game->game_over = 1u;
         game->restart_armed = 0u;
         reset_environment(game);
+        sound_stop_all(&game->sound);
         return;
     }
 
@@ -871,8 +875,13 @@ static void enter_phase(GameState* game, unsigned char phase)
         reset_enemy_formation(game);
     } else if (phase == GAME_PHASE_BOSS) {
         initialize_boss(game);
+    } else if (phase == GAME_PHASE_WARNING) {
+        sound_request_sfx(&game->sound, SOUND_SFX_WARNING);
+    } else if (phase == GAME_PHASE_STAGE_CLEAR) {
+        sound_request_sfx(&game->sound, SOUND_SFX_STAGE_CLEAR);
     } else if (phase == GAME_PHASE_ALL_CLEAR) {
         game->restart_armed = 0u;
+        sound_stop_all(&game->sound);
     }
 }
 
@@ -905,6 +914,7 @@ void game_init(GameState* game)
     game->stage = 1u;
     game->phase = GAME_PHASE_STAGE_INTRO;
     game->phase_timer = 0u;
+    sound_init(&game->sound);
 
     for (i = 0u; i < GAME_MAX_ENEMIES; ++i) {
         game->enemies[i].rect.width = GAME_ENEMY_WIDTH;
@@ -1139,11 +1149,14 @@ static void update_wind(GameState* game, unsigned char event_started)
     }
 }
 
-static void hit_asteroids_with_player_bullets(GameState* game,
+static unsigned char hit_asteroids_with_player_bullets(GameState* game,
     unsigned char new_slot)
 {
     unsigned char i;
     unsigned char j;
+    unsigned char destroyed;
+
+    destroyed = 0u;
 
     for (i = 0u; i < GAME_MAX_PLAYER_BULLETS; ++i) {
         if (game->bullets[i].active == 0u) {
@@ -1156,10 +1169,12 @@ static void hit_asteroids_with_player_bullets(GameState* game,
                 game->bullets[i].active = 0u;
                 game->asteroids[j].active = 0u;
                 game->score += ASTEROID_SCORE;
+                destroyed = 1u;
                 break;
             }
         }
     }
+    return destroyed;
 }
 
 static void update_asteroids(GameState* game, unsigned char new_slot,
@@ -1235,6 +1250,8 @@ static void update_normal(GameState* game, unsigned char input,
     unsigned char power_item_created;
     unsigned char damage;
     unsigned char new_environment_slot;
+    unsigned char enemy_destroyed;
+    unsigned char power_item_collected;
     const GameStageConfig* stage_config;
 
     move_player(game, input);
@@ -1250,13 +1267,26 @@ static void update_normal(GameState* game, unsigned char input,
     if ((input & GAME_INPUT_FIRE) != 0u && game->fire_cooldown == 0u &&
         fire_player_bullets(game) != 0u) {
         game->fire_cooldown = FIRE_COOLDOWN_FRAMES;
+        sound_request_sfx(&game->sound, SOUND_SFX_SHOT);
     }
     for (i = 0u; i < GAME_MAX_ENEMIES; ++i) {
         hit_enemies[i] = 0u;
     }
     power_item_created = update_player_bullets_normal(game, hit_enemies);
+    enemy_destroyed = 0u;
+    for (i = 0u; i < GAME_MAX_ENEMIES; ++i) {
+        if (hit_enemies[i] != 0u) {
+            enemy_destroyed = 1u;
+        }
+    }
     if (stage_config->environment_id == GAME_ENVIRONMENT_ASTEROIDS) {
-        hit_asteroids_with_player_bullets(game, new_environment_slot);
+        if (hit_asteroids_with_player_bullets(game,
+            new_environment_slot) != 0u) {
+            enemy_destroyed = 1u;
+        }
+    }
+    if (enemy_destroyed != 0u) {
+        sound_request_sfx(&game->sound, SOUND_SFX_ENEMY_DEFEAT);
     }
     update_enemy_bullets(game);
 
@@ -1281,7 +1311,10 @@ static void update_normal(GameState* game, unsigned char input,
         }
     }
     if (power_item_created == 0u) {
-        update_power_item(game);
+        power_item_collected = update_power_item(game);
+        if (power_item_collected != 0u) {
+            sound_request_sfx(&game->sound, SOUND_SFX_POWER_UP);
+        }
     }
 
     damage = 0u;
@@ -1347,6 +1380,7 @@ static void defeat_boss(GameState* game)
 
     config = &boss_configs[game->boss.config_id];
     game->score += config->defeat_score;
+    sound_request_sfx(&game->sound, SOUND_SFX_BOSS_DEFEAT);
     enter_phase(game, GAME_PHASE_STAGE_CLEAR);
 }
 
@@ -1363,6 +1397,7 @@ static void update_boss(GameState* game, unsigned char input,
     if ((input & GAME_INPUT_FIRE) != 0u && game->fire_cooldown == 0u &&
         fire_player_bullets(game) != 0u) {
         game->fire_cooldown = FIRE_COOLDOWN_FRAMES;
+        sound_request_sfx(&game->sound, SOUND_SFX_SHOT);
     }
     if (update_player_bullets_boss(game) != 0u) {
         defeat_boss(game);
@@ -1385,7 +1420,7 @@ static void update_boss(GameState* game, unsigned char input,
     ++game->phase_timer;
 }
 
-void game_update(GameState* game, unsigned char input)
+static void game_update_logic(GameState* game, unsigned char input)
 {
     unsigned char was_invincible;
 
@@ -1428,6 +1463,7 @@ void game_update(GameState* game, unsigned char input)
             } else {
                 ++game->stage;
                 reset_background_scroll(game);
+                sound_set_stage(&game->sound, game->stage);
                 enter_phase(game, GAME_PHASE_STAGE_INTRO);
             }
         }
@@ -1444,4 +1480,13 @@ void game_update(GameState* game, unsigned char input)
     } else {
         update_boss(game, input, was_invincible);
     }
+}
+
+void game_update(GameState* game, unsigned char input)
+{
+    unsigned char freeze_bgm;
+
+    freeze_bgm = game->dying;
+    game_update_logic(game, input);
+    sound_tick(&game->sound, freeze_bgm);
 }

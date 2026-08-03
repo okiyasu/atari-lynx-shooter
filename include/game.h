@@ -1,6 +1,8 @@
 #ifndef GAME_H
 #define GAME_H
 
+#include "sound.h"
+
 #define GAME_SCREEN_WIDTH 160u
 #define GAME_SCREEN_HEIGHT 102u
 #define GAME_HUD_HEIGHT 10u
@@ -259,6 +261,7 @@ typedef struct GameState {
     unsigned char stage;
     unsigned char phase;
     unsigned int phase_timer;
+    SoundState sound;
 } GameState;
 
 void game_init(GameState* game);

@@ -2611,6 +2611,351 @@ static void test_all_clear_restart(void)
     }
 }
 
+static void reset_game_sound(GameState* game)
+{
+    sound_set_stage(&game->sound, game->stage);
+}
+
+static void test_sound_initial_phase_and_fire_integration(void)
+{
+    GameState game;
+    unsigned char i;
+    unsigned char old_step;
+    unsigned char old_remaining;
+
+    game_init(&game);
+    expect(game.sound.bgm_active != 0u &&
+        game.sound.bgm_id == SOUND_BGM_STAGE_ONE &&
+        game.sound.bgm_step == 0u &&
+        game.sound.sfx_id == SOUND_SFX_NONE,
+        "game init exposes stage one BGM head and no active SFX");
+    advance_frames(&game, 20u);
+    old_step = game.sound.bgm_step;
+    old_remaining = game.sound.bgm_remaining;
+    game.phase_timer = GAME_STAGE_INTRO_FRAMES - 1u;
+    game_update(&game, 0u);
+    expect(game.phase == GAME_PHASE_NORMAL &&
+        game.sound.bgm_id == SOUND_BGM_STAGE_ONE &&
+        (game.sound.bgm_step != 0u || game.sound.bgm_remaining != 15u) &&
+        (game.sound.bgm_step != old_step ||
+            game.sound.bgm_remaining != old_remaining),
+        "intro to normal keeps and advances the same stage BGM position");
+
+    game.phase_timer = GAME_NORMAL_FRAMES - 1u;
+    old_step = game.sound.bgm_step;
+    old_remaining = game.sound.bgm_remaining;
+    disable_enemies_except(&game, GAME_MAX_ENEMIES);
+    game_update(&game, 0u);
+    expect(game.phase == GAME_PHASE_WARNING &&
+        game.sound.bgm_id == SOUND_BGM_STAGE_ONE &&
+        (game.sound.bgm_step != old_step ||
+            game.sound.bgm_remaining != old_remaining),
+        "normal to warning keeps advancing the same stage BGM position");
+    old_step = game.sound.bgm_step;
+    old_remaining = game.sound.bgm_remaining;
+    game.phase_timer = GAME_WARNING_FRAMES - 1u;
+    game_update(&game, 0u);
+    expect(game.phase == GAME_PHASE_BOSS &&
+        game.sound.bgm_id == SOUND_BGM_STAGE_ONE &&
+        (game.sound.bgm_step != old_step ||
+            game.sound.bgm_remaining != old_remaining),
+        "warning to boss keeps advancing the same stage BGM position");
+
+    game.phase = GAME_PHASE_NORMAL;
+    game.phase_timer = 0u;
+    reset_game_sound(&game);
+    game_update(&game, GAME_INPUT_FIRE);
+    expect(game.sound.sfx_id == SOUND_SFX_SHOT &&
+        game.sound.sfx_step == 0u && game.sound.sfx_remaining == 3u,
+        "one successful normal volley fires one shot SFX from its head");
+    sound_set_stage(&game.sound, game.stage);
+    game.fire_cooldown = 2u;
+    game_update(&game, GAME_INPUT_FIRE);
+    expect(game.sound.sfx_id == SOUND_SFX_NONE,
+        "cooldown-blocked normal fire remains silent");
+    game.fire_cooldown = 0u;
+    for (i = 0u; i < GAME_MAX_PLAYER_BULLETS; ++i) {
+        game.bullets[i].active = 1u;
+    }
+    game_update(&game, GAME_INPUT_FIRE);
+    expect(game.sound.sfx_id == SOUND_SFX_NONE,
+        "capacity-blocked normal volley remains silent");
+
+    game_init(&game);
+    game_update(&game, GAME_INPUT_FIRE);
+    expect(game.sound.sfx_id == SOUND_SFX_NONE,
+        "fire input during stage intro never requests shot SFX");
+    enter_boss(&game, 1u);
+    reset_game_sound(&game);
+    game_update(&game, GAME_INPUT_FIRE);
+    expect(game.sound.sfx_id == SOUND_SFX_SHOT,
+        "one successful boss volley fires the same shot SFX");
+}
+
+static void test_sound_enemy_asteroid_and_power_integration(void)
+{
+    GameState game;
+    unsigned char level;
+
+    init_normal(&game);
+    disable_enemies_except(&game, GAME_MAX_ENEMIES);
+    game.enemies[0].active = 1u;
+    game.enemies[1].active = 1u;
+    game.enemies[0].rect.x = 70u;
+    game.enemies[0].rect.y = 30u;
+    game.enemies[1].rect.x = 70u;
+    game.enemies[1].rect.y = 60u;
+    place_player_bullet_hit(&game, 0u, 0u);
+    place_player_bullet_hit(&game, 1u, 1u);
+    reset_game_sound(&game);
+    game_update(&game, 0u);
+    expect(game.sound.sfx_id == SOUND_SFX_ENEMY_DEFEAT &&
+        game.sound.sfx_step == 0u && game.sound.sfx_remaining == 3u &&
+        game.score == 200ul,
+        "two enemies defeated in one update aggregate to one defeat SFX");
+
+    init_normal_stage(&game, 1u);
+    disable_enemies_except(&game, GAME_MAX_ENEMIES);
+    game.environment_event_cursor = GAME_ASTEROID_EVENT_COUNT;
+    game.asteroids[0].active = 1u;
+    game.asteroids[0].rect.x = 50u;
+    game.asteroids[0].rect.y = 40u;
+    game.bullets[0].active = 1u;
+    game.bullets[0].rect.x = 46u;
+    game.bullets[0].rect.y = 40u;
+    reset_game_sound(&game);
+    game_update(&game, 0u);
+    expect(game.asteroids[0].active == 0u &&
+        game.sound.sfx_id == SOUND_SFX_ENEMY_DEFEAT &&
+        game.score == 250ul,
+        "asteroid destruction uses the shared enemy-defeat SFX once");
+
+    for (level = GAME_WEAPON_LEVEL_MIN;
+        level <= GAME_WEAPON_LEVEL_MAX; ++level) {
+        init_normal(&game);
+        disable_enemies_except(&game, GAME_MAX_ENEMIES);
+        game.weapon_level = level;
+        game.power_item.active = 1u;
+        game.power_item.rect.x = game.player.x;
+        game.power_item.rect.y = game.player.y;
+        reset_game_sound(&game);
+        game_update(&game, 0u);
+        expect(game.power_item.active == 0u &&
+            game.sound.sfx_id == SOUND_SFX_POWER_UP &&
+            game.weapon_level == (level == GAME_WEAPON_LEVEL_MAX ?
+                GAME_WEAPON_LEVEL_MAX : (unsigned char)(level + 1u)),
+            "actual item consumption at every weapon level fires power-up SFX");
+    }
+
+    init_normal(&game);
+    disable_enemies_except(&game, 3u);
+    game.enemies[3].rect.x = 70u;
+    game.enemies[3].rect.y = 40u;
+    place_player_bullet_hit(&game, 0u, 3u);
+    reset_game_sound(&game);
+    game_update(&game, 0u);
+    expect(game.power_item.active != 0u &&
+        game.sound.sfx_id == SOUND_SFX_ENEMY_DEFEAT,
+        "power item generation is silent apart from the actual enemy defeat");
+}
+
+static void test_sound_damage_freeze_and_warning_integration(void)
+{
+    GameState game;
+    unsigned char bgm_step;
+    unsigned char bgm_remaining;
+    unsigned char lives;
+
+    init_normal(&game);
+    disable_enemies_except(&game, 0u);
+    game.enemies[0].rect.x = game.player.x;
+    game.enemies[0].rect.y = game.player.y;
+    reset_game_sound(&game);
+    game_update(&game, 0u);
+    expect(game.dying != 0u &&
+        game.sound.sfx_id == SOUND_SFX_PLAYER_EXPLOSION &&
+        game.sound.sfx_remaining == 7u,
+        "real damage begins one player-explosion SFX");
+    bgm_step = game.sound.bgm_step;
+    bgm_remaining = game.sound.bgm_remaining;
+    advance_frames(&game, GAME_EXPLOSION_FRAMES);
+    expect(game.dying == 0u && game.sound.bgm_step == bgm_step &&
+        game.sound.bgm_remaining == bgm_remaining &&
+        game.sound.sfx_id == SOUND_SFX_NONE,
+        "all 32 death updates freeze BGM while explosion completes");
+    disable_enemies_except(&game, GAME_MAX_ENEMIES);
+    game_update(&game, 0u);
+    expect(game.sound.bgm_remaining ==
+            (unsigned char)(bgm_remaining - 1u),
+        "first post-respawn update resumes exact frozen BGM position");
+
+    init_normal(&game);
+    game.invincibility_timer = 2u;
+    lives = game.lives;
+    game.enemies[0].rect.x = game.player.x;
+    game.enemies[0].rect.y = game.player.y;
+    reset_game_sound(&game);
+    game_update(&game, 0u);
+    expect(game.lives == lives && game.dying == 0u &&
+        game.sound.sfx_id == SOUND_SFX_NONE,
+        "invincible collision resets gameplay objects without explosion SFX");
+
+    init_normal(&game);
+    disable_enemies_except(&game, GAME_MAX_ENEMIES);
+    game.phase_timer = GAME_NORMAL_FRAMES - 1u;
+    reset_game_sound(&game);
+    game_update(&game, 0u);
+    expect(game.phase == GAME_PHASE_WARNING &&
+        game.sound.sfx_id == SOUND_SFX_WARNING &&
+        game.sound.sfx_remaining == 7u,
+        "normal boundary enters warning through its single SFX trigger point");
+
+    init_normal(&game);
+    disable_enemies_except(&game, 0u);
+    game.phase_timer = GAME_NORMAL_FRAMES - 1u;
+    game.enemies[0].rect.x = game.player.x;
+    game.enemies[0].rect.y = game.player.y;
+    reset_game_sound(&game);
+    game_update(&game, 0u);
+    expect(game.dying != 0u && game.phase == GAME_PHASE_NORMAL &&
+        game.phase_timer == GAME_NORMAL_FRAMES &&
+        game.sound.sfx_id == SOUND_SFX_PLAYER_EXPLOSION,
+        "boundary damage defers warning and starts only explosion SFX");
+    advance_frames(&game, GAME_EXPLOSION_FRAMES);
+    expect(game.dying == 0u && game.phase == GAME_PHASE_WARNING &&
+        game.sound.sfx_id == SOUND_SFX_WARNING,
+        "death completion reaches the same warning SFX trigger point once");
+}
+
+static void test_sound_boss_chain_stage_terminal_and_restart(void)
+{
+    GameState game;
+    unsigned int chain_length;
+
+    enter_boss(&game, 1u);
+    reset_game_sound(&game);
+    game.boss.hp = 1u;
+    game.bullets[0].active = 1u;
+    game.bullets[0].rect.x =
+        (unsigned char)(game.boss.rect.x - 4u);
+    game.bullets[0].rect.y = game.boss.rect.y;
+    game_update(&game, 0u);
+    expect(game.phase == GAME_PHASE_STAGE_CLEAR &&
+        game.sound.sfx_id == SOUND_SFX_BOSS_DEFEAT &&
+        game.sound.pending_stage_clear != 0u,
+        "boss HP zero starts boss SFX and defers stage-clear SFX once");
+    chain_length = sound_get_sfx_length(SOUND_SFX_BOSS_DEFEAT) +
+        sound_get_sfx_length(SOUND_SFX_STAGE_CLEAR);
+    advance_frames(&game, chain_length - 1u);
+    expect(game.phase == GAME_PHASE_STAGE_CLEAR &&
+        game.phase_timer == chain_length - 1u &&
+        game.sound.sfx_id == SOUND_SFX_NONE &&
+        game.sound.pending_stage_clear == 0u,
+        "boss-clear chain finishes intact before the 120-update stage switch");
+
+    sound_request_sfx(&game.sound, SOUND_SFX_WARNING);
+    game.sound.pending_stage_clear = 1u;
+    game.phase_timer = GAME_STAGE_CLEAR_FRAMES - 1u;
+    game_update(&game, 0u);
+    expect(game.stage == 2u && game.phase == GAME_PHASE_STAGE_INTRO &&
+        game.sound.bgm_id == SOUND_BGM_STAGE_TWO &&
+        game.sound.bgm_step == 0u && game.sound.sfx_id == SOUND_SFX_NONE &&
+        game.sound.pending_stage_clear == 0u,
+        "stage switch starts next BGM head and discards active and pending SFX");
+
+    game.phase = GAME_PHASE_STAGE_CLEAR;
+    game.phase_timer = GAME_STAGE_CLEAR_FRAMES - 1u;
+    sound_request_sfx(&game.sound, SOUND_SFX_SHOT);
+    game_update(&game, 0u);
+    expect(game.stage == 3u && game.phase == GAME_PHASE_STAGE_INTRO &&
+        game.sound.bgm_id == SOUND_BGM_STAGE_THREE &&
+        game.sound.bgm_step == 0u && game.sound.sfx_id == SOUND_SFX_NONE,
+        "stage two switch starts stage three cave BGM at its exact head");
+
+    game.phase = GAME_PHASE_STAGE_CLEAR;
+    game.phase_timer = GAME_STAGE_CLEAR_FRAMES - 1u;
+    sound_set_stage(&game.sound, 3u);
+    sound_request_sfx(&game.sound, SOUND_SFX_BOSS_DEFEAT);
+    game.sound.pending_stage_clear = 1u;
+    game_update(&game, 0u);
+    expect(game.phase == GAME_PHASE_ALL_CLEAR &&
+        game.sound.bgm_active == 0u &&
+        game.sound.sfx_id == SOUND_SFX_NONE &&
+        game.sound.pending_stage_clear == 0u &&
+        game.sound.output.active == 0u,
+        "ALL CLEAR stops BGM and clears active and pending SFX");
+    game_update(&game, 0u);
+    game_update(&game, GAME_INPUT_FIRE);
+    expect(game.stage == 1u && game.phase == GAME_PHASE_STAGE_INTRO &&
+        game.sound.bgm_active != 0u &&
+        game.sound.bgm_id == SOUND_BGM_STAGE_ONE &&
+        game.sound.bgm_step == 0u && game.sound.sfx_id == SOUND_SFX_NONE,
+        "ALL CLEAR release and repress fully restarts stage one music");
+
+    init_normal(&game);
+    disable_enemies_except(&game, 0u);
+    game.lives = 1u;
+    game.enemies[0].rect.x = game.player.x;
+    game.enemies[0].rect.y = game.player.y;
+    game_update(&game, 0u);
+    advance_frames(&game, GAME_EXPLOSION_FRAMES);
+    expect(game.game_over != 0u && game.sound.bgm_active == 0u &&
+        game.sound.sfx_id == SOUND_SFX_NONE &&
+        game.sound.output.active == 0u,
+        "GAME OVER stops all sound after final explosion completion");
+    game_update(&game, 0u);
+    game_update(&game, GAME_INPUT_FIRE);
+    expect(game.game_over == 0u &&
+        game.sound.bgm_id == SOUND_BGM_STAGE_ONE &&
+        game.sound.bgm_step == 0u && game.sound.sfx_id == SOUND_SFX_NONE,
+        "GAME OVER release and repress fully restarts stage one music");
+}
+
+static void test_sound_simultaneous_priority_integration(void)
+{
+    GameState game;
+
+    init_normal(&game);
+    disable_enemies_except(&game, 0u);
+    game.enemies[0].rect.x = 70u;
+    game.enemies[0].rect.y = 40u;
+    place_player_bullet_hit(&game, 0u, 0u);
+    game.fire_cooldown = 0u;
+    reset_game_sound(&game);
+    game_update(&game, GAME_INPUT_FIRE);
+    expect(game.sound.sfx_id == SOUND_SFX_ENEMY_DEFEAT,
+        "same-update enemy defeat replaces lower-priority shot SFX");
+
+    init_normal(&game);
+    disable_enemies_except(&game, 0u);
+    game.enemies[0].rect.x = 70u;
+    game.enemies[0].rect.y = 40u;
+    place_player_bullet_hit(&game, 0u, 0u);
+    game.enemy_bullets[0].active = 1u;
+    game.enemy_bullets[0].rect.x =
+        (unsigned char)(game.player.x + 2u);
+    game.enemy_bullets[0].rect.y = game.player.y;
+    game.enemy_bullets[0].velocity_x = (signed char)-2;
+    game.enemy_bullets[0].velocity_y = 0;
+    reset_game_sound(&game);
+    game_update(&game, GAME_INPUT_FIRE);
+    expect(game.dying != 0u &&
+        game.sound.sfx_id == SOUND_SFX_PLAYER_EXPLOSION,
+        "same-update real damage replaces shot and enemy-defeat SFX");
+
+    enter_boss(&game, 1u);
+    game.boss.hp = 1u;
+    game.bullets[0].active = 1u;
+    game.bullets[0].rect.x =
+        (unsigned char)(game.boss.rect.x - 4u);
+    game.bullets[0].rect.y = game.boss.rect.y;
+    reset_game_sound(&game);
+    game_update(&game, GAME_INPUT_FIRE);
+    expect(game.sound.sfx_id == SOUND_SFX_BOSS_DEFEAT &&
+        game.sound.pending_stage_clear != 0u,
+        "boss defeat overrides same-update shot and retains clear follow-up");
+}
+
 int main(void)
 {
     test_stage_one_configuration();
@@ -2640,6 +2985,11 @@ int main(void)
     test_stage_three_rockfall();
     test_environment_phase_boundaries_and_restart();
     test_all_clear_restart();
+    test_sound_initial_phase_and_fire_integration();
+    test_sound_enemy_asteroid_and_power_integration();
+    test_sound_damage_freeze_and_warning_integration();
+    test_sound_boss_chain_stage_terminal_and_restart();
+    test_sound_simultaneous_priority_integration();
     printf("PASS: %u game logic checks\n", checks);
     return EXIT_SUCCESS;
 }
