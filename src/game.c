@@ -2,7 +2,6 @@
 
 #define PLAYER_SPEED 2u
 #define BULLET_SPEED 4u
-#define ENEMY_BULLET_SPEED 2u
 #define FIRE_COOLDOWN_FRAMES 8u
 #define ENEMY_MIN_Y (GAME_HUD_HEIGHT + 3u)
 #define ENEMY_Y_RANGE 78u
@@ -14,7 +13,14 @@
 #define ENEMY_SCOUT_FIRE_INTERVAL 90u
 #define ENEMY_SAUCER_FIRE_INTERVAL 60u
 #define ENEMY_DROPPER_FIRE_INTERVAL 75u
+#define ENEMY_FIGHTER_FIRE_INTERVAL 72u
+#define ENEMY_BOMBER_FIRE_INTERVAL 96u
+#define ENEMY_SUPPLY_FIRE_INTERVAL 84u
+#define ENEMY_CAVE_BAT_FIRE_INTERVAL 66u
+#define ENEMY_ROCK_WORM_FIRE_INTERVAL 84u
+#define ENEMY_MINING_DRONE_FIRE_INTERVAL 78u
 #define POWER_ITEM_MOVE_INTERVAL 2u
+#define BOSS_MOVE_INTERVAL 2u
 
 typedef struct EnemyMovementConfig {
     unsigned char horizontal_speed;
@@ -23,19 +29,137 @@ typedef struct EnemyMovementConfig {
     unsigned char behavior;
 } EnemyMovementConfig;
 
+typedef struct GameEnemyFormationConfig {
+    const GameEnemyFormationSlot* slots;
+    unsigned char respawn_x;
+    unsigned char respawn_spacing;
+    unsigned char respawn_min_y;
+    unsigned char respawn_y_range;
+    unsigned char respawn_y_multiplier;
+    unsigned char respawn_type_a;
+    unsigned char respawn_type_b;
+    unsigned char fixed_type;
+    unsigned char fire_phase_spacing;
+} GameEnemyFormationConfig;
+
 static const EnemyMovementConfig enemy_movements[3] = {
     { 1u, 0u, 0u, GAME_ENEMY_PATTERN_STRAIGHT },
     { 1u, 3u, 6u, GAME_ENEMY_PATTERN_WAVE },
     { 1u, 2u, 12u, GAME_ENEMY_PATTERN_DIVE }
 };
 
-static const unsigned char initial_enemy_x[GAME_MAX_ENEMIES] = {
-    140u, 170u, 200u, 230u
+static const GameEnemyFormationSlot space_formation_slots[
+    GAME_MAX_ENEMIES] = {
+    { 140u, 47u, GAME_ENEMY_TYPE_SCOUT, GAME_ENEMY_PATTERN_STRAIGHT,
+        ENEMY_SCOUT_FIRE_INTERVAL, 0u },
+    { 170u, 23u, GAME_ENEMY_TYPE_SAUCER, GAME_ENEMY_PATTERN_WAVE,
+        ENEMY_SAUCER_FIRE_INTERVAL, 15u },
+    { 200u, 70u, GAME_ENEMY_TYPE_SCOUT, GAME_ENEMY_PATTERN_DIVE,
+        ENEMY_SCOUT_FIRE_INTERVAL, 30u },
+    { 230u, 38u, GAME_ENEMY_TYPE_DROPPER, GAME_ENEMY_PATTERN_STRAIGHT,
+        ENEMY_DROPPER_FIRE_INTERVAL, 45u }
 };
 
-static const unsigned char initial_enemy_y[GAME_MAX_ENEMIES] = {
-    47u, 23u, 70u, 38u
+static const GameEnemyFormationSlot air_formation_slots[
+    GAME_MAX_ENEMIES] = {
+    { 144u, 24u, GAME_ENEMY_TYPE_FIGHTER, GAME_ENEMY_PATTERN_STRAIGHT,
+        ENEMY_FIGHTER_FIRE_INTERVAL, 0u },
+    { 180u, 64u, GAME_ENEMY_TYPE_BOMBER, GAME_ENEMY_PATTERN_WAVE,
+        ENEMY_BOMBER_FIRE_INTERVAL, 18u },
+    { 212u, 42u, GAME_ENEMY_TYPE_FIGHTER, GAME_ENEMY_PATTERN_DIVE,
+        ENEMY_FIGHTER_FIRE_INTERVAL, 36u },
+    { 244u, 78u, GAME_ENEMY_TYPE_SUPPLY, GAME_ENEMY_PATTERN_WAVE,
+        ENEMY_SUPPLY_FIRE_INTERVAL, 54u }
 };
+
+static const GameEnemyFormationSlot cave_formation_slots[
+    GAME_MAX_ENEMIES] = {
+    { 148u, 22u, GAME_ENEMY_TYPE_CAVE_BAT, GAME_ENEMY_PATTERN_WAVE,
+        ENEMY_CAVE_BAT_FIRE_INTERVAL, 0u },
+    { 184u, 72u, GAME_ENEMY_TYPE_ROCK_WORM, GAME_ENEMY_PATTERN_DIVE,
+        ENEMY_ROCK_WORM_FIRE_INTERVAL, 16u },
+    { 216u, 44u, GAME_ENEMY_TYPE_CAVE_BAT, GAME_ENEMY_PATTERN_STRAIGHT,
+        ENEMY_CAVE_BAT_FIRE_INTERVAL, 32u },
+    { 248u, 82u, GAME_ENEMY_TYPE_MINING_DRONE, GAME_ENEMY_PATTERN_WAVE,
+        ENEMY_MINING_DRONE_FIRE_INTERVAL, 48u }
+};
+
+static const GameEnemyFormationConfig enemy_formation_configs[
+    GAME_ENEMY_FORMATION_COUNT] = {
+    { space_formation_slots, 180u, 16u, ENEMY_MIN_Y, ENEMY_Y_RANGE,
+        17u, GAME_ENEMY_TYPE_SCOUT, GAME_ENEMY_TYPE_SAUCER,
+        GAME_ENEMY_TYPE_DROPPER, 15u },
+    { air_formation_slots, 184u, 18u, 14u, 76u,
+        19u, GAME_ENEMY_TYPE_FIGHTER, GAME_ENEMY_TYPE_BOMBER,
+        GAME_ENEMY_TYPE_SUPPLY, 18u },
+    { cave_formation_slots, 188u, 18u, 16u, 74u,
+        23u, GAME_ENEMY_TYPE_CAVE_BAT, GAME_ENEMY_TYPE_ROCK_WORM,
+        GAME_ENEMY_TYPE_MINING_DRONE, 16u }
+};
+
+static const GameBossStep boss_steps[7] = {
+    { GAME_BOSS_SHOT_STRAIGHT, 120u, 20u, GAME_BOSS_MOVE_STILL },
+    { GAME_BOSS_SHOT_FAN, 120u, 60u, GAME_BOSS_MOVE_STILL },
+    { GAME_BOSS_SHOT_CANNON_CYCLE, 120u, 20u, GAME_BOSS_MOVE_VERTICAL },
+    { GAME_BOSS_SHOT_CANNON_CYCLE, 120u, 15u, GAME_BOSS_MOVE_VERTICAL },
+    { GAME_BOSS_SHOT_BURST, 90u, 10u, GAME_BOSS_MOVE_STILL },
+    { GAME_BOSS_SHOT_PINCER, 120u, 40u, GAME_BOSS_MOVE_STILL },
+    { GAME_BOSS_SHOT_PINCER, 120u, 60u, GAME_BOSS_MOVE_WIDE }
+};
+
+static const GameBossConfig boss_configs[GAME_STAGE_COUNT] = {
+    { 24u, 16u, 132u, 43u, 60u, 2000u,
+        GAME_BOSS_MOVE_STILL, 0u, 2u },
+    { 28u, 14u, 128u, 44u, 90u, 3000u,
+        GAME_BOSS_MOVE_VERTICAL, 2u, 2u },
+    { 24u, 24u, 132u, 39u, 120u, 5000u,
+        GAME_BOSS_MOVE_WIDE, 4u, 3u }
+};
+
+static const GameStageConfig stage_configs[GAME_STAGE_COUNT] = {
+    { GAME_BACKGROUND_THEME_SPACE, GAME_ENEMY_FORMATION_SPACE, 0u,
+        GAME_BOSS_APPEARANCE_SPACE_FORTRESS },
+    { GAME_BACKGROUND_THEME_SKY, GAME_ENEMY_FORMATION_AIR, 1u,
+        GAME_BOSS_APPEARANCE_AIR_CARRIER },
+    { GAME_BACKGROUND_THEME_CAVE, GAME_ENEMY_FORMATION_CAVE, 2u,
+        GAME_BOSS_APPEARANCE_ROCK_GUARDIAN }
+};
+
+static void enter_phase(GameState* game, unsigned char phase);
+
+const GameStageConfig* game_get_stage_config(unsigned char stage)
+{
+    if (stage < 1u || stage > GAME_STAGE_COUNT) {
+        return (const GameStageConfig*)0;
+    }
+    return &stage_configs[stage - 1u];
+}
+
+const GameEnemyFormationSlot* game_get_enemy_formation_slot(
+    unsigned char formation_id, unsigned char slot)
+{
+    if (formation_id >= GAME_ENEMY_FORMATION_COUNT ||
+        slot >= GAME_MAX_ENEMIES) {
+        return (const GameEnemyFormationSlot*)0;
+    }
+    return &enemy_formation_configs[formation_id].slots[slot];
+}
+
+const GameBossConfig* game_get_boss_config(unsigned char stage)
+{
+    if (stage < 1u || stage > GAME_STAGE_COUNT) {
+        return (const GameBossConfig*)0;
+    }
+    return &boss_configs[stage_configs[stage - 1u].boss_config_id];
+}
+
+const GameBossStep* game_get_boss_step(unsigned char index)
+{
+    if (index >= 7u) {
+        return (const GameBossStep*)0;
+    }
+    return &boss_steps[index];
+}
 
 static void clear_player_bullets(GameState* game)
 {
@@ -61,6 +185,38 @@ static void clear_enemy_bullets(GameState* game)
     }
 }
 
+static void clear_enemies(GameState* game)
+{
+    unsigned char i;
+
+    for (i = 0u; i < GAME_MAX_ENEMIES; ++i) {
+        game->enemies[i].active = 0u;
+    }
+}
+
+static void clear_boss(GameState* game)
+{
+    game->boss.active = 0u;
+    game->boss.hp = 0u;
+    game->boss.max_hp = 0u;
+    game->boss.config_id = 0u;
+    game->boss.appearance_id = GAME_BOSS_APPEARANCE_COMMON;
+    game->boss.script_step = 0u;
+    game->boss.attack_timer = 0u;
+    game->boss.move_phase = 0u;
+    game->boss.direction = ENEMY_DIRECTION_DOWN;
+    game->boss.alternate_cannon = 0u;
+}
+
+static void clear_combat_objects(GameState* game)
+{
+    clear_enemies(game);
+    clear_player_bullets(game);
+    clear_enemy_bullets(game);
+    clear_power_item(game);
+    game->fire_cooldown = 0u;
+}
+
 static unsigned char enemy_fire_interval(unsigned char type)
 {
     if (type == GAME_ENEMY_TYPE_SCOUT) {
@@ -69,7 +225,32 @@ static unsigned char enemy_fire_interval(unsigned char type)
     if (type == GAME_ENEMY_TYPE_SAUCER) {
         return ENEMY_SAUCER_FIRE_INTERVAL;
     }
-    return ENEMY_DROPPER_FIRE_INTERVAL;
+    if (type == GAME_ENEMY_TYPE_DROPPER) {
+        return ENEMY_DROPPER_FIRE_INTERVAL;
+    }
+    if (type == GAME_ENEMY_TYPE_FIGHTER) {
+        return ENEMY_FIGHTER_FIRE_INTERVAL;
+    }
+    if (type == GAME_ENEMY_TYPE_BOMBER) {
+        return ENEMY_BOMBER_FIRE_INTERVAL;
+    }
+    if (type == GAME_ENEMY_TYPE_SUPPLY) {
+        return ENEMY_SUPPLY_FIRE_INTERVAL;
+    }
+    if (type == GAME_ENEMY_TYPE_CAVE_BAT) {
+        return ENEMY_CAVE_BAT_FIRE_INTERVAL;
+    }
+    if (type == GAME_ENEMY_TYPE_ROCK_WORM) {
+        return ENEMY_ROCK_WORM_FIRE_INTERVAL;
+    }
+    return ENEMY_MINING_DRONE_FIRE_INTERVAL;
+}
+
+static unsigned char enemy_drops_power(unsigned char type)
+{
+    return (unsigned char)(type == GAME_ENEMY_TYPE_DROPPER ||
+        type == GAME_ENEMY_TYPE_SUPPLY ||
+        type == GAME_ENEMY_TYPE_MINING_DRONE);
 }
 
 static unsigned char clamp_enemy_y(int y)
@@ -86,11 +267,11 @@ static unsigned char clamp_enemy_y(int y)
     return (unsigned char)y;
 }
 
-static void configure_enemy(GameEnemy* enemy, unsigned char slot,
-    unsigned char type, unsigned char pattern, unsigned char base_y)
+static void configure_enemy(GameEnemy* enemy, unsigned char type,
+    unsigned char pattern, unsigned char base_y,
+    unsigned char fire_interval, unsigned char fire_phase)
 {
     const EnemyMovementConfig* movement;
-    unsigned char interval;
 
     enemy->active = 1u;
     enemy->type = type;
@@ -105,38 +286,67 @@ static void configure_enemy(GameEnemy* enemy, unsigned char slot,
         enemy->phase = 0u;
     }
     enemy->rect.y = clamp_enemy_y(base_y);
-    interval = enemy_fire_interval(type);
-    enemy->fire_counter = (unsigned char)(((unsigned int)slot * 15u) % interval);
+    enemy->fire_interval = fire_interval;
+    enemy->fire_counter = (unsigned char)(fire_phase % fire_interval);
+    enemy->drops_power = enemy_drops_power(type);
 }
 
 static void reset_enemy_formation(GameState* game)
 {
+    const GameStageConfig* stage_config;
+    const GameEnemyFormationConfig* formation;
     unsigned char i;
 
+    stage_config = &stage_configs[game->stage - 1u];
+    formation = &enemy_formation_configs[stage_config->enemy_formation_id];
     game->respawn_sequence = 0u;
     for (i = 0u; i < GAME_MAX_ENEMIES; ++i) {
-        game->enemies[i].rect.x = initial_enemy_x[i];
-        configure_enemy(&game->enemies[i], i,
-            i == 3u ? GAME_ENEMY_TYPE_DROPPER :
-                (unsigned char)(i % 2u),
-            (unsigned char)(i % 3u), initial_enemy_y[i]);
+        const GameEnemyFormationSlot* slot_config;
+
+        slot_config = &formation->slots[i];
+        game->enemies[i].rect.x = slot_config->x;
+        configure_enemy(&game->enemies[i], slot_config->type,
+            slot_config->pattern, slot_config->y,
+            slot_config->fire_interval, slot_config->fire_phase);
     }
 }
 
 static void respawn_enemy(GameState* game, unsigned char slot)
 {
+    const GameStageConfig* stage_config;
+    const GameEnemyFormationConfig* formation;
     unsigned int seed;
     GameEnemy* enemy;
+    unsigned char type;
 
+    stage_config = &stage_configs[game->stage - 1u];
+    formation = &enemy_formation_configs[stage_config->enemy_formation_id];
     game->respawn_sequence = (unsigned char)(game->respawn_sequence + 1u);
     seed = (unsigned int)game->respawn_sequence + slot;
     enemy = &game->enemies[slot];
-    enemy->rect.x = (unsigned char)(180u + (unsigned int)slot * 16u);
-    configure_enemy(enemy, slot,
-        slot == 3u ? GAME_ENEMY_TYPE_DROPPER :
-            (unsigned char)(seed % 2u),
+    enemy->rect.x = (unsigned char)(formation->respawn_x +
+        (unsigned int)slot * formation->respawn_spacing);
+    type = slot == 3u ? formation->fixed_type :
+        ((seed % 2u) == 0u ? formation->respawn_type_a :
+            formation->respawn_type_b);
+    configure_enemy(enemy, type,
         (unsigned char)(seed % 3u),
-        (unsigned char)(ENEMY_MIN_Y + (seed * 17u) % ENEMY_Y_RANGE));
+        (unsigned char)(formation->respawn_min_y +
+            (seed * formation->respawn_y_multiplier) %
+                formation->respawn_y_range),
+        enemy_fire_interval(type),
+        (unsigned char)((unsigned int)slot *
+            formation->fire_phase_spacing));
+}
+
+static void reset_background_scroll(GameState* game)
+{
+    game->planet_offset = 0u;
+    game->planet_counter = 0u;
+    game->far_star_offset = 0u;
+    game->near_star_offset = 0u;
+    game->far_star_counter = 0u;
+    game->near_star_counter = 0u;
 }
 
 static void update_scrolling(GameState* game)
@@ -175,6 +385,38 @@ static void update_scrolling(GameState* game)
     if (game->animation_counter == ANIMATION_INTERVAL) {
         game->animation_counter = 0u;
         game->animation_frame = (unsigned char)(1u - game->animation_frame);
+    }
+}
+
+static void move_player(GameState* game, unsigned char input)
+{
+    if ((input & GAME_INPUT_LEFT) != 0u) {
+        if (game->player.x >= PLAYER_SPEED) {
+            game->player.x = (unsigned char)(game->player.x - PLAYER_SPEED);
+        } else {
+            game->player.x = 0u;
+        }
+    }
+    if ((input & GAME_INPUT_RIGHT) != 0u &&
+        game->player.x < GAME_SCREEN_WIDTH - GAME_PLAYER_WIDTH) {
+        game->player.x = (unsigned char)(game->player.x + PLAYER_SPEED);
+        if (game->player.x > GAME_SCREEN_WIDTH - GAME_PLAYER_WIDTH) {
+            game->player.x = GAME_SCREEN_WIDTH - GAME_PLAYER_WIDTH;
+        }
+    }
+    if ((input & GAME_INPUT_UP) != 0u) {
+        if (game->player.y >= GAME_HUD_HEIGHT + PLAYER_SPEED) {
+            game->player.y = (unsigned char)(game->player.y - PLAYER_SPEED);
+        } else {
+            game->player.y = GAME_HUD_HEIGHT;
+        }
+    }
+    if ((input & GAME_INPUT_DOWN) != 0u &&
+        game->player.y < GAME_SCREEN_HEIGHT - GAME_PLAYER_HEIGHT) {
+        game->player.y = (unsigned char)(game->player.y + PLAYER_SPEED);
+        if (game->player.y > GAME_SCREEN_HEIGHT - GAME_PLAYER_HEIGHT) {
+            game->player.y = GAME_SCREEN_HEIGHT - GAME_PLAYER_HEIGHT;
+        }
     }
 }
 
@@ -314,22 +556,204 @@ static void update_power_item(GameState* game)
     }
 }
 
+static unsigned char spawn_enemy_bullet(GameState* game, int x, int y,
+    signed char velocity_x, signed char velocity_y)
+{
+    unsigned char i;
+
+    if (x < 0 || x >= (int)GAME_SCREEN_WIDTH ||
+        y < 0 || y >= (int)GAME_SCREEN_HEIGHT) {
+        return 0u;
+    }
+    for (i = 0u; i < GAME_MAX_ENEMY_BULLETS; ++i) {
+        if (game->enemy_bullets[i].active == 0u) {
+            game->enemy_bullets[i].active = 1u;
+            game->enemy_bullets[i].rect.x = (unsigned char)x;
+            game->enemy_bullets[i].rect.y = (unsigned char)y;
+            game->enemy_bullets[i].velocity_x = velocity_x;
+            game->enemy_bullets[i].velocity_y = velocity_y;
+            return 1u;
+        }
+    }
+    return 0u;
+}
+
 static void fire_enemy_bullet(GameState* game, const GameEnemy* enemy)
+{
+    int x;
+
+    x = enemy->rect.x;
+    if (x > (int)(GAME_SCREEN_WIDTH - GAME_ENEMY_BULLET_WIDTH)) {
+        x = (int)(GAME_SCREEN_WIDTH - GAME_ENEMY_BULLET_WIDTH);
+    }
+    (void)spawn_enemy_bullet(game, x, (int)enemy->rect.y + 3,
+        (signed char)-2, (signed char)0);
+}
+
+static void update_enemy_bullets(GameState* game)
 {
     unsigned char i;
 
     for (i = 0u; i < GAME_MAX_ENEMY_BULLETS; ++i) {
+        int x;
+        int y;
+
         if (game->enemy_bullets[i].active == 0u) {
-            game->enemy_bullets[i].active = 1u;
-            if (enemy->rect.x > GAME_SCREEN_WIDTH - GAME_ENEMY_BULLET_WIDTH) {
-                game->enemy_bullets[i].rect.x =
-                    GAME_SCREEN_WIDTH - GAME_ENEMY_BULLET_WIDTH;
-            } else {
-                game->enemy_bullets[i].rect.x = enemy->rect.x;
-            }
-            game->enemy_bullets[i].rect.y =
-                (unsigned char)(enemy->rect.y + 3u);
-            return;
+            continue;
+        }
+        x = (int)game->enemy_bullets[i].rect.x +
+            (int)game->enemy_bullets[i].velocity_x;
+        y = (int)game->enemy_bullets[i].rect.y +
+            (int)game->enemy_bullets[i].velocity_y;
+        if (x < 0 || x >= (int)GAME_SCREEN_WIDTH ||
+            y < 0 || y >= (int)GAME_SCREEN_HEIGHT) {
+            game->enemy_bullets[i].active = 0u;
+        } else {
+            game->enemy_bullets[i].rect.x = (unsigned char)x;
+            game->enemy_bullets[i].rect.y = (unsigned char)y;
+        }
+    }
+}
+
+static void reset_boss_runtime(GameState* game, unsigned char preserve_hp)
+{
+    const GameBossConfig* config;
+    unsigned char hp;
+
+    config = &boss_configs[game->boss.config_id];
+    hp = game->boss.hp;
+    game->boss.active = 1u;
+    game->boss.rect.x = config->stop_x;
+    game->boss.rect.y = config->start_y;
+    game->boss.rect.width = config->width;
+    game->boss.rect.height = config->height;
+    game->boss.max_hp = config->max_hp;
+    game->boss.hp = preserve_hp != 0u ? hp : config->max_hp;
+    game->boss.script_step = 0u;
+    game->boss.attack_timer = 0u;
+    game->boss.move_phase = 0u;
+    game->boss.direction = ENEMY_DIRECTION_DOWN;
+    game->boss.alternate_cannon = 0u;
+}
+
+static void initialize_boss(GameState* game)
+{
+    game->boss.config_id = stage_configs[game->stage - 1u].boss_config_id;
+    game->boss.appearance_id =
+        stage_configs[game->stage - 1u].boss_appearance_id;
+    reset_boss_runtime(game, 0u);
+}
+
+static void move_boss(GameState* game, unsigned char movement)
+{
+    const GameBossConfig* config;
+    unsigned char amplitude;
+    unsigned char minimum_y;
+    unsigned char maximum_y;
+
+    if (movement == GAME_BOSS_MOVE_STILL) {
+        return;
+    }
+    ++game->boss.move_phase;
+    if (game->boss.move_phase != BOSS_MOVE_INTERVAL) {
+        return;
+    }
+    game->boss.move_phase = 0u;
+    config = &boss_configs[game->boss.config_id];
+    amplitude = movement == GAME_BOSS_MOVE_WIDE ? 18u : 12u;
+    minimum_y = (unsigned char)(config->start_y - amplitude);
+    maximum_y = (unsigned char)(config->start_y + amplitude);
+    if (game->boss.direction == ENEMY_DIRECTION_DOWN) {
+        if (game->boss.rect.y < maximum_y) {
+            ++game->boss.rect.y;
+        } else {
+            game->boss.direction = ENEMY_DIRECTION_UP;
+            --game->boss.rect.y;
+        }
+    } else if (game->boss.rect.y > minimum_y) {
+        --game->boss.rect.y;
+    } else {
+        game->boss.direction = ENEMY_DIRECTION_DOWN;
+        ++game->boss.rect.y;
+    }
+    if (movement == GAME_BOSS_MOVE_WIDE) {
+        if (game->boss.direction == ENEMY_DIRECTION_DOWN) {
+            game->boss.rect.x = (unsigned char)(config->stop_x - 4u);
+        } else {
+            game->boss.rect.x = config->stop_x;
+        }
+    }
+}
+
+static void fire_boss_shot(GameState* game, unsigned char shot_type)
+{
+    int x;
+    int center;
+    int top;
+    int bottom;
+
+    x = (int)game->boss.rect.x - (int)GAME_ENEMY_BULLET_WIDTH;
+    center = (int)game->boss.rect.y + (int)game->boss.rect.height / 2;
+    top = (int)game->boss.rect.y + 2;
+    bottom = (int)game->boss.rect.y + (int)game->boss.rect.height - 4;
+    if (shot_type == GAME_BOSS_SHOT_STRAIGHT ||
+        shot_type == GAME_BOSS_SHOT_BURST) {
+        (void)spawn_enemy_bullet(game, x,
+            shot_type == GAME_BOSS_SHOT_STRAIGHT ?
+                (int)game->boss.rect.y + 4 : center,
+            (signed char)-2, (signed char)0);
+    } else if (shot_type == GAME_BOSS_SHOT_FAN) {
+        (void)spawn_enemy_bullet(game, x, center,
+            (signed char)-2, (signed char)-1);
+        (void)spawn_enemy_bullet(game, x, center,
+            (signed char)-2, (signed char)0);
+        (void)spawn_enemy_bullet(game, x, center,
+            (signed char)-2, (signed char)1);
+    } else if (shot_type == GAME_BOSS_SHOT_ALTERNATE) {
+        (void)spawn_enemy_bullet(game, x,
+            game->boss.alternate_cannon == 0u ? top : bottom,
+            (signed char)-2, (signed char)0);
+        game->boss.alternate_cannon =
+            (unsigned char)(1u - game->boss.alternate_cannon);
+    } else if (shot_type == GAME_BOSS_SHOT_CANNON_CYCLE) {
+        int cannon_y;
+
+        cannon_y = game->boss.alternate_cannon == 0u ? top :
+            (game->boss.alternate_cannon == 1u ? center : bottom);
+        (void)spawn_enemy_bullet(game, x, cannon_y,
+            (signed char)-2, (signed char)0);
+        ++game->boss.alternate_cannon;
+        if (game->boss.alternate_cannon == 3u) {
+            game->boss.alternate_cannon = 0u;
+        }
+    } else {
+        (void)spawn_enemy_bullet(game, x, top,
+            (signed char)-2, (signed char)1);
+        (void)spawn_enemy_bullet(game, x, bottom,
+            (signed char)-2, (signed char)-1);
+    }
+}
+
+static void update_boss_attack(GameState* game)
+{
+    const GameBossConfig* config;
+    const GameBossStep* step;
+    unsigned char step_index;
+
+    config = &boss_configs[game->boss.config_id];
+    step_index = (unsigned char)(config->script_offset +
+        game->boss.script_step);
+    step = &boss_steps[step_index];
+    ++game->boss.attack_timer;
+    if ((unsigned char)(game->boss.attack_timer % step->fire_interval) == 0u) {
+        fire_boss_shot(game, step->shot_type);
+    }
+    move_boss(game, step->movement);
+    if (game->boss.attack_timer == step->duration) {
+        game->boss.attack_timer = 0u;
+        ++game->boss.script_step;
+        if (game->boss.script_step == config->script_count) {
+            game->boss.script_step = 0u;
         }
     }
 }
@@ -366,8 +790,33 @@ static void update_player_death(GameState* game)
     clear_enemy_bullets(game);
     clear_power_item(game);
     game->fire_cooldown = 0u;
-    reset_enemy_formation(game);
+    if (game->phase == GAME_PHASE_BOSS) {
+        reset_boss_runtime(game, 1u);
+        clear_enemies(game);
+    } else {
+        reset_enemy_formation(game);
+        clear_boss(game);
+    }
     game->invincibility_timer = GAME_INVINCIBILITY_FRAMES;
+    if (game->phase == GAME_PHASE_NORMAL &&
+        game->phase_timer == GAME_NORMAL_FRAMES) {
+        enter_phase(game, GAME_PHASE_WARNING);
+    }
+}
+
+static void enter_phase(GameState* game, unsigned char phase)
+{
+    game->phase = phase;
+    game->phase_timer = 0u;
+    clear_combat_objects(game);
+    clear_boss(game);
+    if (phase == GAME_PHASE_NORMAL) {
+        reset_enemy_formation(game);
+    } else if (phase == GAME_PHASE_BOSS) {
+        initialize_boss(game);
+    } else if (phase == GAME_PHASE_ALL_CLEAR) {
+        game->restart_armed = 0u;
+    }
 }
 
 void game_init(GameState* game)
@@ -396,12 +845,16 @@ void game_init(GameState* game)
     game->near_star_counter = 0u;
     game->animation_counter = 0u;
     game->animation_frame = 0u;
+    game->stage = 1u;
+    game->phase = GAME_PHASE_STAGE_INTRO;
+    game->phase_timer = 0u;
 
     for (i = 0u; i < GAME_MAX_ENEMIES; ++i) {
         game->enemies[i].rect.width = GAME_ENEMY_WIDTH;
         game->enemies[i].rect.height = GAME_ENEMY_HEIGHT;
     }
     reset_enemy_formation(game);
+    clear_enemies(game);
     for (i = 0u; i < GAME_MAX_PLAYER_BULLETS; ++i) {
         game->bullets[i].active = 0u;
         game->bullets[i].rect.x = 0u;
@@ -415,12 +868,19 @@ void game_init(GameState* game)
         game->enemy_bullets[i].rect.y = 0u;
         game->enemy_bullets[i].rect.width = GAME_ENEMY_BULLET_WIDTH;
         game->enemy_bullets[i].rect.height = GAME_ENEMY_BULLET_HEIGHT;
+        game->enemy_bullets[i].velocity_x = (signed char)-2;
+        game->enemy_bullets[i].velocity_y = (signed char)0;
     }
     game->power_item.rect.x = 0u;
     game->power_item.rect.y = 0u;
     game->power_item.rect.width = GAME_POWER_ITEM_WIDTH;
     game->power_item.rect.height = GAME_POWER_ITEM_HEIGHT;
     clear_power_item(game);
+    game->boss.rect.x = 0u;
+    game->boss.rect.y = 0u;
+    game->boss.rect.width = 0u;
+    game->boss.rect.height = 0u;
+    clear_boss(game);
 }
 
 unsigned char game_aabb_intersects(const GameRect* a, const GameRect* b)
@@ -444,76 +904,14 @@ unsigned char game_player_is_visible(const GameState* game)
     return (unsigned char)(((elapsed / 4u) % 2u) == 0u);
 }
 
-void game_update(GameState* game, unsigned char input)
+static unsigned char update_player_bullets_normal(GameState* game,
+    unsigned char* hit_enemies)
 {
     unsigned char i;
     unsigned char j;
-    unsigned char was_invincible;
-    unsigned char damage;
     unsigned char power_item_created;
-    unsigned char hit_enemies[GAME_MAX_ENEMIES];
-
-    if (game->game_over != 0u) {
-        if ((input & GAME_INPUT_FIRE) == 0u) {
-            game->restart_armed = 1u;
-        } else if (game->restart_armed != 0u) {
-            game_init(game);
-        }
-        return;
-    }
-    if (game->dying != 0u) {
-        update_player_death(game);
-        return;
-    }
-
-    was_invincible = (unsigned char)(game->invincibility_timer != 0u);
-    if (was_invincible != 0u) {
-        --game->invincibility_timer;
-    }
-    update_scrolling(game);
-
-    if ((input & GAME_INPUT_LEFT) != 0u) {
-        if (game->player.x >= PLAYER_SPEED) {
-            game->player.x = (unsigned char)(game->player.x - PLAYER_SPEED);
-        } else {
-            game->player.x = 0u;
-        }
-    }
-    if ((input & GAME_INPUT_RIGHT) != 0u &&
-        game->player.x < GAME_SCREEN_WIDTH - GAME_PLAYER_WIDTH) {
-        game->player.x = (unsigned char)(game->player.x + PLAYER_SPEED);
-        if (game->player.x > GAME_SCREEN_WIDTH - GAME_PLAYER_WIDTH) {
-            game->player.x = GAME_SCREEN_WIDTH - GAME_PLAYER_WIDTH;
-        }
-    }
-    if ((input & GAME_INPUT_UP) != 0u) {
-        if (game->player.y >= GAME_HUD_HEIGHT + PLAYER_SPEED) {
-            game->player.y = (unsigned char)(game->player.y - PLAYER_SPEED);
-        } else {
-            game->player.y = GAME_HUD_HEIGHT;
-        }
-    }
-    if ((input & GAME_INPUT_DOWN) != 0u &&
-        game->player.y < GAME_SCREEN_HEIGHT - GAME_PLAYER_HEIGHT) {
-        game->player.y = (unsigned char)(game->player.y + PLAYER_SPEED);
-        if (game->player.y > GAME_SCREEN_HEIGHT - GAME_PLAYER_HEIGHT) {
-            game->player.y = GAME_SCREEN_HEIGHT - GAME_PLAYER_HEIGHT;
-        }
-    }
-
-    if (game->fire_cooldown != 0u) {
-        --game->fire_cooldown;
-    }
-    if ((input & GAME_INPUT_FIRE) != 0u && game->fire_cooldown == 0u) {
-        if (fire_player_bullets(game) != 0u) {
-            game->fire_cooldown = FIRE_COOLDOWN_FRAMES;
-        }
-    }
 
     power_item_created = 0u;
-    for (i = 0u; i < GAME_MAX_ENEMIES; ++i) {
-        hit_enemies[i] = 0u;
-    }
     for (i = 0u; i < GAME_MAX_PLAYER_BULLETS; ++i) {
         if (game->bullets[i].active == 0u) {
             continue;
@@ -533,7 +931,7 @@ void game_update(GameState* game, unsigned char input)
                     &game->enemies[j].rect) != 0u) {
                 game->bullets[i].active = 0u;
                 game->score += 100ul;
-                if (game->enemies[j].type == GAME_ENEMY_TYPE_DROPPER) {
+                if (game->enemies[j].drops_power != 0u) {
                     power_item_created = spawn_power_item(game,
                         &game->enemies[j]);
                 }
@@ -543,17 +941,48 @@ void game_update(GameState* game, unsigned char input)
             }
         }
     }
+    return power_item_created;
+}
 
-    for (i = 0u; i < GAME_MAX_ENEMY_BULLETS; ++i) {
-        if (game->enemy_bullets[i].active != 0u) {
-            if (game->enemy_bullets[i].rect.x < ENEMY_BULLET_SPEED) {
-                game->enemy_bullets[i].active = 0u;
-            } else {
-                game->enemy_bullets[i].rect.x = (unsigned char)(
-                    game->enemy_bullets[i].rect.x - ENEMY_BULLET_SPEED);
-            }
-        }
+static void apply_damage(GameState* game, unsigned char damage,
+    unsigned char was_invincible)
+{
+    if (damage == 0u) {
+        return;
     }
+    if (was_invincible != 0u) {
+        if (game->phase == GAME_PHASE_NORMAL) {
+            reset_enemy_formation(game);
+        } else if (game->phase == GAME_PHASE_BOSS) {
+            reset_boss_runtime(game, 1u);
+        }
+        clear_enemy_bullets(game);
+    } else {
+        begin_player_death(game);
+    }
+}
+
+static void update_normal(GameState* game, unsigned char input,
+    unsigned char was_invincible)
+{
+    unsigned char i;
+    unsigned char hit_enemies[GAME_MAX_ENEMIES];
+    unsigned char power_item_created;
+    unsigned char damage;
+
+    move_player(game, input);
+    if (game->fire_cooldown != 0u) {
+        --game->fire_cooldown;
+    }
+    if ((input & GAME_INPUT_FIRE) != 0u && game->fire_cooldown == 0u &&
+        fire_player_bullets(game) != 0u) {
+        game->fire_cooldown = FIRE_COOLDOWN_FRAMES;
+    }
+    for (i = 0u; i < GAME_MAX_ENEMIES; ++i) {
+        hit_enemies[i] = 0u;
+    }
+    power_item_created = update_player_bullets_normal(game, hit_enemies);
+    update_enemy_bullets(game);
 
     for (i = 0u; i < GAME_MAX_ENEMIES; ++i) {
         GameEnemy* enemy;
@@ -568,14 +997,13 @@ void game_update(GameState* game, unsigned char input)
             continue;
         }
         update_enemy_movement(enemy);
-        interval = enemy_fire_interval(enemy->type);
+        interval = enemy->fire_interval;
         ++enemy->fire_counter;
         if (enemy->fire_counter == interval) {
             enemy->fire_counter = 0u;
             fire_enemy_bullet(game, enemy);
         }
     }
-
     if (power_item_created == 0u) {
         update_power_item(game);
     }
@@ -598,12 +1026,141 @@ void game_update(GameState* game, unsigned char input)
             damage = 1u;
         }
     }
-    if (damage != 0u) {
-        if (was_invincible != 0u) {
-            reset_enemy_formation(game);
-            clear_enemy_bullets(game);
-        } else {
-            begin_player_death(game);
+    apply_damage(game, damage, was_invincible);
+    ++game->phase_timer;
+    if (game->dying == 0u && game->phase_timer == GAME_NORMAL_FRAMES) {
+        enter_phase(game, GAME_PHASE_WARNING);
+    }
+}
+
+static unsigned char update_player_bullets_boss(GameState* game)
+{
+    unsigned char i;
+
+    for (i = 0u; i < GAME_MAX_PLAYER_BULLETS; ++i) {
+        if (game->bullets[i].active == 0u) {
+            continue;
         }
+        if (game->bullets[i].rect.x >
+            GAME_SCREEN_WIDTH - GAME_PLAYER_BULLET_WIDTH - BULLET_SPEED) {
+            game->bullets[i].active = 0u;
+            continue;
+        }
+        game->bullets[i].rect.x =
+            (unsigned char)(game->bullets[i].rect.x + BULLET_SPEED);
+        if (game->boss.active != 0u &&
+            game_aabb_intersects(&game->bullets[i].rect,
+                &game->boss.rect) != 0u) {
+            game->bullets[i].active = 0u;
+            if (game->boss.hp != 0u) {
+                --game->boss.hp;
+            }
+        }
+    }
+    return (unsigned char)(game->boss.hp == 0u);
+}
+
+static void defeat_boss(GameState* game)
+{
+    const GameBossConfig* config;
+
+    config = &boss_configs[game->boss.config_id];
+    game->score += config->defeat_score;
+    enter_phase(game, GAME_PHASE_STAGE_CLEAR);
+}
+
+static void update_boss(GameState* game, unsigned char input,
+    unsigned char was_invincible)
+{
+    unsigned char i;
+    unsigned char damage;
+
+    move_player(game, input);
+    if (game->fire_cooldown != 0u) {
+        --game->fire_cooldown;
+    }
+    if ((input & GAME_INPUT_FIRE) != 0u && game->fire_cooldown == 0u &&
+        fire_player_bullets(game) != 0u) {
+        game->fire_cooldown = FIRE_COOLDOWN_FRAMES;
+    }
+    if (update_player_bullets_boss(game) != 0u) {
+        defeat_boss(game);
+        return;
+    }
+    update_enemy_bullets(game);
+    update_boss_attack(game);
+
+    damage = (unsigned char)(game->boss.active != 0u &&
+        game_aabb_intersects(&game->player, &game->boss.rect) != 0u);
+    for (i = 0u; i < GAME_MAX_ENEMY_BULLETS; ++i) {
+        if (game->enemy_bullets[i].active != 0u &&
+            game_aabb_intersects(&game->player,
+                &game->enemy_bullets[i].rect) != 0u) {
+            game->enemy_bullets[i].active = 0u;
+            damage = 1u;
+        }
+    }
+    apply_damage(game, damage, was_invincible);
+    ++game->phase_timer;
+}
+
+void game_update(GameState* game, unsigned char input)
+{
+    unsigned char was_invincible;
+
+    if (game->game_over != 0u || game->phase == GAME_PHASE_ALL_CLEAR) {
+        if ((input & GAME_INPUT_FIRE) == 0u) {
+            game->restart_armed = 1u;
+        } else if (game->restart_armed != 0u) {
+            game_init(game);
+        }
+        return;
+    }
+    if (game->dying != 0u) {
+        update_player_death(game);
+        return;
+    }
+
+    if (game->phase == GAME_PHASE_STAGE_INTRO) {
+        update_scrolling(game);
+        ++game->phase_timer;
+        if (game->phase_timer == GAME_STAGE_INTRO_FRAMES) {
+            enter_phase(game, GAME_PHASE_NORMAL);
+        }
+        return;
+    }
+    if (game->phase == GAME_PHASE_WARNING) {
+        update_scrolling(game);
+        move_player(game, input);
+        ++game->phase_timer;
+        if (game->phase_timer == GAME_WARNING_FRAMES) {
+            enter_phase(game, GAME_PHASE_BOSS);
+        }
+        return;
+    }
+    if (game->phase == GAME_PHASE_STAGE_CLEAR) {
+        update_scrolling(game);
+        ++game->phase_timer;
+        if (game->phase_timer == GAME_STAGE_CLEAR_FRAMES) {
+            if (game->stage == GAME_STAGE_COUNT) {
+                enter_phase(game, GAME_PHASE_ALL_CLEAR);
+            } else {
+                ++game->stage;
+                reset_background_scroll(game);
+                enter_phase(game, GAME_PHASE_STAGE_INTRO);
+            }
+        }
+        return;
+    }
+
+    was_invincible = (unsigned char)(game->invincibility_timer != 0u);
+    if (was_invincible != 0u) {
+        --game->invincibility_timer;
+    }
+    update_scrolling(game);
+    if (game->phase == GAME_PHASE_NORMAL) {
+        update_normal(game, input, was_invincible);
+    } else {
+        update_boss(game, input, was_invincible);
     }
 }

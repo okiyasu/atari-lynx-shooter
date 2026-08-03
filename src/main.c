@@ -19,6 +19,22 @@
 #define GAME_COLOR_DROPPER 9u
 #define GAME_COLOR_POWER_ITEM 11u
 #define GAME_COLOR_EXPLOSION 14u
+#define GAME_COLOR_BOSS 13u
+#define GAME_COLOR_BOSS_DETAIL 5u
+#define GAME_COLOR_SKY 8u
+#define GAME_COLOR_MOUNTAIN 4u
+#define GAME_COLOR_MID_CLOUD 7u
+#define GAME_COLOR_NEAR_CLOUD 15u
+#define GAME_COLOR_FIGHTER 14u
+#define GAME_COLOR_BOMBER 6u
+#define GAME_COLOR_SUPPLY 11u
+#define GAME_COLOR_CAVE_WALL 1u
+#define GAME_COLOR_CAVE_SHADOW 3u
+#define GAME_COLOR_CAVE_ROCK 5u
+#define GAME_COLOR_CAVE_NEAR 13u
+#define GAME_COLOR_CAVE_BAT 12u
+#define GAME_COLOR_ROCK_WORM 9u
+#define GAME_COLOR_MINING_DRONE 14u
 #define SCORE_DIGITS 5u
 
 typedef struct Star {
@@ -30,42 +46,263 @@ typedef struct PlanetRun {
     unsigned char y;
     unsigned char x0;
     unsigned char x1;
-    unsigned char color;
+    unsigned char palette_index;
 } PlanetRun;
 
+typedef struct BackgroundTheme {
+    unsigned char background_color;
+    unsigned char planet_colors[2];
+    unsigned char far_star_color;
+    unsigned char near_star_color;
+} BackgroundTheme;
+
+typedef struct BossRun {
+    unsigned char y;
+    unsigned char x0;
+    unsigned char x1;
+    unsigned char palette_index;
+} BossRun;
+
+typedef struct SkyRun {
+    unsigned char y;
+    unsigned char x0;
+    unsigned char x1;
+} SkyRun;
+
+typedef struct CloudGroup {
+    unsigned char x;
+    unsigned char y;
+} CloudGroup;
+
+static const BackgroundTheme background_themes[
+    GAME_BACKGROUND_THEME_COUNT] = {
+    { GAME_COLOR_BLACK,
+        { GAME_COLOR_PLANET_BODY, GAME_COLOR_PLANET_DETAIL },
+        GAME_COLOR_FAR_STAR, GAME_COLOR_NEAR_STAR },
+    { GAME_COLOR_SKY,
+        { GAME_COLOR_MOUNTAIN, GAME_COLOR_MOUNTAIN },
+        GAME_COLOR_MID_CLOUD, GAME_COLOR_NEAR_CLOUD },
+    { GAME_COLOR_CAVE_WALL,
+        { GAME_COLOR_CAVE_SHADOW, GAME_COLOR_CAVE_SHADOW },
+        GAME_COLOR_CAVE_ROCK, GAME_COLOR_CAVE_NEAR }
+};
+
 static const PlanetRun planet_runs[32] = {
-    { 0u, 11u, 20u, GAME_COLOR_PLANET_BODY },
-    { 1u, 7u, 24u, GAME_COLOR_PLANET_BODY },
-    { 2u, 5u, 26u, GAME_COLOR_PLANET_BODY },
-    { 3u, 3u, 28u, GAME_COLOR_PLANET_BODY },
-    { 4u, 2u, 29u, GAME_COLOR_PLANET_BODY },
-    { 5u, 1u, 30u, GAME_COLOR_PLANET_BODY },
-    { 6u, 0u, 31u, GAME_COLOR_PLANET_BODY },
-    { 7u, 0u, 31u, GAME_COLOR_PLANET_BODY },
-    { 8u, 0u, 31u, GAME_COLOR_PLANET_BODY },
-    { 9u, 0u, 31u, GAME_COLOR_PLANET_BODY },
-    { 10u, 0u, 31u, GAME_COLOR_PLANET_BODY },
-    { 11u, 0u, 31u, GAME_COLOR_PLANET_BODY },
-    { 12u, 0u, 31u, GAME_COLOR_PLANET_BODY },
-    { 13u, 0u, 31u, GAME_COLOR_PLANET_BODY },
-    { 14u, 0u, 31u, GAME_COLOR_PLANET_BODY },
-    { 15u, 0u, 31u, GAME_COLOR_PLANET_BODY },
-    { 16u, 0u, 31u, GAME_COLOR_PLANET_BODY },
-    { 17u, 0u, 31u, GAME_COLOR_PLANET_BODY },
-    { 18u, 1u, 30u, GAME_COLOR_PLANET_BODY },
-    { 19u, 2u, 29u, GAME_COLOR_PLANET_BODY },
-    { 20u, 3u, 28u, GAME_COLOR_PLANET_BODY },
-    { 21u, 5u, 26u, GAME_COLOR_PLANET_BODY },
-    { 22u, 7u, 24u, GAME_COLOR_PLANET_BODY },
-    { 23u, 11u, 20u, GAME_COLOR_PLANET_BODY },
-    { 5u, 9u, 13u, GAME_COLOR_PLANET_DETAIL },
-    { 6u, 7u, 15u, GAME_COLOR_PLANET_DETAIL },
-    { 7u, 7u, 15u, GAME_COLOR_PLANET_DETAIL },
-    { 8u, 9u, 13u, GAME_COLOR_PLANET_DETAIL },
-    { 14u, 20u, 24u, GAME_COLOR_PLANET_DETAIL },
-    { 15u, 18u, 25u, GAME_COLOR_PLANET_DETAIL },
-    { 16u, 19u, 25u, GAME_COLOR_PLANET_DETAIL },
-    { 17u, 21u, 23u, GAME_COLOR_PLANET_DETAIL }
+    { 0u, 11u, 20u, 0u }, { 1u, 7u, 24u, 0u },
+    { 2u, 5u, 26u, 0u }, { 3u, 3u, 28u, 0u },
+    { 4u, 2u, 29u, 0u }, { 5u, 1u, 30u, 0u },
+    { 6u, 0u, 31u, 0u }, { 7u, 0u, 31u, 0u },
+    { 8u, 0u, 31u, 0u }, { 9u, 0u, 31u, 0u },
+    { 10u, 0u, 31u, 0u }, { 11u, 0u, 31u, 0u },
+    { 12u, 0u, 31u, 0u }, { 13u, 0u, 31u, 0u },
+    { 14u, 0u, 31u, 0u }, { 15u, 0u, 31u, 0u },
+    { 16u, 0u, 31u, 0u }, { 17u, 0u, 31u, 0u },
+    { 18u, 1u, 30u, 0u }, { 19u, 2u, 29u, 0u },
+    { 20u, 3u, 28u, 0u }, { 21u, 5u, 26u, 0u },
+    { 22u, 7u, 24u, 0u }, { 23u, 11u, 20u, 0u },
+    { 5u, 9u, 13u, 1u }, { 6u, 7u, 15u, 1u },
+    { 7u, 7u, 15u, 1u }, { 8u, 9u, 13u, 1u },
+    { 14u, 20u, 24u, 1u }, { 15u, 18u, 25u, 1u },
+    { 16u, 19u, 25u, 1u }, { 17u, 21u, 23u, 1u }
+};
+
+#define SPACE_FORTRESS_RUN_COUNT 26u
+
+static const BossRun space_fortress_runs[2][SPACE_FORTRESS_RUN_COUNT] = {
+    {
+        /* 24x16 hull: the left edge is the forward twin turret. */
+        { 0u, 10u, 17u, 0u }, { 1u, 7u, 20u, 0u },
+        { 2u, 5u, 22u, 0u }, { 3u, 4u, 23u, 0u },
+        { 4u, 0u, 6u, 0u }, { 4u, 3u, 23u, 0u },
+        { 5u, 2u, 21u, 0u }, { 6u, 3u, 23u, 0u },
+        { 7u, 0u, 23u, 0u }, { 8u, 0u, 23u, 0u },
+        { 9u, 3u, 23u, 0u }, { 10u, 2u, 21u, 0u },
+        { 11u, 0u, 6u, 0u }, { 11u, 3u, 23u, 0u },
+        { 12u, 4u, 23u, 0u }, { 13u, 5u, 22u, 0u },
+        { 14u, 7u, 20u, 0u }, { 15u, 10u, 17u, 0u },
+        /* Armor/core is central; the rightmost runs are rear engines. */
+        { 3u, 16u, 20u, 1u }, { 6u, 10u, 14u, 1u },
+        { 7u, 9u, 15u, 1u }, { 8u, 9u, 15u, 1u },
+        { 9u, 10u, 14u, 1u }, { 12u, 16u, 20u, 1u },
+        { 5u, 22u, 23u, 1u }, { 10u, 22u, 23u, 1u }
+    },
+    {
+        /* Frame two keeps the hull and pulses core/engine detail. */
+        { 0u, 10u, 17u, 0u }, { 1u, 7u, 20u, 0u },
+        { 2u, 5u, 22u, 0u }, { 3u, 4u, 23u, 0u },
+        { 4u, 0u, 6u, 0u }, { 4u, 3u, 23u, 0u },
+        { 5u, 2u, 21u, 0u }, { 6u, 3u, 23u, 0u },
+        { 7u, 0u, 23u, 0u }, { 8u, 0u, 23u, 0u },
+        { 9u, 3u, 23u, 0u }, { 10u, 2u, 21u, 0u },
+        { 11u, 0u, 6u, 0u }, { 11u, 3u, 23u, 0u },
+        { 12u, 4u, 23u, 0u }, { 13u, 5u, 22u, 0u },
+        { 14u, 7u, 20u, 0u }, { 15u, 10u, 17u, 0u },
+        { 3u, 16u, 20u, 1u }, { 6u, 11u, 13u, 1u },
+        { 7u, 10u, 14u, 1u }, { 8u, 10u, 14u, 1u },
+        { 9u, 11u, 13u, 1u }, { 12u, 16u, 20u, 1u },
+        { 6u, 22u, 23u, 1u }, { 9u, 22u, 23u, 1u }
+    }
+};
+
+#define AIR_CARRIER_RUN_COUNT 27u
+
+static const BossRun air_carrier_runs[2][AIR_CARRIER_RUN_COUNT] = {
+    {
+        /* Flat deck and left-facing bow with upper/middle/lower guns. */
+        { 0u, 8u, 23u, 0u }, { 1u, 5u, 26u, 0u },
+        { 2u, 0u, 7u, 1u }, { 2u, 3u, 27u, 0u },
+        { 3u, 4u, 26u, 0u }, { 4u, 6u, 25u, 0u },
+        { 5u, 5u, 26u, 0u }, { 6u, 0u, 7u, 1u },
+        { 6u, 3u, 27u, 0u }, { 7u, 0u, 7u, 1u },
+        { 7u, 2u, 27u, 0u }, { 8u, 4u, 27u, 0u },
+        { 9u, 5u, 26u, 0u }, { 10u, 0u, 7u, 1u },
+        { 10u, 3u, 27u, 0u }, { 11u, 6u, 25u, 0u },
+        { 12u, 8u, 23u, 0u }, { 13u, 11u, 20u, 0u },
+        /* Central hull windows and twin rear engines. */
+        { 3u, 12u, 18u, 1u }, { 5u, 10u, 12u, 1u },
+        { 5u, 16u, 18u, 1u }, { 8u, 10u, 18u, 1u },
+        { 11u, 12u, 18u, 1u }, { 3u, 25u, 27u, 1u },
+        { 5u, 26u, 27u, 1u }, { 9u, 26u, 27u, 1u },
+        { 11u, 25u, 27u, 1u }
+    },
+    {
+        { 0u, 8u, 23u, 0u }, { 1u, 5u, 26u, 0u },
+        { 2u, 0u, 7u, 1u }, { 2u, 3u, 27u, 0u },
+        { 3u, 4u, 26u, 0u }, { 4u, 6u, 25u, 0u },
+        { 5u, 5u, 26u, 0u }, { 6u, 0u, 7u, 1u },
+        { 6u, 3u, 27u, 0u }, { 7u, 0u, 7u, 1u },
+        { 7u, 2u, 27u, 0u }, { 8u, 4u, 27u, 0u },
+        { 9u, 5u, 26u, 0u }, { 10u, 0u, 7u, 1u },
+        { 10u, 3u, 27u, 0u }, { 11u, 6u, 25u, 0u },
+        { 12u, 8u, 23u, 0u }, { 13u, 11u, 20u, 0u },
+        { 3u, 13u, 17u, 1u }, { 5u, 11u, 13u, 1u },
+        { 5u, 15u, 17u, 1u }, { 8u, 11u, 17u, 1u },
+        { 11u, 13u, 17u, 1u }, { 4u, 25u, 27u, 1u },
+        { 6u, 26u, 27u, 1u }, { 8u, 26u, 27u, 1u },
+        { 10u, 25u, 27u, 1u }
+    }
+};
+
+#define ROCK_GUARDIAN_RUN_COUNT 36u
+
+static const BossRun rock_guardian_runs[2][ROCK_GUARDIAN_RUN_COUNT] = {
+    {
+        /* Jagged 24x24 shell with upper/lower fangs around the muzzle. */
+        { 0u, 9u, 14u, 0u }, { 1u, 6u, 17u, 0u },
+        { 2u, 4u, 19u, 0u }, { 3u, 2u, 21u, 0u },
+        { 4u, 3u, 22u, 0u }, { 5u, 1u, 23u, 0u },
+        { 6u, 0u, 22u, 0u }, { 7u, 2u, 23u, 0u },
+        { 8u, 1u, 23u, 0u }, { 9u, 0u, 23u, 0u },
+        { 10u, 2u, 23u, 0u }, { 11u, 0u, 23u, 0u },
+        { 12u, 0u, 23u, 0u }, { 13u, 2u, 23u, 0u },
+        { 14u, 0u, 23u, 0u }, { 15u, 1u, 23u, 0u },
+        { 16u, 2u, 23u, 0u }, { 17u, 0u, 22u, 0u },
+        { 18u, 1u, 23u, 0u }, { 19u, 3u, 22u, 0u },
+        { 20u, 2u, 21u, 0u }, { 21u, 4u, 19u, 0u },
+        { 22u, 6u, 17u, 0u }, { 23u, 9u, 14u, 0u },
+        { 3u, 0u, 2u, 1u }, { 4u, 0u, 1u, 1u },
+        { 19u, 0u, 1u, 1u }, { 20u, 0u, 2u, 1u },
+        { 7u, 7u, 16u, 1u }, { 8u, 6u, 17u, 1u },
+        { 9u, 5u, 18u, 1u }, { 10u, 5u, 18u, 1u },
+        { 11u, 4u, 19u, 1u }, { 12u, 4u, 19u, 1u },
+        { 13u, 5u, 18u, 1u }, { 14u, 6u, 17u, 1u }
+    },
+    {
+        { 0u, 9u, 14u, 0u }, { 1u, 6u, 17u, 0u },
+        { 2u, 4u, 19u, 0u }, { 3u, 2u, 21u, 0u },
+        { 4u, 3u, 22u, 0u }, { 5u, 1u, 23u, 0u },
+        { 6u, 0u, 22u, 0u }, { 7u, 2u, 23u, 0u },
+        { 8u, 1u, 23u, 0u }, { 9u, 0u, 23u, 0u },
+        { 10u, 2u, 23u, 0u }, { 11u, 0u, 23u, 0u },
+        { 12u, 0u, 23u, 0u }, { 13u, 2u, 23u, 0u },
+        { 14u, 0u, 23u, 0u }, { 15u, 1u, 23u, 0u },
+        { 16u, 2u, 23u, 0u }, { 17u, 0u, 22u, 0u },
+        { 18u, 1u, 23u, 0u }, { 19u, 3u, 22u, 0u },
+        { 20u, 2u, 21u, 0u }, { 21u, 4u, 19u, 0u },
+        { 22u, 6u, 17u, 0u }, { 23u, 9u, 14u, 0u },
+        { 2u, 0u, 3u, 1u }, { 3u, 0u, 1u, 1u },
+        { 20u, 0u, 1u, 1u }, { 21u, 0u, 3u, 1u },
+        { 8u, 8u, 15u, 1u }, { 9u, 7u, 16u, 1u },
+        { 10u, 6u, 17u, 1u }, { 11u, 5u, 18u, 1u },
+        { 12u, 5u, 18u, 1u }, { 13u, 6u, 17u, 1u },
+        { 14u, 7u, 16u, 1u }, { 15u, 8u, 15u, 1u }
+    }
+};
+
+/* SKY far layer: fixed 192-pixel mountain/horizon horizontal runs. */
+static const SkyRun mountain_runs[31] = {
+    { 58u, 14u, 18u }, { 59u, 13u, 19u }, { 60u, 12u, 20u },
+    { 61u, 11u, 21u }, { 62u, 10u, 23u }, { 63u, 9u, 25u },
+    { 64u, 8u, 27u }, { 65u, 7u, 29u }, { 66u, 6u, 31u },
+    { 63u, 63u, 67u }, { 64u, 61u, 69u }, { 65u, 59u, 71u },
+    { 66u, 57u, 73u }, { 67u, 54u, 76u }, { 68u, 50u, 80u },
+    { 60u, 118u, 122u }, { 61u, 116u, 124u },
+    { 62u, 114u, 126u }, { 63u, 112u, 128u },
+    { 64u, 109u, 131u }, { 65u, 106u, 134u },
+    { 66u, 102u, 138u },
+    { 70u, 0u, 191u }, { 71u, 0u, 191u },
+    { 72u, 0u, 191u }, { 73u, 0u, 191u },
+    { 74u, 0u, 191u }, { 75u, 0u, 191u },
+    { 76u, 0u, 191u }, { 77u, 0u, 191u },
+    { 78u, 0u, 191u }
+};
+
+static const CloudGroup mid_clouds[8] = {
+    { 4u, 22u }, { 25u, 47u }, { 47u, 31u }, { 68u, 57u },
+    { 89u, 18u }, { 109u, 42u }, { 130u, 28u }, { 150u, 53u }
+};
+
+static const CloudGroup near_clouds[5] = {
+    { 8u, 72u }, { 41u, 82u }, { 75u, 68u },
+    { 108u, 87u }, { 141u, 76u }
+};
+
+static const SkyRun mid_cloud_shape[5] = {
+    { 0u, 3u, 7u }, { 1u, 1u, 10u }, { 2u, 0u, 12u },
+    { 3u, 2u, 11u }, { 4u, 4u, 9u }
+};
+
+static const SkyRun near_cloud_shape[7] = {
+    { 0u, 5u, 12u }, { 1u, 2u, 15u }, { 2u, 0u, 18u },
+    { 3u, 0u, 20u }, { 4u, 1u, 19u }, { 5u, 3u, 17u },
+    { 6u, 6u, 14u }
+};
+
+/* CAVE layers: 192px wall cracks, 160px rock skin and near formations. */
+static const SkyRun cave_wall_runs[18] = {
+    { 24u, 8u, 20u }, { 25u, 17u, 22u }, { 26u, 21u, 24u },
+    { 47u, 52u, 65u }, { 48u, 50u, 55u }, { 49u, 48u, 52u },
+    { 68u, 92u, 108u }, { 69u, 105u, 111u }, { 70u, 109u, 114u },
+    { 31u, 137u, 151u }, { 32u, 134u, 140u },
+    { 33u, 132u, 136u }, { 82u, 166u, 184u },
+    { 83u, 163u, 170u }, { 84u, 160u, 165u },
+    { 57u, 116u, 121u }, { 58u, 118u, 125u },
+    { 59u, 123u, 129u }
+};
+
+static const SkyRun cave_rock_runs[22] = {
+    { 10u, 0u, 159u }, { 11u, 0u, 159u }, { 12u, 0u, 159u },
+    { 13u, 0u, 28u }, { 13u, 36u, 75u }, { 13u, 84u, 121u },
+    { 13u, 130u, 159u }, { 14u, 0u, 18u }, { 14u, 45u, 64u },
+    { 14u, 94u, 111u }, { 14u, 141u, 159u },
+    { 98u, 0u, 159u }, { 97u, 0u, 159u }, { 96u, 0u, 159u },
+    { 95u, 0u, 24u }, { 95u, 34u, 70u }, { 95u, 79u, 116u },
+    { 95u, 126u, 159u }, { 94u, 0u, 14u }, { 94u, 43u, 61u },
+    { 94u, 89u, 107u }, { 94u, 137u, 159u }
+};
+
+static const SkyRun cave_near_runs[26] = {
+    { 15u, 11u, 22u }, { 16u, 13u, 20u }, { 17u, 15u, 19u },
+    { 18u, 16u, 18u }, { 19u, 17u, 17u },
+    { 15u, 59u, 71u }, { 16u, 61u, 69u }, { 17u, 63u, 68u },
+    { 18u, 65u, 67u }, { 19u, 66u, 66u },
+    { 15u, 120u, 133u }, { 16u, 122u, 131u },
+    { 17u, 124u, 129u }, { 18u, 126u, 128u },
+    { 19u, 127u, 127u }, { 93u, 30u, 42u },
+    { 92u, 32u, 40u }, { 91u, 34u, 38u }, { 90u, 35u, 37u },
+    { 89u, 36u, 36u }, { 93u, 84u, 97u }, { 92u, 86u, 95u },
+    { 91u, 88u, 93u }, { 90u, 90u, 92u }, { 89u, 91u, 91u },
+    { 93u, 145u, 159u }
 };
 
 static const Star far_stars[10] = {
@@ -84,7 +321,8 @@ static const unsigned char player_masks[2][GAME_PLAYER_HEIGHT] = {
     { 0x18u, 0x7cu, 0xfeu, 0xffu, 0xfeu, 0x42u }
 };
 
-static const unsigned char enemy_masks[3][2][GAME_ENEMY_HEIGHT] = {
+static const unsigned char enemy_masks[GAME_ENEMY_TYPE_COUNT][2]
+    [GAME_ENEMY_HEIGHT] = {
     {
         { 0x18u, 0x3cu, 0x7eu, 0xdbu, 0xffu, 0x24u, 0x42u, 0x81u },
         { 0x18u, 0x3cu, 0x7eu, 0xbdu, 0xffu, 0x42u, 0x24u, 0x81u }
@@ -96,6 +334,36 @@ static const unsigned char enemy_masks[3][2][GAME_ENEMY_HEIGHT] = {
     {
         { 0x24u, 0x7eu, 0x3cu, 0xffu, 0x7eu, 0x18u, 0x3cu, 0x24u },
         { 0x42u, 0x7eu, 0x3cu, 0xffu, 0x7eu, 0x18u, 0x24u, 0x18u }
+    },
+    {
+        /* FIGHTER: narrow nose and swept wings. */
+        { 0x80u, 0xc0u, 0xf0u, 0xfeu, 0xffu, 0x7cu, 0x18u, 0x10u },
+        { 0x80u, 0xe0u, 0xf8u, 0xffu, 0xfeu, 0x38u, 0x18u, 0x08u }
+    },
+    {
+        /* BOMBER: broad twin-engine wing. */
+        { 0x24u, 0x66u, 0x7eu, 0xffu, 0xffu, 0x7eu, 0x66u, 0x24u },
+        { 0x42u, 0x66u, 0xffu, 0xffu, 0x7eu, 0x7eu, 0x66u, 0x42u }
+    },
+    {
+        /* SUPPLY: box fuselage and straight transport wing. */
+        { 0x3cu, 0x3cu, 0xffu, 0xffu, 0x7eu, 0x3cu, 0x24u, 0x24u },
+        { 0x3cu, 0x7eu, 0xffu, 0xffu, 0x3cu, 0x3cu, 0x42u, 0x42u }
+    },
+    {
+        /* CAVE_BAT: broad flapping wings around a narrow body. */
+        { 0x81u, 0xc3u, 0x7eu, 0x3cu, 0x18u, 0x3cu, 0x24u, 0x42u },
+        { 0x18u, 0x5au, 0xffu, 0x7eu, 0x18u, 0x3cu, 0x42u, 0x81u }
+    },
+    {
+        /* ROCK_WORM: offset armored segments and a distinct head. */
+        { 0xc0u, 0xf0u, 0x7cu, 0x3eu, 0x1fu, 0x0eu, 0x1cu, 0x38u },
+        { 0x60u, 0xf8u, 0x7cu, 0x3eu, 0x1fu, 0x0eu, 0x1cu, 0x70u }
+    },
+    {
+        /* MINING_DRONE: box chassis, lamp and animated drill. */
+        { 0x18u, 0x7eu, 0xffu, 0xdbu, 0xffu, 0x7eu, 0x18u, 0x24u },
+        { 0x18u, 0x7eu, 0xffu, 0xdbu, 0xffu, 0x7eu, 0x24u, 0x18u }
     }
 };
 
@@ -151,7 +419,8 @@ static unsigned char scroll_x(unsigned char x, unsigned char offset)
     return (unsigned char)(GAME_SCREEN_WIDTH - (offset - x));
 }
 
-static void draw_planet(const GameState* game)
+static void draw_planet(const GameState* game,
+    const BackgroundTheme* theme)
 {
     unsigned char i;
     int draw_x;
@@ -179,25 +448,26 @@ static void draw_planet(const GameState* game)
         if (x1 >= (int)GAME_SCREEN_WIDTH) {
             x1 = (int)GAME_SCREEN_WIDTH - 1;
         }
-        tgi_setcolor(planet_runs[i].color);
+        tgi_setcolor(theme->planet_colors[planet_runs[i].palette_index]);
         tgi_bar((unsigned int)x0, (unsigned int)draw_y,
             (unsigned int)x1, (unsigned int)draw_y);
     }
 }
 
-static void draw_background(const GameState* game)
+static void draw_background(const GameState* game,
+    const BackgroundTheme* theme)
 {
     unsigned char i;
     unsigned char x;
     unsigned int x1;
 
-    tgi_setcolor(GAME_COLOR_FAR_STAR);
+    tgi_setcolor(theme->far_star_color);
     for (i = 0u; i < 10u; ++i) {
         x = scroll_x(far_stars[i].x, game->far_star_offset);
         tgi_bar(x, far_stars[i].y, x, far_stars[i].y);
     }
 
-    tgi_setcolor(GAME_COLOR_NEAR_STAR);
+    tgi_setcolor(theme->near_star_color);
     for (i = 0u; i < 7u; ++i) {
         x = scroll_x(near_stars[i].x, game->near_star_offset);
         x1 = (unsigned int)x + 1u;
@@ -206,6 +476,102 @@ static void draw_background(const GameState* game)
         }
         tgi_bar(x, near_stars[i].y, x1, near_stars[i].y);
     }
+}
+
+static void draw_sky_run(int base_x, int base_y, const SkyRun* run,
+    unsigned char color)
+{
+    int x0;
+    int x1;
+    int y;
+
+    x0 = base_x + (int)run->x0;
+    x1 = base_x + (int)run->x1;
+    y = base_y + (int)run->y;
+    if (y < 0 || y >= (int)GAME_SCREEN_HEIGHT || x1 < 0 ||
+        x0 >= (int)GAME_SCREEN_WIDTH) {
+        return;
+    }
+    if (x0 < 0) {
+        x0 = 0;
+    }
+    if (x1 >= (int)GAME_SCREEN_WIDTH) {
+        x1 = (int)GAME_SCREEN_WIDTH - 1;
+    }
+    tgi_setcolor(color);
+    tgi_bar((unsigned int)x0, (unsigned int)y,
+        (unsigned int)x1, (unsigned int)y);
+}
+
+static void draw_mountains(const GameState* game,
+    const BackgroundTheme* theme)
+{
+    unsigned char i;
+    int base_x;
+
+    base_x = -(int)game->planet_offset;
+    for (i = 0u; i < 31u; ++i) {
+        draw_sky_run(base_x, 0, &mountain_runs[i],
+            theme->planet_colors[0]);
+        draw_sky_run(base_x + (int)GAME_PLANET_SCROLL_PERIOD, 0,
+            &mountain_runs[i], theme->planet_colors[0]);
+    }
+}
+
+static void draw_cloud_groups(const CloudGroup* groups,
+    unsigned char group_count, const SkyRun* shape,
+    unsigned char run_count, unsigned char offset, unsigned char color)
+{
+    unsigned char group;
+    unsigned char run;
+    int base_x;
+    int base_y;
+
+    for (group = 0u; group < group_count; ++group) {
+        base_x = (int)scroll_x(groups[group].x, offset);
+        base_y = groups[group].y;
+        for (run = 0u; run < run_count; ++run) {
+            draw_sky_run(base_x, base_y, &shape[run], color);
+            draw_sky_run(base_x - (int)GAME_SCREEN_WIDTH, base_y,
+                &shape[run], color);
+        }
+    }
+}
+
+static void draw_sky_background(const GameState* game,
+    const BackgroundTheme* theme)
+{
+    draw_mountains(game, theme);
+    draw_cloud_groups(mid_clouds, 8u, mid_cloud_shape, 5u,
+        game->far_star_offset, theme->far_star_color);
+    draw_cloud_groups(near_clouds, 5u, near_cloud_shape, 7u,
+        game->near_star_offset, theme->near_star_color);
+}
+
+static void draw_periodic_runs(const SkyRun* runs,
+    unsigned char run_count, unsigned int period, unsigned char offset,
+    unsigned char color)
+{
+    unsigned char i;
+    int base_x;
+
+    base_x = -(int)offset;
+    for (i = 0u; i < run_count; ++i) {
+        draw_sky_run(base_x, 0, &runs[i], color);
+        draw_sky_run(base_x + (int)period, 0, &runs[i], color);
+    }
+}
+
+static void draw_cave_background(const GameState* game,
+    const BackgroundTheme* theme)
+{
+    draw_periodic_runs(cave_wall_runs, 18u,
+        GAME_PLANET_SCROLL_PERIOD, game->planet_offset,
+        theme->planet_colors[0]);
+    draw_periodic_runs(cave_rock_runs, 22u, GAME_SCREEN_WIDTH,
+        game->far_star_offset, theme->far_star_color);
+    draw_periodic_runs(cave_near_runs, 26u, GAME_SCREEN_WIDTH,
+        game->near_star_offset, theme->near_star_color);
 }
 
 static void draw_mask(int x, int y,
@@ -269,16 +635,172 @@ static void format_score(unsigned long score, char* text)
     }
 }
 
+static void draw_clipped_boss_run(const GameBoss* boss,
+    const BossRun* run)
+{
+    int x0;
+    int x1;
+    int y;
+
+    x0 = (int)boss->rect.x + (int)run->x0;
+    x1 = (int)boss->rect.x + (int)run->x1;
+    y = (int)boss->rect.y + (int)run->y;
+    if (y < 0 || y >= (int)GAME_SCREEN_HEIGHT ||
+        x1 < 0 || x0 >= (int)GAME_SCREEN_WIDTH) {
+        return;
+    }
+    if (x0 < 0) {
+        x0 = 0;
+    }
+    if (x1 >= (int)GAME_SCREEN_WIDTH) {
+        x1 = (int)GAME_SCREEN_WIDTH - 1;
+    }
+    tgi_setcolor(run->palette_index == 0u ?
+        GAME_COLOR_BOSS : GAME_COLOR_BOSS_DETAIL);
+    tgi_bar((unsigned int)x0, (unsigned int)y,
+        (unsigned int)x1, (unsigned int)y);
+}
+
+static void draw_common_boss(const GameBoss* boss)
+{
+    unsigned int x0;
+    unsigned int x1;
+    unsigned int y0;
+    unsigned int y1;
+
+    x0 = boss->rect.x;
+    x1 = (unsigned int)boss->rect.x + boss->rect.width - 1u;
+    y0 = boss->rect.y;
+    y1 = (unsigned int)boss->rect.y + boss->rect.height - 1u;
+    tgi_setcolor(GAME_COLOR_BOSS);
+    tgi_bar(x0 + 4u, y0, x1 - 4u, y0 + 2u);
+    tgi_bar(x0 + 2u, y0 + 3u, x1 - 2u, y1 - 3u);
+    tgi_bar(x0 + 4u, y1 - 2u, x1 - 4u, y1);
+    tgi_setcolor(GAME_COLOR_BOSS_DETAIL);
+    tgi_bar(x0, y0 + 5u, x0 + 5u, y0 + 7u);
+    tgi_bar(x0 + 7u, y0 + 5u, x1 - 5u, y0 + 7u);
+    tgi_bar(x1 - 3u, y0 + 2u, x1, y1 - 2u);
+}
+
+static void draw_space_fortress(const GameBoss* boss,
+    unsigned char animation_frame)
+{
+    const BossRun* runs;
+    unsigned char i;
+
+    runs = space_fortress_runs[animation_frame];
+    for (i = 0u; i < SPACE_FORTRESS_RUN_COUNT; ++i) {
+        draw_clipped_boss_run(boss, &runs[i]);
+    }
+}
+
+static void draw_air_carrier(const GameBoss* boss,
+    unsigned char animation_frame)
+{
+    const BossRun* runs;
+    unsigned char i;
+
+    runs = air_carrier_runs[animation_frame];
+    for (i = 0u; i < AIR_CARRIER_RUN_COUNT; ++i) {
+        draw_clipped_boss_run(boss, &runs[i]);
+    }
+}
+
+static void draw_rock_guardian(const GameBoss* boss,
+    unsigned char animation_frame)
+{
+    const BossRun* runs;
+    unsigned char i;
+
+    runs = rock_guardian_runs[animation_frame];
+    for (i = 0u; i < ROCK_GUARDIAN_RUN_COUNT; ++i) {
+        draw_clipped_boss_run(boss, &runs[i]);
+    }
+}
+
+static void draw_boss(const GameBoss* boss, unsigned char animation_frame)
+{
+    if (boss->appearance_id == GAME_BOSS_APPEARANCE_SPACE_FORTRESS) {
+        draw_space_fortress(boss, animation_frame);
+    } else if (boss->appearance_id == GAME_BOSS_APPEARANCE_AIR_CARRIER) {
+        draw_air_carrier(boss, animation_frame);
+    } else if (boss->appearance_id ==
+        GAME_BOSS_APPEARANCE_ROCK_GUARDIAN) {
+        draw_rock_guardian(boss, animation_frame);
+    } else {
+        draw_common_boss(boss);
+    }
+}
+
+static unsigned char enemy_color(unsigned char type)
+{
+    static const unsigned char colors[GAME_ENEMY_TYPE_COUNT] = {
+        GAME_COLOR_SCOUT, GAME_COLOR_SAUCER, GAME_COLOR_DROPPER,
+        GAME_COLOR_FIGHTER, GAME_COLOR_BOMBER, GAME_COLOR_SUPPLY,
+        GAME_COLOR_CAVE_BAT, GAME_COLOR_ROCK_WORM,
+        GAME_COLOR_MINING_DRONE
+    };
+
+    return colors[type];
+}
+
+static void draw_phase_text(const GameState* game)
+{
+    char stage_text[2u];
+    unsigned int filled;
+
+    stage_text[0] = (char)('0' + game->stage);
+    stage_text[1] = '\0';
+    tgi_setcolor(GAME_COLOR_WHITE);
+    tgi_outtextxy(2u, 11u, "STAGE");
+    tgi_outtextxy(42u, 11u, stage_text);
+    if (game->phase == GAME_PHASE_STAGE_INTRO) {
+        tgi_outtextxy(54u, 45u, "STAGE");
+        tgi_outtextxy(98u, 45u, stage_text);
+    } else if (game->phase == GAME_PHASE_WARNING) {
+        tgi_outtextxy(52u, 45u, "WARNING");
+    } else if (game->phase == GAME_PHASE_STAGE_CLEAR) {
+        tgi_outtextxy(36u, 45u, "STAGE CLEAR");
+    } else if (game->phase == GAME_PHASE_ALL_CLEAR) {
+        tgi_outtextxy(44u, 40u, "ALL CLEAR");
+        tgi_outtextxy(36u, 58u, "A/B TO RESTART");
+    } else if (game->phase == GAME_PHASE_BOSS) {
+        tgi_outtextxy(78u, 11u, "BOSS");
+        tgi_setcolor(GAME_COLOR_BOSS_DETAIL);
+        tgi_line(110u, 12u, 156u, 12u);
+        tgi_line(110u, 16u, 156u, 16u);
+        tgi_line(110u, 12u, 110u, 16u);
+        tgi_line(156u, 12u, 156u, 16u);
+        filled = ((unsigned int)game->boss.hp * 45u) /
+            game->boss.max_hp;
+        if (filled != 0u) {
+            tgi_bar(111u, 13u, 110u + filled, 15u);
+        }
+    }
+}
+
 static void draw_game(const GameState* game)
 {
+    const GameStageConfig* stage_config;
+    const BackgroundTheme* theme;
     unsigned char i;
     char score_text[SCORE_DIGITS + 1u];
     char lives_text[2u];
     char power_text[2u];
 
+    stage_config = game_get_stage_config(game->stage);
+    theme = &background_themes[stage_config->background_theme_id];
+    tgi_setbgcolor(theme->background_color);
     tgi_clear();
-    draw_planet(game);
-    draw_background(game);
+    if (stage_config->background_theme_id == GAME_BACKGROUND_THEME_SKY) {
+        draw_sky_background(game, theme);
+    } else if (stage_config->background_theme_id ==
+        GAME_BACKGROUND_THEME_CAVE) {
+        draw_cave_background(game, theme);
+    } else {
+        draw_planet(game, theme);
+        draw_background(game, theme);
+    }
     tgi_setcolor(GAME_COLOR_WHITE);
     tgi_line(0u, GAME_HUD_HEIGHT - 1u, GAME_SCREEN_WIDTH - 1u,
         GAME_HUD_HEIGHT - 1u);
@@ -293,11 +815,12 @@ static void draw_game(const GameState* game)
     power_text[1] = '\0';
     tgi_outtextxy(72u, 1u, "PWR");
     tgi_outtextxy(96u, 1u, power_text);
+    draw_phase_text(game);
 
     if (game->game_over != 0u) {
         tgi_outtextxy(48u, 40u, "GAME OVER");
         tgi_outtextxy(36u, 58u, "A/B TO RESTART");
-    } else {
+    } else if (game->phase != GAME_PHASE_ALL_CLEAR) {
         if (game->dying != 0u) {
             draw_mask((int)game->player.x,
                 (int)game->player.y - 1, 8u, 8u,
@@ -317,11 +840,11 @@ static void draw_game(const GameState* game)
                     GAME_ENEMY_HEIGHT,
                     enemy_masks[game->enemies[i].type]
                         [game->animation_frame],
-                    game->enemies[i].type == GAME_ENEMY_TYPE_SCOUT ?
-                        GAME_COLOR_SCOUT :
-                        (game->enemies[i].type == GAME_ENEMY_TYPE_SAUCER ?
-                            GAME_COLOR_SAUCER : GAME_COLOR_DROPPER));
+                    enemy_color(game->enemies[i].type));
             }
+        }
+        if (game->boss.active != 0u) {
+            draw_boss(&game->boss, game->animation_frame);
         }
         if (game->power_item.active != 0u) {
             draw_mask(game->power_item.rect.x, game->power_item.rect.y,

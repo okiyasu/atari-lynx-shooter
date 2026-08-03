@@ -17,7 +17,7 @@
 #define GAME_POWER_ITEM_WIDTH 4u
 #define GAME_POWER_ITEM_HEIGHT 4u
 #define GAME_MAX_ENEMIES 4u
-#define GAME_MAX_ENEMY_BULLETS 6u
+#define GAME_MAX_ENEMY_BULLETS 16u
 #define GAME_WEAPON_LEVEL_MIN 1u
 #define GAME_WEAPON_LEVEL_MAX 3u
 #define GAME_INITIAL_LIVES 3u
@@ -32,6 +32,46 @@
 #define GAME_PLANET_SCROLL_INTERVAL 8u
 #define GAME_PLANET_SCROLL_PERIOD 192u
 
+#define GAME_STAGE_COUNT 3u
+#define GAME_STAGE_INTRO_FRAMES 90u
+#define GAME_NORMAL_FRAMES 1125u
+#define GAME_WARNING_FRAMES 120u
+#define GAME_STAGE_CLEAR_FRAMES 120u
+
+#define GAME_PHASE_STAGE_INTRO 0u
+#define GAME_PHASE_NORMAL 1u
+#define GAME_PHASE_WARNING 2u
+#define GAME_PHASE_BOSS 3u
+#define GAME_PHASE_STAGE_CLEAR 4u
+#define GAME_PHASE_ALL_CLEAR 5u
+
+#define GAME_BACKGROUND_THEME_SPACE 0u
+#define GAME_BACKGROUND_THEME_SKY 1u
+#define GAME_BACKGROUND_THEME_CAVE 2u
+#define GAME_BACKGROUND_THEME_COUNT 3u
+
+#define GAME_ENEMY_FORMATION_SPACE 0u
+#define GAME_ENEMY_FORMATION_AIR 1u
+#define GAME_ENEMY_FORMATION_CAVE 2u
+#define GAME_ENEMY_FORMATION_COUNT 3u
+
+#define GAME_BOSS_APPEARANCE_COMMON 0u
+#define GAME_BOSS_APPEARANCE_SPACE_FORTRESS 1u
+#define GAME_BOSS_APPEARANCE_AIR_CARRIER 2u
+#define GAME_BOSS_APPEARANCE_ROCK_GUARDIAN 3u
+#define GAME_BOSS_APPEARANCE_COUNT 4u
+
+#define GAME_BOSS_SHOT_STRAIGHT 0u
+#define GAME_BOSS_SHOT_FAN 1u
+#define GAME_BOSS_SHOT_ALTERNATE 2u
+#define GAME_BOSS_SHOT_PINCER 3u
+#define GAME_BOSS_SHOT_BURST 4u
+#define GAME_BOSS_SHOT_CANNON_CYCLE 5u
+
+#define GAME_BOSS_MOVE_STILL 0u
+#define GAME_BOSS_MOVE_VERTICAL 1u
+#define GAME_BOSS_MOVE_WIDE 2u
+
 #define GAME_ENEMY_PATTERN_STRAIGHT 0u
 #define GAME_ENEMY_PATTERN_WAVE 1u
 #define GAME_ENEMY_PATTERN_DIVE 2u
@@ -39,6 +79,13 @@
 #define GAME_ENEMY_TYPE_SCOUT 0u
 #define GAME_ENEMY_TYPE_SAUCER 1u
 #define GAME_ENEMY_TYPE_DROPPER 2u
+#define GAME_ENEMY_TYPE_FIGHTER 3u
+#define GAME_ENEMY_TYPE_BOMBER 4u
+#define GAME_ENEMY_TYPE_SUPPLY 5u
+#define GAME_ENEMY_TYPE_CAVE_BAT 6u
+#define GAME_ENEMY_TYPE_ROCK_WORM 7u
+#define GAME_ENEMY_TYPE_MINING_DRONE 8u
+#define GAME_ENEMY_TYPE_COUNT 9u
 
 #define GAME_INPUT_UP 0x01u
 #define GAME_INPUT_DOWN 0x02u
@@ -58,6 +105,13 @@ typedef struct GameBullet {
     unsigned char active;
 } GameBullet;
 
+typedef struct GameEnemyBullet {
+    GameRect rect;
+    unsigned char active;
+    signed char velocity_x;
+    signed char velocity_y;
+} GameEnemyBullet;
+
 typedef struct GameEnemy {
     GameRect rect;
     unsigned char active;
@@ -67,7 +121,9 @@ typedef struct GameEnemy {
     unsigned char move_counter;
     unsigned char phase;
     unsigned char direction;
+    unsigned char fire_interval;
     unsigned char fire_counter;
+    unsigned char drops_power;
 } GameEnemy;
 
 typedef struct GamePowerItem {
@@ -76,12 +132,62 @@ typedef struct GamePowerItem {
     unsigned char move_counter;
 } GamePowerItem;
 
+typedef struct GameBoss {
+    GameRect rect;
+    unsigned char active;
+    unsigned char hp;
+    unsigned char max_hp;
+    unsigned char config_id;
+    unsigned char appearance_id;
+    unsigned char script_step;
+    unsigned char attack_timer;
+    unsigned char move_phase;
+    unsigned char direction;
+    unsigned char alternate_cannon;
+} GameBoss;
+
+typedef struct GameStageConfig {
+    unsigned char background_theme_id;
+    unsigned char enemy_formation_id;
+    unsigned char boss_config_id;
+    unsigned char boss_appearance_id;
+} GameStageConfig;
+
+typedef struct GameEnemyFormationSlot {
+    unsigned char x;
+    unsigned char y;
+    unsigned char type;
+    unsigned char pattern;
+    unsigned char fire_interval;
+    unsigned char fire_phase;
+} GameEnemyFormationSlot;
+
+typedef struct GameBossConfig {
+    unsigned char width;
+    unsigned char height;
+    unsigned char stop_x;
+    unsigned char start_y;
+    unsigned char max_hp;
+    unsigned int defeat_score;
+    unsigned char movement;
+    unsigned char script_offset;
+    unsigned char script_count;
+} GameBossConfig;
+
+typedef struct GameBossStep {
+    unsigned char shot_type;
+    unsigned char duration;
+    unsigned char fire_interval;
+    unsigned char movement;
+} GameBossStep;
+
 typedef struct GameState {
     GameRect player;
     GameEnemy enemies[GAME_MAX_ENEMIES];
     GameBullet bullets[GAME_MAX_PLAYER_BULLETS];
-    GameBullet enemy_bullets[GAME_MAX_ENEMY_BULLETS];
+    GameEnemyBullet enemy_bullets[GAME_MAX_ENEMY_BULLETS];
     GamePowerItem power_item;
+    GameBoss boss;
     unsigned long score;
     unsigned char fire_cooldown;
     unsigned char weapon_level;
@@ -100,11 +206,19 @@ typedef struct GameState {
     unsigned char near_star_counter;
     unsigned char animation_counter;
     unsigned char animation_frame;
+    unsigned char stage;
+    unsigned char phase;
+    unsigned int phase_timer;
 } GameState;
 
 void game_init(GameState* game);
 void game_update(GameState* game, unsigned char input);
 unsigned char game_aabb_intersects(const GameRect* a, const GameRect* b);
 unsigned char game_player_is_visible(const GameState* game);
+const GameStageConfig* game_get_stage_config(unsigned char stage);
+const GameEnemyFormationSlot* game_get_enemy_formation_slot(
+    unsigned char formation_id, unsigned char slot);
+const GameBossConfig* game_get_boss_config(unsigned char stage);
+const GameBossStep* game_get_boss_step(unsigned char index);
 
 #endif
