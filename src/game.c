@@ -21,6 +21,11 @@
 #define ENEMY_MINING_DRONE_FIRE_INTERVAL 78u
 #define POWER_ITEM_MOVE_INTERVAL 2u
 #define BOSS_MOVE_INTERVAL 2u
+#define ENVIRONMENT_NO_NEW_SLOT 0xffu
+#define ASTEROID_START_X 152u
+#define ASTEROID_SCORE 250ul
+#define ROCK_START_Y 10u
+#define ROCK_LANDING_Y 94u
 
 typedef struct EnemyMovementConfig {
     unsigned char horizontal_speed;
@@ -118,11 +123,40 @@ static const GameBossConfig boss_configs[GAME_STAGE_COUNT] = {
 
 static const GameStageConfig stage_configs[GAME_STAGE_COUNT] = {
     { GAME_BACKGROUND_THEME_SPACE, GAME_ENEMY_FORMATION_SPACE, 0u,
-        GAME_BOSS_APPEARANCE_SPACE_FORTRESS },
+        GAME_BOSS_APPEARANCE_SPACE_FORTRESS, GAME_ENVIRONMENT_ASTEROIDS },
     { GAME_BACKGROUND_THEME_SKY, GAME_ENEMY_FORMATION_AIR, 1u,
-        GAME_BOSS_APPEARANCE_AIR_CARRIER },
+        GAME_BOSS_APPEARANCE_AIR_CARRIER, GAME_ENVIRONMENT_WIND },
     { GAME_BACKGROUND_THEME_CAVE, GAME_ENEMY_FORMATION_CAVE, 2u,
-        GAME_BOSS_APPEARANCE_ROCK_GUARDIAN }
+        GAME_BOSS_APPEARANCE_ROCK_GUARDIAN, GAME_ENVIRONMENT_ROCKFALL }
+};
+
+static const unsigned int asteroid_event_frames[GAME_ASTEROID_EVENT_COUNT] = {
+    60u, 240u, 420u, 600u, 780u, 960u
+};
+
+static const unsigned char asteroid_event_y[GAME_ASTEROID_EVENT_COUNT] = {
+    22u, 70u, 44u, 84u, 30u, 60u
+};
+
+static const unsigned int wind_event_frames[GAME_WIND_EVENT_COUNT] = {
+    150u, 510u, 870u
+};
+
+static const unsigned char wind_event_y[GAME_WIND_EVENT_COUNT] = {
+    18u, 58u, 36u
+};
+
+static const unsigned char wind_event_direction[GAME_WIND_EVENT_COUNT] = {
+    GAME_WIND_DIRECTION_UP, GAME_WIND_DIRECTION_DOWN,
+    GAME_WIND_DIRECTION_UP
+};
+
+static const unsigned int rock_event_frames[GAME_ROCKFALL_EVENT_COUNT] = {
+    90u, 240u, 390u, 540u, 690u, 840u, 990u
+};
+
+static const unsigned char rock_event_x[GAME_ROCKFALL_EVENT_COUNT] = {
+    24u, 72u, 120u, 48u, 136u, 96u, 16u
 };
 
 static void enter_phase(GameState* game, unsigned char phase);
@@ -206,6 +240,27 @@ static void clear_boss(GameState* game)
     game->boss.move_phase = 0u;
     game->boss.direction = ENEMY_DIRECTION_DOWN;
     game->boss.alternate_cannon = 0u;
+}
+
+static void reset_environment(GameState* game)
+{
+    unsigned char i;
+
+    game->environment_event_cursor = 0u;
+    game->wind.state = GAME_WIND_STATE_INACTIVE;
+    game->wind.y = 0u;
+    game->wind.direction = GAME_WIND_DIRECTION_UP;
+    game->wind.timer = 0u;
+    game->wind.push_counter = 0u;
+    for (i = 0u; i < GAME_MAX_ENVIRONMENT_OBJECTS; ++i) {
+        game->asteroids[i].active = 0u;
+        game->asteroids[i].rect.x = 0u;
+        game->asteroids[i].rect.y = 0u;
+        game->falling_rocks[i].state = GAME_ROCK_STATE_INACTIVE;
+        game->falling_rocks[i].timer = 0u;
+        game->falling_rocks[i].rect.x = 0u;
+        game->falling_rocks[i].rect.y = 0u;
+    }
 }
 
 static void clear_combat_objects(GameState* game)
@@ -781,6 +836,7 @@ static void update_player_death(GameState* game)
     if (game->lives == 0u) {
         game->game_over = 1u;
         game->restart_armed = 0u;
+        reset_environment(game);
         return;
     }
 
@@ -810,6 +866,7 @@ static void enter_phase(GameState* game, unsigned char phase)
     game->phase_timer = 0u;
     clear_combat_objects(game);
     clear_boss(game);
+    reset_environment(game);
     if (phase == GAME_PHASE_NORMAL) {
         reset_enemy_formation(game);
     } else if (phase == GAME_PHASE_BOSS) {
@@ -881,6 +938,13 @@ void game_init(GameState* game)
     game->boss.rect.width = 0u;
     game->boss.rect.height = 0u;
     clear_boss(game);
+    for (i = 0u; i < GAME_MAX_ENVIRONMENT_OBJECTS; ++i) {
+        game->asteroids[i].rect.width = GAME_ENVIRONMENT_OBJECT_WIDTH;
+        game->asteroids[i].rect.height = GAME_ENVIRONMENT_OBJECT_HEIGHT;
+        game->falling_rocks[i].rect.width = GAME_ENVIRONMENT_OBJECT_WIDTH;
+        game->falling_rocks[i].rect.height = GAME_ENVIRONMENT_OBJECT_HEIGHT;
+    }
+    reset_environment(game);
 }
 
 unsigned char game_aabb_intersects(const GameRect* a, const GameRect* b)
@@ -962,6 +1026,207 @@ static void apply_damage(GameState* game, unsigned char damage,
     }
 }
 
+static unsigned char find_free_asteroid(const GameState* game)
+{
+    unsigned char i;
+
+    for (i = 0u; i < GAME_MAX_ENVIRONMENT_OBJECTS; ++i) {
+        if (game->asteroids[i].active == 0u) {
+            return i;
+        }
+    }
+    return ENVIRONMENT_NO_NEW_SLOT;
+}
+
+static unsigned char find_free_rock(const GameState* game)
+{
+    unsigned char i;
+
+    for (i = 0u; i < GAME_MAX_ENVIRONMENT_OBJECTS; ++i) {
+        if (game->falling_rocks[i].state == GAME_ROCK_STATE_INACTIVE) {
+            return i;
+        }
+    }
+    return ENVIRONMENT_NO_NEW_SLOT;
+}
+
+static unsigned char start_environment_event(GameState* game)
+{
+    const GameStageConfig* config;
+    unsigned int elapsed;
+    unsigned char cursor;
+    unsigned char slot;
+
+    config = &stage_configs[game->stage - 1u];
+    elapsed = game->phase_timer + 1u;
+    cursor = game->environment_event_cursor;
+    slot = ENVIRONMENT_NO_NEW_SLOT;
+    if (config->environment_id == GAME_ENVIRONMENT_ASTEROIDS &&
+        cursor < GAME_ASTEROID_EVENT_COUNT &&
+        elapsed == asteroid_event_frames[cursor]) {
+        slot = find_free_asteroid(game);
+        if (slot != ENVIRONMENT_NO_NEW_SLOT) {
+            game->asteroids[slot].active = 1u;
+            game->asteroids[slot].rect.x = ASTEROID_START_X;
+            game->asteroids[slot].rect.y = asteroid_event_y[cursor];
+        }
+        ++game->environment_event_cursor;
+    } else if (config->environment_id == GAME_ENVIRONMENT_WIND &&
+        cursor < GAME_WIND_EVENT_COUNT &&
+        elapsed == wind_event_frames[cursor]) {
+        game->wind.state = GAME_WIND_STATE_WARNING;
+        game->wind.y = wind_event_y[cursor];
+        game->wind.direction = wind_event_direction[cursor];
+        game->wind.timer = GAME_WIND_WARNING_FRAMES;
+        game->wind.push_counter = 0u;
+        ++game->environment_event_cursor;
+        slot = 0u;
+    } else if (config->environment_id == GAME_ENVIRONMENT_ROCKFALL &&
+        cursor < GAME_ROCKFALL_EVENT_COUNT &&
+        elapsed == rock_event_frames[cursor]) {
+        slot = find_free_rock(game);
+        if (slot != ENVIRONMENT_NO_NEW_SLOT) {
+            game->falling_rocks[slot].state = GAME_ROCK_STATE_WARNING;
+            game->falling_rocks[slot].timer = GAME_ROCK_WARNING_FRAMES;
+            game->falling_rocks[slot].rect.x = rock_event_x[cursor];
+            game->falling_rocks[slot].rect.y = ROCK_LANDING_Y;
+        }
+        ++game->environment_event_cursor;
+    }
+    return slot;
+}
+
+static void update_wind(GameState* game, unsigned char event_started)
+{
+    unsigned int player_bottom;
+    unsigned int band_bottom;
+
+    if (game->wind.state == GAME_WIND_STATE_INACTIVE ||
+        event_started != 0u) {
+        return;
+    }
+    if (game->wind.state == GAME_WIND_STATE_WARNING) {
+        --game->wind.timer;
+        if (game->wind.timer == 0u) {
+            game->wind.state = GAME_WIND_STATE_ACTIVE;
+            game->wind.timer = GAME_WIND_ACTIVE_FRAMES;
+            game->wind.push_counter = 0u;
+        }
+        return;
+    }
+
+    ++game->wind.push_counter;
+    if (game->wind.push_counter == 2u) {
+        game->wind.push_counter = 0u;
+        player_bottom = (unsigned int)game->player.y + game->player.height;
+        band_bottom = (unsigned int)game->wind.y + GAME_WIND_BAND_HEIGHT;
+        if ((unsigned int)game->player.y < band_bottom &&
+            player_bottom > game->wind.y) {
+            if (game->wind.direction == GAME_WIND_DIRECTION_UP) {
+                if (game->player.y > GAME_HUD_HEIGHT) {
+                    --game->player.y;
+                }
+            } else if (game->player.y <
+                GAME_SCREEN_HEIGHT - GAME_PLAYER_HEIGHT) {
+                ++game->player.y;
+            }
+        }
+    }
+    --game->wind.timer;
+    if (game->wind.timer == 0u) {
+        game->wind.state = GAME_WIND_STATE_INACTIVE;
+        game->wind.push_counter = 0u;
+    }
+}
+
+static void hit_asteroids_with_player_bullets(GameState* game,
+    unsigned char new_slot)
+{
+    unsigned char i;
+    unsigned char j;
+
+    for (i = 0u; i < GAME_MAX_PLAYER_BULLETS; ++i) {
+        if (game->bullets[i].active == 0u) {
+            continue;
+        }
+        for (j = 0u; j < GAME_MAX_ENVIRONMENT_OBJECTS; ++j) {
+            if (j != new_slot && game->asteroids[j].active != 0u &&
+                game_aabb_intersects(&game->bullets[i].rect,
+                    &game->asteroids[j].rect) != 0u) {
+                game->bullets[i].active = 0u;
+                game->asteroids[j].active = 0u;
+                game->score += ASTEROID_SCORE;
+                break;
+            }
+        }
+    }
+}
+
+static void update_asteroids(GameState* game, unsigned char new_slot,
+    unsigned char* damage)
+{
+    unsigned char i;
+
+    for (i = 0u; i < GAME_MAX_ENVIRONMENT_OBJECTS; ++i) {
+        if (game->asteroids[i].active == 0u || i == new_slot) {
+            continue;
+        }
+        if (game->asteroids[i].rect.x == 0u) {
+            game->asteroids[i].active = 0u;
+            continue;
+        }
+        --game->asteroids[i].rect.x;
+        if (game_aabb_intersects(&game->player,
+            &game->asteroids[i].rect) != 0u) {
+            game->asteroids[i].active = 0u;
+            *damage = 1u;
+        }
+    }
+}
+
+static void update_falling_rocks(GameState* game, unsigned char new_slot,
+    unsigned char* damage)
+{
+    unsigned char i;
+
+    for (i = 0u; i < GAME_MAX_ENVIRONMENT_OBJECTS; ++i) {
+        GameFallingRock* rock;
+
+        rock = &game->falling_rocks[i];
+        if (rock->state == GAME_ROCK_STATE_INACTIVE || i == new_slot) {
+            continue;
+        }
+        if (rock->state == GAME_ROCK_STATE_WARNING) {
+            --rock->timer;
+            if (rock->timer == 0u) {
+                rock->state = GAME_ROCK_STATE_FALLING;
+                rock->rect.y = ROCK_START_Y;
+            }
+        } else if (rock->state == GAME_ROCK_STATE_FALLING) {
+            if (rock->rect.y < ROCK_LANDING_Y) {
+                unsigned int next_y;
+
+                next_y = (unsigned int)rock->rect.y + 2u;
+                rock->rect.y = next_y > ROCK_LANDING_Y ?
+                    ROCK_LANDING_Y : (unsigned char)next_y;
+            }
+            if (game_aabb_intersects(&game->player, &rock->rect) != 0u) {
+                *damage = 1u;
+                rock->state = GAME_ROCK_STATE_IMPACT;
+                rock->timer = GAME_ROCK_IMPACT_FRAMES;
+            } else if (rock->rect.y == ROCK_LANDING_Y) {
+                rock->state = GAME_ROCK_STATE_IMPACT;
+                rock->timer = GAME_ROCK_IMPACT_FRAMES;
+            }
+        } else {
+            --rock->timer;
+            if (rock->timer == 0u) {
+                rock->state = GAME_ROCK_STATE_INACTIVE;
+            }
+        }
+    }
+}
+
 static void update_normal(GameState* game, unsigned char input,
     unsigned char was_invincible)
 {
@@ -969,8 +1234,16 @@ static void update_normal(GameState* game, unsigned char input,
     unsigned char hit_enemies[GAME_MAX_ENEMIES];
     unsigned char power_item_created;
     unsigned char damage;
+    unsigned char new_environment_slot;
+    const GameStageConfig* stage_config;
 
     move_player(game, input);
+    stage_config = &stage_configs[game->stage - 1u];
+    new_environment_slot = start_environment_event(game);
+    if (stage_config->environment_id == GAME_ENVIRONMENT_WIND) {
+        update_wind(game,
+            (unsigned char)(new_environment_slot != ENVIRONMENT_NO_NEW_SLOT));
+    }
     if (game->fire_cooldown != 0u) {
         --game->fire_cooldown;
     }
@@ -982,6 +1255,9 @@ static void update_normal(GameState* game, unsigned char input,
         hit_enemies[i] = 0u;
     }
     power_item_created = update_player_bullets_normal(game, hit_enemies);
+    if (stage_config->environment_id == GAME_ENVIRONMENT_ASTEROIDS) {
+        hit_asteroids_with_player_bullets(game, new_environment_slot);
+    }
     update_enemy_bullets(game);
 
     for (i = 0u; i < GAME_MAX_ENEMIES; ++i) {
@@ -1025,6 +1301,11 @@ static void update_normal(GameState* game, unsigned char input,
             game->enemy_bullets[i].active = 0u;
             damage = 1u;
         }
+    }
+    if (stage_config->environment_id == GAME_ENVIRONMENT_ASTEROIDS) {
+        update_asteroids(game, new_environment_slot, &damage);
+    } else if (stage_config->environment_id == GAME_ENVIRONMENT_ROCKFALL) {
+        update_falling_rocks(game, new_environment_slot, &damage);
     }
     apply_damage(game, damage, was_invincible);
     ++game->phase_timer;

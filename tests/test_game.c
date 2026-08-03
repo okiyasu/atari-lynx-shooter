@@ -128,7 +128,8 @@ static void test_stage_one_configuration(void)
         stage_config->enemy_formation_id == GAME_ENEMY_FORMATION_SPACE &&
         stage_config->boss_config_id == 0u &&
         stage_config->boss_appearance_id ==
-            GAME_BOSS_APPEARANCE_SPACE_FORTRESS,
+            GAME_BOSS_APPEARANCE_SPACE_FORTRESS &&
+        stage_config->environment_id == GAME_ENVIRONMENT_ASTEROIDS,
         "stage one selects SPACE formation and SPACE_FORTRESS IDs");
     expect(game_get_stage_config(0u) == (const GameStageConfig*)0 &&
         game_get_stage_config(4u) == (const GameStageConfig*)0,
@@ -138,14 +139,16 @@ static void test_stage_one_configuration(void)
         stage_config->enemy_formation_id == GAME_ENEMY_FORMATION_AIR &&
         stage_config->boss_config_id == 1u &&
         stage_config->boss_appearance_id ==
-            GAME_BOSS_APPEARANCE_AIR_CARRIER,
+            GAME_BOSS_APPEARANCE_AIR_CARRIER &&
+        stage_config->environment_id == GAME_ENVIRONMENT_WIND,
         "stage two selects SKY AIR and AIR_CARRIER IDs");
     stage_config = game_get_stage_config(3u);
     expect(stage_config->background_theme_id == GAME_BACKGROUND_THEME_CAVE &&
         stage_config->enemy_formation_id == GAME_ENEMY_FORMATION_CAVE &&
         stage_config->boss_config_id == 2u &&
         stage_config->boss_appearance_id ==
-            GAME_BOSS_APPEARANCE_ROCK_GUARDIAN,
+            GAME_BOSS_APPEARANCE_ROCK_GUARDIAN &&
+        stage_config->environment_id == GAME_ENVIRONMENT_ROCKFALL,
         "stage three selects CAVE formation and ROCK_GUARDIAN IDs");
 
     for (i = 0u; i < GAME_MAX_ENEMIES; ++i) {
@@ -2166,6 +2169,405 @@ static void test_boss_hits_death_and_priority(void)
         "final boss explosion enters game over after update 32");
 }
 
+static void test_stage_one_asteroids(void)
+{
+    GameState game;
+    static const unsigned int frames[GAME_ASTEROID_EVENT_COUNT] = {
+        60u, 240u, 420u, 600u, 780u, 960u
+    };
+    static const unsigned char ys[GAME_ASTEROID_EVENT_COUNT] = {
+        22u, 70u, 44u, 84u, 30u, 60u
+    };
+    unsigned char i;
+
+    init_normal_stage(&game, 1u);
+    disable_enemies_except(&game, GAME_MAX_ENEMIES);
+    for (i = 0u; i < GAME_ASTEROID_EVENT_COUNT; ++i) {
+        game.phase_timer = frames[i] - 1u;
+        game.environment_event_cursor = i;
+        game.asteroids[0].active = 0u;
+        game.asteroids[1].active = 0u;
+        game_update(&game, 0u);
+        expect(game.asteroids[0].active != 0u &&
+            game.asteroids[0].rect.x == 152u &&
+            game.asteroids[0].rect.y == ys[i] &&
+            game.environment_event_cursor == (unsigned char)(i + 1u),
+            "asteroid event spawns exact fixed coordinates and advances cursor");
+    }
+    game_update(&game, 0u);
+    expect(game.asteroids[0].rect.x == 151u,
+        "asteroid spawn update skips movement then advances one pixel");
+
+    game.asteroids[0].active = 1u;
+    game.asteroids[0].rect.x = 120u;
+    game.asteroids[1].active = 0u;
+    game.environment_event_cursor = 1u;
+    game.phase_timer = 239u;
+    game_update(&game, 0u);
+    expect(game.asteroids[1].active != 0u &&
+        game.asteroids[1].rect.x == 152u &&
+        game.asteroids[1].rect.y == 70u,
+        "asteroid allocation selects the lowest free fixed slot");
+
+    game.asteroids[0].active = 1u;
+    game.asteroids[1].active = 1u;
+    game.asteroids[0].rect.x = 100u;
+    game.asteroids[1].rect.x = 110u;
+    game.environment_event_cursor = 2u;
+    game.phase_timer = 419u;
+    game_update(&game, 0u);
+    expect(game.environment_event_cursor == 3u &&
+        game.asteroids[0].rect.x == 99u &&
+        game.asteroids[1].rect.x == 109u,
+        "full asteroid pool discards event without deferred retry");
+
+    game.phase_timer = 1u;
+    game.environment_event_cursor = GAME_ASTEROID_EVENT_COUNT;
+    game.asteroids[0].active = 1u;
+    game.asteroids[0].rect.x = 50u;
+    game.asteroids[0].rect.y = 40u;
+    game.asteroids[1].active = 0u;
+    game.bullets[0].active = 1u;
+    game.bullets[0].rect.x = 46u;
+    game.bullets[0].rect.y = 40u;
+    game.score = 10ul;
+    game_update(&game, 0u);
+    expect(game.asteroids[0].active == 0u &&
+        game.bullets[0].active == 0u && game.score == 260ul,
+        "one player bullet destroys one asteroid for 250 points once");
+    game_update(&game, 0u);
+    expect(game.score == 260ul,
+        "destroyed asteroid cannot award its score twice");
+
+    game.enemies[0].active = 1u;
+    game.enemies[0].rect.x = 50u;
+    game.enemies[0].rect.y = 40u;
+    game.enemies[0].drops_power = 0u;
+    game.asteroids[0].active = 1u;
+    game.asteroids[0].rect.x = 50u;
+    game.asteroids[0].rect.y = 40u;
+    game.bullets[0].active = 1u;
+    game.bullets[0].rect.x = 46u;
+    game.bullets[0].rect.y = 40u;
+    game_update(&game, 0u);
+    expect(game.score == 360ul && game.asteroids[0].active != 0u &&
+        game.bullets[0].active == 0u,
+        "normal enemy hit has priority over an overlapping asteroid");
+
+    disable_enemies_except(&game, GAME_MAX_ENEMIES);
+    game.asteroids[0].active = 1u;
+    game.asteroids[0].rect.x = 0u;
+    game_update(&game, 0u);
+    expect(game.asteroids[0].active == 0u && game.score == 360ul,
+        "asteroid leaving the left edge disappears without score");
+
+    game.asteroids[0].active = 1u;
+    game.asteroids[0].rect.x = (unsigned char)(game.player.x + 1u);
+    game.asteroids[0].rect.y = game.player.y;
+    game.invincibility_timer = 3u;
+    game_update(&game, 0u);
+    expect(game.lives == GAME_INITIAL_LIVES &&
+        game.asteroids[0].active == 0u && game.dying == 0u,
+        "invincible asteroid contact consumes rock without life loss or score");
+
+    disable_enemies_except(&game, GAME_MAX_ENEMIES);
+    game.invincibility_timer = 0u;
+    game.asteroids[0].active = 1u;
+    game.asteroids[0].rect.x = (unsigned char)(game.player.x + 1u);
+    game.asteroids[0].rect.y = game.player.y;
+    game.enemy_bullets[0].active = 1u;
+    game.enemy_bullets[0].rect.x = (unsigned char)(game.player.x + 2u);
+    game.enemy_bullets[0].rect.y = game.player.y;
+    game.enemy_bullets[0].velocity_x = (signed char)-2;
+    game.enemy_bullets[0].velocity_y = 0;
+    game_update(&game, 0u);
+    expect(game.lives == GAME_INITIAL_LIVES - 1u && game.dying != 0u,
+        "asteroid and enemy bullet damage aggregate to one life loss");
+}
+
+static void test_stage_two_wind(void)
+{
+    GameState game;
+
+    init_normal_stage(&game, 2u);
+    disable_enemies_except(&game, GAME_MAX_ENEMIES);
+    advance_frames(&game, 149u);
+    expect(game.wind.state == GAME_WIND_STATE_INACTIVE &&
+        game.environment_event_cursor == 0u,
+        "wind remains inactive before the exact first event update");
+    game_update(&game, 0u);
+    expect(game.wind.state == GAME_WIND_STATE_WARNING &&
+        game.wind.y == 18u &&
+        game.wind.direction == GAME_WIND_DIRECTION_UP &&
+        game.wind.timer == GAME_WIND_WARNING_FRAMES &&
+        game.environment_event_cursor == 1u,
+        "first wind event starts a 45-update upward warning band");
+    advance_frames(&game, GAME_WIND_WARNING_FRAMES - 1u);
+    expect(game.wind.state == GAME_WIND_STATE_WARNING &&
+        game.wind.timer == 1u,
+        "wind warning remains harmless through update 44");
+    game_update(&game, 0u);
+    expect(game.wind.state == GAME_WIND_STATE_ACTIVE &&
+        game.wind.timer == GAME_WIND_ACTIVE_FRAMES &&
+        game.wind.push_counter == 0u,
+        "wind warning transitions deterministically to 150 active updates");
+
+    game.player.y = 24u;
+    game_update(&game, GAME_INPUT_DOWN);
+    expect(game.player.y == 26u && game.wind.push_counter == 1u,
+        "first active wind update waits while normal input moves first");
+    game_update(&game, GAME_INPUT_DOWN);
+    expect(game.player.y == 27u && game.wind.push_counter == 0u,
+        "second active update applies one-pixel wind after two-pixel input");
+    game.player.y = 80u;
+    game_update(&game, 0u);
+    game_update(&game, 0u);
+    expect(game.player.y == 80u,
+        "wind leaves a player outside its AABB band unchanged");
+
+    game.wind.state = GAME_WIND_STATE_ACTIVE;
+    game.wind.y = GAME_HUD_HEIGHT;
+    game.wind.direction = GAME_WIND_DIRECTION_UP;
+    game.wind.timer = 10u;
+    game.wind.push_counter = 1u;
+    game.player.y = GAME_HUD_HEIGHT;
+    game_update(&game, 0u);
+    expect(game.player.y == GAME_HUD_HEIGHT,
+        "upward wind clamps player at HUD lower boundary");
+    game.wind.y = 78u;
+    game.wind.direction = GAME_WIND_DIRECTION_DOWN;
+    game.wind.push_counter = 1u;
+    game.player.y = GAME_SCREEN_HEIGHT - GAME_PLAYER_HEIGHT;
+    game_update(&game, 0u);
+    expect(game.player.y == GAME_SCREEN_HEIGHT - GAME_PLAYER_HEIGHT,
+        "downward wind clamps player at playfield bottom");
+    game.wind.state = GAME_WIND_STATE_ACTIVE;
+    game.wind.timer = 1u;
+    game.wind.push_counter = 0u;
+    game_update(&game, 0u);
+    expect(game.wind.state == GAME_WIND_STATE_INACTIVE &&
+        game.wind.push_counter == 0u,
+        "wind becomes inactive immediately after its 150th active update");
+
+    game.wind.state = GAME_WIND_STATE_INACTIVE;
+    game.environment_event_cursor = 1u;
+    game.phase_timer = 509u;
+    game_update(&game, 0u);
+    expect(game.wind.state == GAME_WIND_STATE_WARNING &&
+        game.wind.y == 58u &&
+        game.wind.direction == GAME_WIND_DIRECTION_DOWN,
+        "second wind event uses fixed lower band and downward direction");
+    game.wind.state = GAME_WIND_STATE_INACTIVE;
+    game.environment_event_cursor = 2u;
+    game.phase_timer = 869u;
+    game_update(&game, 0u);
+    expect(game.wind.state == GAME_WIND_STATE_WARNING &&
+        game.wind.y == 36u &&
+        game.wind.direction == GAME_WIND_DIRECTION_UP &&
+        game.environment_event_cursor == GAME_WIND_EVENT_COUNT,
+        "third wind event uses fixed middle band and exhausts cursor");
+
+    game.wind.timer = 20u;
+    game.wind.push_counter = 1u;
+    game.dying = 1u;
+    game.explosion_timer = 0u;
+    game.lives = 2u;
+    advance_frames(&game, GAME_EXPLOSION_FRAMES);
+    expect(game.wind.state == GAME_WIND_STATE_WARNING &&
+        game.wind.timer == 20u && game.wind.push_counter == 1u,
+        "all 32 death updates freeze wind schedule timer and push phase");
+    disable_enemies_except(&game, GAME_MAX_ENEMIES);
+    game_update(&game, 0u);
+    expect(game.wind.timer == 19u,
+        "non-final respawn resumes wind from its exact frozen phase");
+}
+
+static void test_stage_three_rockfall(void)
+{
+    GameState game;
+    static const unsigned int frames[GAME_ROCKFALL_EVENT_COUNT] = {
+        90u, 240u, 390u, 540u, 690u, 840u, 990u
+    };
+    static const unsigned char xs[GAME_ROCKFALL_EVENT_COUNT] = {
+        24u, 72u, 120u, 48u, 136u, 96u, 16u
+    };
+    unsigned char i;
+
+    init_normal_stage(&game, 3u);
+    disable_enemies_except(&game, GAME_MAX_ENEMIES);
+    for (i = 0u; i < GAME_ROCKFALL_EVENT_COUNT; ++i) {
+        game.phase_timer = frames[i] - 1u;
+        game.environment_event_cursor = i;
+        game.falling_rocks[0].state = GAME_ROCK_STATE_INACTIVE;
+        game.falling_rocks[1].state = GAME_ROCK_STATE_INACTIVE;
+        game_update(&game, 0u);
+        expect(game.falling_rocks[0].state == GAME_ROCK_STATE_WARNING &&
+            game.falling_rocks[0].rect.x == xs[i] &&
+            game.falling_rocks[0].rect.y == 94u &&
+            game.falling_rocks[0].timer == GAME_ROCK_WARNING_FRAMES,
+            "rockfall event starts exact landing marker without collision");
+    }
+    advance_frames(&game, GAME_ROCK_WARNING_FRAMES - 1u);
+    expect(game.falling_rocks[0].state == GAME_ROCK_STATE_WARNING &&
+        game.falling_rocks[0].timer == 1u,
+        "rock warning remains nonphysical through update 44");
+    game_update(&game, 0u);
+    expect(game.falling_rocks[0].state == GAME_ROCK_STATE_FALLING &&
+        game.falling_rocks[0].rect.y == 10u,
+        "warning transition spawns falling rock without moving it");
+    game_update(&game, 0u);
+    expect(game.falling_rocks[0].rect.y == 12u,
+        "falling rock moves down exactly two pixels on its next update");
+
+    game.falling_rocks[0].state = GAME_ROCK_STATE_WARNING;
+    game.falling_rocks[1].state = GAME_ROCK_STATE_WARNING;
+    game.falling_rocks[0].timer = 10u;
+    game.falling_rocks[1].timer = 10u;
+    game.environment_event_cursor = 1u;
+    game.phase_timer = 239u;
+    game_update(&game, 0u);
+    expect(game.environment_event_cursor == 2u &&
+        game.falling_rocks[0].timer == 9u &&
+        game.falling_rocks[1].timer == 9u,
+        "full rock pool discards event and advances without deferred spawn");
+
+    game.falling_rocks[0].state = GAME_ROCK_STATE_WARNING;
+    game.falling_rocks[0].timer = 10u;
+    game.falling_rocks[1].state = GAME_ROCK_STATE_INACTIVE;
+    game.environment_event_cursor = 2u;
+    game.phase_timer = 389u;
+    game_update(&game, 0u);
+    expect(game.falling_rocks[1].state == GAME_ROCK_STATE_WARNING &&
+        game.falling_rocks[1].rect.x == 120u &&
+        game.falling_rocks[1].timer == GAME_ROCK_WARNING_FRAMES,
+        "rockfall allocation selects the lowest free fixed slot");
+
+    game.environment_event_cursor = GAME_ROCKFALL_EVENT_COUNT;
+    game.phase_timer = 1u;
+    game.falling_rocks[0].state = GAME_ROCK_STATE_FALLING;
+    game.falling_rocks[0].rect.x = 50u;
+    game.falling_rocks[0].rect.y = 40u;
+    game.falling_rocks[1].state = GAME_ROCK_STATE_INACTIVE;
+    game.bullets[0].active = 1u;
+    game.bullets[0].rect.x = 46u;
+    game.bullets[0].rect.y = 40u;
+    game.score = 20ul;
+    game_update(&game, 0u);
+    expect(game.falling_rocks[0].state == GAME_ROCK_STATE_FALLING &&
+        game.falling_rocks[0].rect.y == 42u &&
+        game.bullets[0].active != 0u && game.score == 20ul,
+        "falling rock is indestructible and never awards score");
+
+    game.player.x = 50u;
+    game.player.y = 94u;
+    game.falling_rocks[0].state = GAME_ROCK_STATE_FALLING;
+    game.falling_rocks[0].rect.x = 50u;
+    game.falling_rocks[0].rect.y = 92u;
+    game_update(&game, 0u);
+    expect(game.falling_rocks[0].rect.y == 94u &&
+        game.falling_rocks[0].state == GAME_ROCK_STATE_IMPACT &&
+        game.falling_rocks[0].timer == GAME_ROCK_IMPACT_FRAMES &&
+        game.lives == GAME_INITIAL_LIVES - 1u && game.dying != 0u,
+        "landing position checks player AABB before entering impact display");
+    advance_frames(&game, GAME_EXPLOSION_FRAMES);
+    expect(game.falling_rocks[0].state == GAME_ROCK_STATE_IMPACT &&
+        game.falling_rocks[0].timer == GAME_ROCK_IMPACT_FRAMES,
+        "death explosion freezes rock impact state and timer");
+
+    disable_enemies_except(&game, GAME_MAX_ENEMIES);
+    game.player.x = 10u;
+    game.player.y = 48u;
+    advance_frames(&game, GAME_ROCK_IMPACT_FRAMES - 1u);
+    expect(game.falling_rocks[0].state == GAME_ROCK_STATE_IMPACT &&
+        game.falling_rocks[0].timer == 1u,
+        "impact marker remains active for its first eleven resumed updates");
+    game_update(&game, 0u);
+    expect(game.falling_rocks[0].state == GAME_ROCK_STATE_INACTIVE,
+        "impact marker releases its slot after exactly twelve updates");
+
+    game.invincibility_timer = 3u;
+    game.falling_rocks[0].state = GAME_ROCK_STATE_FALLING;
+    game.falling_rocks[0].rect.x = game.player.x;
+    game.falling_rocks[0].rect.y = (unsigned char)(game.player.y - 2u);
+    game_update(&game, 0u);
+    expect(game.lives == GAME_INITIAL_LIVES - 1u &&
+        game.dying == 0u &&
+        game.falling_rocks[0].state == GAME_ROCK_STATE_IMPACT,
+        "invincible rock contact consumes fall into impact without damage");
+
+    game.invincibility_timer = 0u;
+    game.falling_rocks[0].state = GAME_ROCK_STATE_FALLING;
+    game.falling_rocks[1].state = GAME_ROCK_STATE_FALLING;
+    game.falling_rocks[0].rect.x = game.player.x;
+    game.falling_rocks[1].rect.x = game.player.x;
+    game.falling_rocks[0].rect.y = (unsigned char)(game.player.y - 2u);
+    game.falling_rocks[1].rect.y = (unsigned char)(game.player.y - 2u);
+    game.enemy_bullets[0].active = 1u;
+    game.enemy_bullets[0].rect.x = (unsigned char)(game.player.x + 2u);
+    game.enemy_bullets[0].rect.y = game.player.y;
+    game.enemy_bullets[0].velocity_x = (signed char)-2;
+    game.enemy_bullets[0].velocity_y = 0;
+    game_update(&game, 0u);
+    expect(game.lives == GAME_INITIAL_LIVES - 2u && game.dying != 0u &&
+        game.falling_rocks[0].state == GAME_ROCK_STATE_IMPACT &&
+        game.falling_rocks[1].state == GAME_ROCK_STATE_IMPACT,
+        "two rocks and enemy bullet still aggregate to one life loss");
+}
+
+static void test_environment_phase_boundaries_and_restart(void)
+{
+    GameState game;
+    unsigned char i;
+
+    init_normal_stage(&game, 1u);
+    game.asteroids[0].active = 1u;
+    game.environment_event_cursor = 4u;
+    game.phase_timer = GAME_NORMAL_FRAMES - 1u;
+    game_update(&game, 0u);
+    expect(game.phase == GAME_PHASE_WARNING &&
+        game.environment_event_cursor == 0u &&
+        game.asteroids[0].active == 0u &&
+        game.wind.state == GAME_WIND_STATE_INACTIVE,
+        "normal exit clears every environment object and schedule cursor");
+
+    game_init(&game);
+    for (i = 0u; i < GAME_MAX_ENVIRONMENT_OBJECTS; ++i) {
+        expect(game.asteroids[i].active == 0u &&
+            game.falling_rocks[i].state == GAME_ROCK_STATE_INACTIVE &&
+            game.asteroids[i].rect.width == GAME_ENVIRONMENT_OBJECT_WIDTH &&
+            game.falling_rocks[i].rect.height ==
+                GAME_ENVIRONMENT_OBJECT_HEIGHT,
+            "game init clears dedicated bounded slots and preserves dimensions");
+    }
+    expect(game.environment_event_cursor == 0u &&
+        game.wind.state == GAME_WIND_STATE_INACTIVE,
+        "game init resets environment cursor and wind state");
+
+    game.phase = GAME_PHASE_ALL_CLEAR;
+    game.stage = 3u;
+    game.falling_rocks[0].state = GAME_ROCK_STATE_IMPACT;
+    game.falling_rocks[0].timer = 7u;
+    game_update(&game, 0u);
+    game_update(&game, GAME_INPUT_FIRE);
+    expect(game.stage == 1u && game.phase == GAME_PHASE_STAGE_INTRO &&
+        game.falling_rocks[0].state == GAME_ROCK_STATE_INACTIVE &&
+        game.environment_event_cursor == 0u,
+        "ALL CLEAR release and repress fully resets environment state");
+
+    init_normal_stage(&game, 1u);
+    disable_enemies_except(&game, GAME_MAX_ENEMIES);
+    game.lives = 1u;
+    game.asteroids[0].active = 1u;
+    game.asteroids[0].rect.x = (unsigned char)(game.player.x + 1u);
+    game.asteroids[0].rect.y = game.player.y;
+    game_update(&game, 0u);
+    advance_frames(&game, GAME_EXPLOSION_FRAMES);
+    expect(game.game_over != 0u &&
+        game.asteroids[0].active == 0u &&
+        game.environment_event_cursor == 0u,
+        "final explosion clears environment before GAME OVER becomes visible");
+}
+
 static void test_all_clear_restart(void)
 {
     GameState game;
@@ -2233,6 +2635,10 @@ int main(void)
     test_boss_configuration_and_scripts();
     test_enemy_bullet_capacity_and_signed_motion();
     test_boss_hits_death_and_priority();
+    test_stage_one_asteroids();
+    test_stage_two_wind();
+    test_stage_three_rockfall();
+    test_environment_phase_boundaries_and_restart();
     test_all_clear_restart();
     printf("PASS: %u game logic checks\n", checks);
     return EXIT_SUCCESS;

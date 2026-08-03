@@ -35,6 +35,10 @@
 #define GAME_COLOR_CAVE_BAT 12u
 #define GAME_COLOR_ROCK_WORM 9u
 #define GAME_COLOR_MINING_DRONE 14u
+#define GAME_COLOR_ENVIRONMENT_BODY 5u
+#define GAME_COLOR_ENVIRONMENT_DETAIL 13u
+#define GAME_COLOR_WIND_WARNING 6u
+#define GAME_COLOR_WIND_ACTIVE 14u
 #define SCORE_DIGITS 5u
 
 typedef struct Star {
@@ -376,6 +380,16 @@ static const unsigned char explosion_masks[GAME_EXPLOSION_STAGES][8] = {
     { 0x00u, 0x24u, 0x18u, 0x7eu, 0x7eu, 0x18u, 0x24u, 0x00u },
     { 0x81u, 0x24u, 0x5au, 0x3cu, 0x3cu, 0x5au, 0x24u, 0x81u },
     { 0x42u, 0x81u, 0x24u, 0x00u, 0x00u, 0x24u, 0x81u, 0x42u }
+};
+
+static const unsigned char asteroid_masks[2][8] = {
+    { 0x18u, 0x7cu, 0xfeu, 0xdbu, 0xffu, 0x7eu, 0x3cu, 0x18u },
+    { 0x1cu, 0x7eu, 0xffu, 0xbdu, 0x7fu, 0x3eu, 0x1cu, 0x08u }
+};
+
+static const unsigned char falling_rock_masks[2][8] = {
+    { 0x18u, 0x3cu, 0x7eu, 0xffu, 0xdbu, 0x7eu, 0x3cu, 0x18u },
+    { 0x0cu, 0x3eu, 0x7fu, 0xffu, 0xbdu, 0x7eu, 0x38u, 0x10u }
 };
 
 static unsigned char read_input(void)
@@ -779,6 +793,106 @@ static void draw_phase_text(const GameState* game)
     }
 }
 
+static void draw_wind_band(const GameWindBand* wind)
+{
+    unsigned char x;
+    unsigned char y;
+    unsigned char bottom;
+
+    bottom = (unsigned char)(wind->y + GAME_WIND_BAND_HEIGHT - 1u);
+    if (wind->state == GAME_WIND_STATE_WARNING) {
+        tgi_setcolor(GAME_COLOR_WIND_WARNING);
+        for (x = 0u; x < GAME_SCREEN_WIDTH; x = (unsigned char)(x + 12u)) {
+            unsigned int x1;
+
+            x1 = (unsigned int)x + 4u;
+            if (x1 >= GAME_SCREEN_WIDTH) {
+                x1 = GAME_SCREEN_WIDTH - 1u;
+            }
+            tgi_bar(x, wind->y, x1, wind->y);
+            tgi_bar(x, bottom, x1, bottom);
+        }
+    } else {
+        tgi_setcolor(GAME_COLOR_WIND_ACTIVE);
+        for (y = (unsigned char)(wind->y + 5u); y < bottom;
+            y = (unsigned char)(y + 7u)) {
+            tgi_line(8u, y, 151u, y);
+        }
+    }
+    for (x = 20u; x < GAME_SCREEN_WIDTH; x = (unsigned char)(x + 40u)) {
+        unsigned char center_y;
+
+        center_y = (unsigned char)(wind->y + GAME_WIND_BAND_HEIGHT / 2u);
+        if (wind->direction == GAME_WIND_DIRECTION_UP) {
+            tgi_line(x, (unsigned int)center_y + 4u, x, center_y - 4u);
+            tgi_line(x, center_y - 4u, x - 2u, center_y - 1u);
+            tgi_line(x, center_y - 4u, x + 2u, center_y - 1u);
+        } else {
+            tgi_line(x, center_y - 4u, x, (unsigned int)center_y + 4u);
+            tgi_line(x, (unsigned int)center_y + 4u,
+                x - 2u, (unsigned int)center_y + 1u);
+            tgi_line(x, (unsigned int)center_y + 4u,
+                x + 2u, (unsigned int)center_y + 1u);
+        }
+    }
+}
+
+static void draw_environment(const GameState* game,
+    const GameStageConfig* stage_config)
+{
+    unsigned char i;
+
+    if (game->phase != GAME_PHASE_NORMAL) {
+        return;
+    }
+    if (stage_config->environment_id == GAME_ENVIRONMENT_ASTEROIDS) {
+        for (i = 0u; i < GAME_MAX_ENVIRONMENT_OBJECTS; ++i) {
+            if (game->asteroids[i].active != 0u) {
+                draw_mask(game->asteroids[i].rect.x,
+                    game->asteroids[i].rect.y,
+                    GAME_ENVIRONMENT_OBJECT_WIDTH,
+                    GAME_ENVIRONMENT_OBJECT_HEIGHT,
+                    asteroid_masks[game->animation_frame],
+                    GAME_COLOR_ENVIRONMENT_BODY);
+            }
+        }
+    } else if (stage_config->environment_id == GAME_ENVIRONMENT_WIND) {
+        if (game->wind.state != GAME_WIND_STATE_INACTIVE) {
+            draw_wind_band(&game->wind);
+        }
+    } else {
+        for (i = 0u; i < GAME_MAX_ENVIRONMENT_OBJECTS; ++i) {
+            const GameFallingRock* rock;
+            unsigned char y;
+
+            rock = &game->falling_rocks[i];
+            if (rock->state == GAME_ROCK_STATE_WARNING) {
+                tgi_setcolor(GAME_COLOR_WIND_ACTIVE);
+                for (y = 14u; y < 91u; y = (unsigned char)(y + 12u)) {
+                    tgi_bar(rock->rect.x + 3u, y,
+                        rock->rect.x + 4u, y + 2u);
+                }
+                tgi_line(rock->rect.x, 94u,
+                    rock->rect.x + GAME_ENVIRONMENT_OBJECT_WIDTH - 1u, 94u);
+                tgi_line(rock->rect.x, 94u, rock->rect.x + 2u, 91u);
+                tgi_line(rock->rect.x + 7u, 94u,
+                    rock->rect.x + 5u, 91u);
+            } else if (rock->state == GAME_ROCK_STATE_FALLING) {
+                draw_mask(rock->rect.x, rock->rect.y,
+                    GAME_ENVIRONMENT_OBJECT_WIDTH,
+                    GAME_ENVIRONMENT_OBJECT_HEIGHT,
+                    falling_rock_masks[game->animation_frame],
+                    GAME_COLOR_ENVIRONMENT_BODY);
+            } else if (rock->state == GAME_ROCK_STATE_IMPACT) {
+                tgi_setcolor(GAME_COLOR_ENVIRONMENT_DETAIL);
+                tgi_line(rock->rect.x, 98u, rock->rect.x + 7u, 98u);
+                tgi_line(rock->rect.x + 2u, 96u,
+                    rock->rect.x + 5u, 96u);
+            }
+        }
+    }
+}
+
 static void draw_game(const GameState* game)
 {
     const GameStageConfig* stage_config;
@@ -816,6 +930,7 @@ static void draw_game(const GameState* game)
     tgi_outtextxy(72u, 1u, "PWR");
     tgi_outtextxy(96u, 1u, power_text);
     draw_phase_text(game);
+    draw_environment(game, stage_config);
 
     if (game->game_over != 0u) {
         tgi_outtextxy(48u, 40u, "GAME OVER");

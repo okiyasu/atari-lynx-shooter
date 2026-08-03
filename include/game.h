@@ -50,6 +50,32 @@
 #define GAME_BACKGROUND_THEME_CAVE 2u
 #define GAME_BACKGROUND_THEME_COUNT 3u
 
+#define GAME_ENVIRONMENT_ASTEROIDS 0u
+#define GAME_ENVIRONMENT_WIND 1u
+#define GAME_ENVIRONMENT_ROCKFALL 2u
+#define GAME_ENVIRONMENT_COUNT 3u
+
+#define GAME_MAX_ENVIRONMENT_OBJECTS 2u
+#define GAME_ENVIRONMENT_OBJECT_WIDTH 8u
+#define GAME_ENVIRONMENT_OBJECT_HEIGHT 8u
+#define GAME_ASTEROID_EVENT_COUNT 6u
+#define GAME_ROCKFALL_EVENT_COUNT 7u
+#define GAME_WIND_EVENT_COUNT 3u
+#define GAME_WIND_WARNING_FRAMES 45u
+#define GAME_WIND_ACTIVE_FRAMES 150u
+#define GAME_WIND_BAND_HEIGHT 24u
+#define GAME_WIND_DIRECTION_UP 0u
+#define GAME_WIND_DIRECTION_DOWN 1u
+#define GAME_ROCK_WARNING_FRAMES 45u
+#define GAME_ROCK_IMPACT_FRAMES 12u
+#define GAME_ROCK_STATE_INACTIVE 0u
+#define GAME_ROCK_STATE_WARNING 1u
+#define GAME_ROCK_STATE_FALLING 2u
+#define GAME_ROCK_STATE_IMPACT 3u
+#define GAME_WIND_STATE_INACTIVE 0u
+#define GAME_WIND_STATE_WARNING 1u
+#define GAME_WIND_STATE_ACTIVE 2u
+
 #define GAME_ENEMY_FORMATION_SPACE 0u
 #define GAME_ENEMY_FORMATION_AIR 1u
 #define GAME_ENEMY_FORMATION_CAVE 2u
@@ -146,11 +172,31 @@ typedef struct GameBoss {
     unsigned char alternate_cannon;
 } GameBoss;
 
+typedef struct GameAsteroid {
+    GameRect rect;
+    unsigned char active;
+} GameAsteroid;
+
+typedef struct GameFallingRock {
+    GameRect rect;
+    unsigned char state;
+    unsigned char timer;
+} GameFallingRock;
+
+typedef struct GameWindBand {
+    unsigned char state;
+    unsigned char y;
+    unsigned char direction;
+    unsigned char timer;
+    unsigned char push_counter;
+} GameWindBand;
+
 typedef struct GameStageConfig {
     unsigned char background_theme_id;
     unsigned char enemy_formation_id;
     unsigned char boss_config_id;
     unsigned char boss_appearance_id;
+    unsigned char environment_id;
 } GameStageConfig;
 
 typedef struct GameEnemyFormationSlot {
@@ -188,6 +234,9 @@ typedef struct GameState {
     GameEnemyBullet enemy_bullets[GAME_MAX_ENEMY_BULLETS];
     GamePowerItem power_item;
     GameBoss boss;
+    GameAsteroid asteroids[GAME_MAX_ENVIRONMENT_OBJECTS];
+    GameFallingRock falling_rocks[GAME_MAX_ENVIRONMENT_OBJECTS];
+    GameWindBand wind;
     unsigned long score;
     unsigned char fire_cooldown;
     unsigned char weapon_level;
@@ -206,6 +255,7 @@ typedef struct GameState {
     unsigned char near_star_counter;
     unsigned char animation_counter;
     unsigned char animation_frame;
+    unsigned char environment_event_cursor;
     unsigned char stage;
     unsigned char phase;
     unsigned int phase_timer;
