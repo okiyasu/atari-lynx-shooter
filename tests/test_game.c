@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "game.h"
 
@@ -27,7 +28,7 @@ static void init_normal(GameState* game)
 {
     unsigned char i;
 
-    game_init(game);
+    game_start(game);
     game->phase = GAME_PHASE_NORMAL;
     game->phase_timer = 0u;
     for (i = 0u; i < GAME_MAX_ENEMIES; ++i) {
@@ -37,7 +38,7 @@ static void init_normal(GameState* game)
 
 static void init_normal_stage(GameState* game, unsigned char stage)
 {
-    game_init(game);
+    game_start(game);
     game->stage = stage;
     game->phase = GAME_PHASE_STAGE_INTRO;
     game->phase_timer = GAME_STAGE_INTRO_FRAMES - 1u;
@@ -92,7 +93,7 @@ static unsigned char count_enemy_bullets(const GameState* game)
 
 static void enter_boss(GameState* game, unsigned char stage)
 {
-    game_init(game);
+    game_start(game);
     game->stage = stage;
     game->phase = GAME_PHASE_WARNING;
     game->phase_timer = GAME_WARNING_FRAMES - 1u;
@@ -227,7 +228,7 @@ static void test_stage_three_background_scroll(void)
     GameState game;
     GameState frozen;
 
-    game_init(&game);
+    game_start(&game);
     game.stage = 3u;
     game.phase = GAME_PHASE_STAGE_INTRO;
     advance_frames(&game, 8u);
@@ -319,7 +320,7 @@ static void test_stage_two_background_scroll(void)
     GameState frozen;
     unsigned char i;
 
-    game_init(&game);
+    game_start(&game);
     game.stage = 2u;
     game.phase = GAME_PHASE_STAGE_INTRO;
     advance_frames(&game, 1u);
@@ -457,6 +458,41 @@ static void test_initial_state(void)
             game.enemy_bullets[i].rect.height == 2u,
             "all enemy bullets start inactive with fixed dimensions");
     }
+}
+
+static void test_boot_initialization_and_intro_input(void)
+{
+    GameState first;
+    GameState second;
+
+    memset(&first, 0x00, sizeof(first));
+    memset(&second, 0xff, sizeof(second));
+    game_init(&first);
+    game_init(&second);
+    expect(memcmp(&first, &second, sizeof(first)) == 0,
+        "game init fully determines every GameState byte");
+    expect(first.stage == 1u && first.phase == GAME_PHASE_TITLE &&
+        first.phase_timer == 0u && first.lives == GAME_INITIAL_LIVES &&
+        first.game_over == 0u && first.dying == 0u &&
+        first.restart_armed == 0u && first.title_start_armed != 0u &&
+        first.sound.output.active == 0u,
+        "boot starts at the clean title instead of game over");
+    game_update(&first, GAME_INPUT_FIRE | GAME_INPUT_RIGHT);
+    expect(first.phase == GAME_PHASE_STAGE_INTRO && first.phase_timer == 0u &&
+        first.player.x == 10u && first.player.y == 48u &&
+        count_player_bullets(&first) == 0u,
+        "title fire starts intro without moving or firing");
+    game_update(&first, GAME_INPUT_FIRE | GAME_INPUT_RIGHT);
+    expect(first.phase == GAME_PHASE_STAGE_INTRO && first.phase_timer == 1u &&
+        first.player.x == 10u && first.player.y == 48u &&
+        count_player_bullets(&first) == 0u,
+        "intro ignores held A B and direction input without firing or moving");
+    advance_frames(&first, GAME_STAGE_INTRO_FRAMES - 1u);
+    expect(first.phase == GAME_PHASE_NORMAL && first.phase_timer == 0u,
+        "stage one intro advances to normal after exactly ninety updates");
+    game_update(&first, GAME_INPUT_RIGHT | GAME_INPUT_FIRE);
+    expect(first.player.x == 12u && count_player_bullets(&first) == 1u,
+        "normal phase accepts movement and A B fire input");
 }
 
 static void test_background_animation_and_player(void)
@@ -1481,42 +1517,53 @@ static void test_game_over_and_restart(void)
         "held fire leaves all game over state frozen");
     game_update(&game, GAME_INPUT_RIGHT);
     expect(game.restart_armed != 0u && game.game_over != 0u,
-        "release arms restart without changing gameplay");
+        "release arms title return without changing gameplay");
     game_update(&game, GAME_INPUT_FIRE);
-    expect(game.game_over == 0u && game.lives == 3u && game.score == 0ul,
-        "fresh fire press performs complete restart");
+    expect(game.phase == GAME_PHASE_TITLE && game.game_over == 0u &&
+        game.lives == 3u && game.score == 0ul &&
+        game.sound.bgm_active == 0u && game.sound.output.active == 0u &&
+        game.title_start_armed == 0u,
+        "fresh fire press returns game over to a silent clean title");
+    game_update(&game, GAME_INPUT_FIRE);
+    expect(game.phase == GAME_PHASE_TITLE && game.title_start_armed == 0u,
+        "the game-over return press cannot also start from title");
+    game_update(&game, 0u);
+    game_update(&game, GAME_INPUT_FIRE);
+    expect(game.phase == GAME_PHASE_STAGE_INTRO && game.game_over == 0u &&
+        game.lives == 3u && game.score == 0ul,
+        "a title fire press performs complete restart");
     expect(game.player.x == 10u && game.player.y == 48u &&
         game.respawn_sequence == 0u && game.fire_cooldown == 0u,
-        "restart restores player sequence and cooldown");
+        "title restart restores player sequence and cooldown");
     expect(game.weapon_level == GAME_WEAPON_LEVEL_MIN &&
         game.power_item.active == 0u &&
         game.power_item.move_counter == 0u,
-        "restart restores level one and clears the power item");
+        "title restart restores level one and clears the power item");
     expect(game.enemies[0].rect.x == 140u &&
         game.enemies[1].rect.x == 170u &&
         game.enemies[2].rect.x == 200u &&
         game.enemies[3].rect.x == 230u,
-        "restart restores all four enemies");
+        "title restart restores all four enemies");
     expect(game.enemies[0].fire_counter == 0u &&
         game.enemies[1].fire_counter == 15u &&
         game.enemies[2].fire_counter == 30u &&
         game.enemies[3].fire_counter == 45u,
-        "restart restores all enemy fire phases");
+        "title restart restores all enemy fire phases");
     for (i = 0u; i < GAME_MAX_ENEMY_BULLETS; ++i) {
         expect(game.enemy_bullets[i].active == 0u,
-            "restart clears all enemy bullets");
+            "title restart clears all enemy bullets");
     }
     expect(game.dying == 0u && game.explosion_timer == 0u &&
         game.invincibility_timer == 0u && game.restart_armed == 0u,
-        "restart clears death invincibility and restart state");
+        "title restart clears death invincibility and restart state");
     for (i = 0u; i < GAME_MAX_PLAYER_BULLETS; ++i) {
         expect(game.bullets[i].active == 0u,
-            "restart frame clears every player bullet and does not fire");
+            "title start clears every player bullet and does not fire");
     }
     expect(game.planet_offset == 0u && game.planet_counter == 0u &&
         game.far_star_offset == 0u && game.near_star_offset == 0u &&
         game.animation_frame == 0u,
-        "restart resets all scrolling and animation");
+        "title restart resets all scrolling and animation");
 }
 
 static void test_stage_phase_machine(void)
@@ -1524,7 +1571,7 @@ static void test_stage_phase_machine(void)
     GameState game;
     unsigned char i;
 
-    game_init(&game);
+    game_start(&game);
     expect(game.stage == 1u && game.phase == GAME_PHASE_STAGE_INTRO &&
         game.phase_timer == 0u,
         "game starts at stage one intro with a zero elapsed timer");
@@ -2530,7 +2577,7 @@ static void test_environment_phase_boundaries_and_restart(void)
         game.wind.state == GAME_WIND_STATE_INACTIVE,
         "normal exit clears every environment object and schedule cursor");
 
-    game_init(&game);
+    game_start(&game);
     for (i = 0u; i < GAME_MAX_ENVIRONMENT_OBJECTS; ++i) {
         expect(game.asteroids[i].active == 0u &&
             game.falling_rocks[i].state == GAME_ROCK_STATE_INACTIVE &&
@@ -2574,7 +2621,7 @@ static void test_all_clear_restart(void)
     GameState frozen;
     unsigned char i;
 
-    game_init(&game);
+    game_start(&game);
     game.phase = GAME_PHASE_ALL_CLEAR;
     game.stage = 3u;
     game.score = 9999ul;
@@ -2623,7 +2670,7 @@ static void test_sound_initial_phase_and_fire_integration(void)
     unsigned char old_step;
     unsigned char old_remaining;
 
-    game_init(&game);
+    game_start(&game);
     expect(game.sound.bgm_active != 0u &&
         game.sound.bgm_id == SOUND_BGM_STAGE_ONE &&
         game.sound.bgm_step == 0u &&
@@ -2681,7 +2728,7 @@ static void test_sound_initial_phase_and_fire_integration(void)
     expect(game.sound.sfx_id == SOUND_SFX_NONE,
         "capacity-blocked normal volley remains silent");
 
-    game_init(&game);
+    game_start(&game);
     game_update(&game, GAME_INPUT_FIRE);
     expect(game.sound.sfx_id == SOUND_SFX_NONE,
         "fire input during stage intro never requests shot SFX");
@@ -2962,6 +3009,7 @@ int main(void)
     test_stage_two_configuration_and_air_formation();
     test_stage_three_configuration_and_cave_formation();
     test_initial_state();
+    test_boot_initialization_and_intro_input();
     test_background_animation_and_player();
     test_stage_two_background_scroll();
     test_stage_three_background_scroll();

@@ -36,12 +36,14 @@ ROMは`dist/asteroid-patrol.lnx`に生成されます。`.cache/`、`build/`、`
 - 強化: Stage 1のDropper、Stage 2のSUPPLY、Stage 3のMINING_DRONE撃破時だけ4x4の強化アイテムを生成。取得するとHUDの`PWR`が最大3まで上がり、自機弾が1/2/3発へ強化
 - 敵本体・敵弾との接触または敵の左端到達: 同一フレームでは残機を1つだけ失い、4段階・32フレームの爆発後に初期位置から再出撃
 - 再出撃: 60フレーム無敵。自機が4フレーム単位で点滅し、損傷条件成立時は4敵の初期編成へ戻して全敵弾を消去
-- 残機0: 最後の爆発完了後にゲームオーバー。A/Bを一度離してから再度押すと最初から再開始
+- 残機0: 最後の爆発完了後に最終ゲーム画面を背景にしたゲームオーバーとなる。A/Bを一度離してから再度押すとタイトルへ戻り、さらにA/Bを離してから再度押すとStage 1から完全な新規ゲームを開始
 - ALL CLEAR: A/Bを一度離してから再度押すと、Stage 1・スコア0・残機3・武器Lv1から完全再開始
 
 ## macOSでの手動確認
 
 第一候補はGearlynx 1.2.21です。`brew install --cask drhelius/geardome/gearlynx`または公式配布物を利用し、合法的に所有するBIOSをGearlynxの設定から指定して、生成ROMを開きます。GearlynxはBIOS必須で、公式READMEはMD5 `fcd403db69f54290b51035d82f835e7b`のオリジナルBIOSを推奨しています。キーボード割当はGearlynxのInput設定で方向・A・Bを確認してください。
+
+起動時はタイトル画面です。`A/B TO START`で新規ゲームを始めると、`STAGE 1`の導入を約90更新表示してから通常戦闘へ入ります。タイトルには方向移動とA/B射撃の基本操作を表示し、導入中の方向・A/Bは移動・射撃に使いません。GAME OVERは最終ゲーム画面を背景に`GAME OVER`と`A/B TO TITLE`を重ね、A/Bを一度離してから押すとタイトルへ戻ります。その復帰入力は開始に流用せず、タイトルで離してから再度A/Bを押すと完全な新規ゲームを始めます。ゲーム状態はTGIの二重フレームバッファとは重ならない静的BSSに保持します。
 
 代替はMednafen 1.32.1です。`brew install mednafen`後、合法的に所有する512バイトのLynx boot ROMを**ユーザー自身で**Mednafenベースディレクトリへ`lynxboot.img`として配置し、次を実行します。
 
@@ -52,6 +54,17 @@ mednafen dist/asteroid-patrol.lnx
 Mednafen既定キーはW/S/A/Dが上下左右、テンキー3がA、テンキー2がBです。`Alt+Shift+1`でLynxパッド割当を変更できます。
 
 本リポジトリは`lynxboot.img`その他のBIOSを取得・同梱・生成しません。BIOS不在時に実エミュレータ確認は行えませんが、ゲームロジックと75Hzサウンドシーケンサは`make test`、ROM形式は`make inspect`で独立に検証できます。
+
+## 起動・操作スモーク検証
+
+```sh
+make smoke-host      # BIOS不要: Stage 1 NORMAL、右移動、射撃、GAME OVER非遷移
+make smoke-gearlynx # 任意: 既存Gearlynx設定でROMをヘッドレス起動する
+```
+
+`smoke-host`は90更新後の`NORMAL`到達、方向入力、自機弾の有効化、その観測中の`game_over=0`を独立して判定します。`smoke-gearlynx`は、起動前にデバッグポートの未使用を確認し、起動後も待受PIDが今回のGearlynxプロセス（またはその子）に属する場合だけヘッドレス起動を確認します。ポート競合や別プロセスの待受は失敗（終了コード1）です。リポジトリ内には同モニタの入力・状態読出しプロトコル定義がないため、操作・状態の実ROM自動検証は終了コード3の**未検証**として明示します。通常の`make verify`にはGearlynxを含めません。
+
+終了しない`main()`へ大きな自動`GameState`を置かないでください。cc65 2.19ではCスタック先頭とTGI第2フレームバッファ先頭`0xC038`が衝突し得ます。`src/main.c`の静的BSS `game`を使い、ROMビルド後に`build/asteroid-patrol.map`のBSS範囲（APS-014時点では`0x8BC5`〜`0x8E04`、`game`は`0x8BC9`）が表示バッファから分離していることを確認します。
 
 ## 資料
 

@@ -46,6 +46,7 @@
 #define GAME_PHASE_BOSS 3u
 #define GAME_PHASE_STAGE_CLEAR 4u
 #define GAME_PHASE_ALL_CLEAR 5u
+#define GAME_PHASE_TITLE 6u
 
 #define GAME_BACKGROUND_THEME_SPACE 0u
 #define GAME_BACKGROUND_THEME_SKY 1u
@@ -246,6 +247,7 @@ typedef struct GameState {
     unsigned char lives;
     unsigned char game_over;
     unsigned char restart_armed;
+    unsigned char title_start_armed;
     unsigned char dying;
     unsigned char explosion_timer;
     unsigned char invincibility_timer;
@@ -265,6 +267,7 @@ typedef struct GameState {
 } GameState;
 
 void game_init(GameState* game);
+void game_start(GameState* game);
 void game_update(GameState* game, unsigned char input);
 unsigned char game_aabb_intersects(const GameRect* a, const GameRect* b);
 unsigned char game_player_is_visible(const GameState* game);

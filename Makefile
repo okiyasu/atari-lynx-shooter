@@ -11,7 +11,7 @@ ROM_CFLAGS := -t lynx -Oirs --standard cc65 -W error -Iinclude
 ROM := dist/asteroid-patrol.lnx
 ROM_OBJECTS := build/main.o build/game.o build/sound.o
 
-.PHONY: all toolchain rom clean test lint verify inspect
+.PHONY: all toolchain rom clean test smoke-host smoke-gearlynx lint verify inspect
 
 all: verify
 
@@ -40,6 +40,12 @@ test: build/test-game build/test-sound
 	./build/test-game
 	./build/test-sound
 
+smoke-host: build/test-smoke
+	./build/test-smoke
+
+smoke-gearlynx: $(ROM)
+	./scripts/smoke-gearlynx.sh $(ROM) build/asteroid-patrol.lbl
+
 build/test-game: tests/test_game.c src/game.c src/sound.c include/game.h \
 		include/sound.h
 	mkdir -p build
@@ -49,10 +55,15 @@ build/test-sound: tests/test_sound.c src/sound.c include/sound.h
 	mkdir -p build
 	$(HOST_CC) $(HOST_CFLAGS) -o $@ tests/test_sound.c src/sound.c
 
+build/test-smoke: tests/test_smoke.c src/game.c src/sound.c include/game.h \
+		include/sound.h
+	mkdir -p build
+	$(HOST_CC) $(HOST_CFLAGS) -o $@ tests/test_smoke.c src/game.c src/sound.c
+
 lint: $(ROM_OBJECTS) | toolchain
 	mkdir -p build
 	$(HOST_CC) $(HOST_CFLAGS) -fsyntax-only src/game.c src/sound.c \
-		tests/test_game.c tests/test_sound.c
+		tests/test_game.c tests/test_sound.c tests/test_smoke.c
 	sh -n scripts/*.sh
 
 inspect: $(ROM)

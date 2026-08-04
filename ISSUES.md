@@ -1,8 +1,104 @@
 # ISSUES
 
-最終更新: 2026-08-03
+最終更新: 2026-08-04
 
 ## 課題台帳
+
+### APS-016: タイトル画面とGAME OVERからの復帰導線
+
+- 状態: 一次検収合格（Dev Front、2026-08-04）
+- 優先度: 高
+- 起票日: 2026-08-04
+- 目的: 起動時をStage 1導入ではなくタイトル画面とし、A/Bで新規ゲームを開始する。最終ゲーム画面を背景として保持したGAME OVERからは、A/Bを一度離してから再押下した場合だけタイトルへ戻り、再び新規開始できるようにする。
+- 確定仕様: タイトルは`ASTEROID PATROL`、開始案内、方向移動とA/B射撃の基本操作を読みやすく表示する。タイトルでのA/B押下は即時にStage 1 `GAME_PHASE_STAGE_INTRO`を開始する。GAME OVERでは進行・描画同期を止めずに最終ゲーム画面を背景として描き、`GAME OVER`と`A/B TO TITLE`を重ねる。GAME OVERへ入った時点の押下を復帰入力に使わず、必ず離して再押下する。タイトルへ戻るとサウンドを停止し、タイトルからの開始はStage 1・スコア0・残機3・武器Lv1・曲頭へ完全初期化する。
+- 互換性: 既存ALL CLEARの「A/Bを離して再押下でStage 1から完全再開始」は維持する。固定状態機械、整数/C89、静的BSS、TGI待機→入力→更新→音→描画→表示更新、MIKEY書込み境界、既存のステージ進行・サウンド優先度を壊さない。
+
+#### APS-016完了条件
+
+- ホスト回帰で、起動→タイトル、タイトルのA/B→Stage 1導入、開始後の初期値、GAME OVER中の離す→再押下→タイトル、タイトルからの再開始、ALL CLEAR再開始の既存挙動を検証する。
+- タイトル、GAME OVERオーバーレイと凍結背景の描画を追加し、READMEと設計書へ入力・状態遷移とメモリ境界を記録する。
+- `make clean && ./scripts/verify.sh`、ASan/UBSan付き全ホストテスト、cc65 2.19 warnings-as-errors、`sh -n scripts/*.sh`、LNXヘッダ検査、`git diff --check`を実行し、結果・ROMサイズ/SHA-256・設計差分・未確認事項を記録する。コミット、push、BIOS/外部ROM/素材の取得・探索・読取・同梱は禁止。
+
+#### APS-016実装・検証結果
+
+- 変更: 固定状態機械に`GAME_PHASE_TITLE`を追加し、`game_init()`を静音タイトル初期化、`game_start()`をStage 1 INTRO・曲頭からの完全新規開始として分離した。タイトルには`ASTEROID PATROL`、`A/B TO START`、方向移動とA/B射撃を描画する。GAME OVERはゲーム画面を引き続き描き、`GAME OVER`と`A/B TO TITLE`だけを重ねる。`restart_armed`で離してからの復帰入力を要求し、タイトル復帰直後の`title_start_armed=0`により同じ押下が開始へ連鎖しないようにした。タイトルで離してからA/Bを押すと、Stage 1・スコア0・残機3・武器Lv1・戦闘物なし・Stage 1曲頭へ完全初期化する。ALL CLEARの従来の離す→再押下による直接完全再開始は維持した。
+- 回帰: 起動タイトル、タイトル開始、導入中入力無効、GAME OVER中の完全凍結、GAME OVERの離す→再押下→静音タイトル、復帰入力の非連鎖、タイトルからの完全新規開始、ALL CLEAR再開始をホスト検査した。ゲームロジックは515件、サウンド130件、起動・操作スモーク5件が成功した。
+- 文書: `README.md`へ画面と入力導線を、`docs/plan/design.md`へタイトル状態、入力アーム、GAME OVERの凍結描画、サウンド境界を記録した。`GameState`は静的BSSを維持し、ROMリンクマップのBSSは`0x8DC4`〜`0x9004`（`0x241` bytes）で、TGI第2バッファ先頭`0xC038`から分離している。
+- 検証: `make clean && ./scripts/verify.sh`、`make smoke-host`、`sh -n scripts/*.sh`、`git diff --check`はいずれも終了コード0。cc65 2.19の`-W error`、clang厳格C89、LNX検査も成功した。ASan/UBSan付きのゲーム515件・サウンド130件・スモーク5件も終了コード0。ROMは`dist/asteroid-patrol.lnx`、36,055 bytes、SHA-256 `53c1839270dbc55085cb83c6576bace013a886d785e3924219b9c916685d6202`。
+- 設計差分・未確認: 仕様との差分なし。タイトルとGAME OVERオーバーレイの実機/GUI目視、音の聴感、長時間動作は未確認。コミット、push、deploy、stash、reset、checkout、BIOS・`lynxboot.img`・外部ROM・素材の取得・探索・読取・複製・生成・同梱は行っていない。
+
+#### APS-016 v002 文書仕様是正
+
+- `README.md`の残機0説明、`docs/plan/design.md`の画面・再開始総則・Stage進行記述を現行仕様へ統一した。GAME OVERは最終ゲーム画面を背景に`A/B TO TITLE`を表示し、A/B解除後の再押下でタイトルへ戻る。復帰押下は開始へ流用せず、タイトルで再度解除後に押下すると新規開始する。ALL CLEARだけは解除後の再押下で直接Stage 1 INTROへ完全再開始する。
+- コードおよびテストは変更していないため、APS-016の既存自動検証結果（ゲーム515件、サウンド130件、スモーク5件、ASan/UBSan、cc65 `-W error`、LNX検査）は不変である。本v002では`sh -n scripts/*.sh`と`git diff --check`が終了コード0で、READMEと設計書を対象に旧`A/B TO RESTART`・GAME OVERからの直接再開始記述が残っていないことを再検索で確認した。設計差分なし。コミット、push、BIOS/外部ROM/素材の操作は行っていない。
+
+#### APS-016一次検収
+
+- Dev Frontが状態遷移・描画・文書を独立確認した。`GAME_PHASE_TITLE`は起動時の静音タイトル、`game_start()`はStage 1 INTROと曲頭の新規開始、GAME OVERは離す→再押下→タイトル、復帰入力は`title_start_armed=0`で開始へ非連鎖、ALL CLEARだけは直接Stage 1再開始となる。タイトルとGAME OVERのTGI描画はいずれも`tgi_updatedisplay()`を一回だけ行い、既存の待機→入力→更新→音→描画順を維持する。
+- 独立実測: `make clean && ./scripts/verify.sh`は終了コード0（ゲーム515件、サウンド130件、cc65 2.19 `-W error`、shell lint、LNXヘッダ検査）。ASan/UBSan付きゲーム515件・サウンド130件・スモーク5件、`make smoke-host`、`sh -n scripts/*.sh`、`git diff --check`も終了コード0。ROMは36,055 bytes、SHA-256 `53c1839270dbc55085cb83c6576bace013a886d785e3924219b9c916685d6202`。
+- 静的BSSは`0x8DC4`から`0x241` bytesでTGI第2フレームバッファ先頭`0xC038`から分離している。Gearlynx GUI/実機のタイトル・GAME OVER目視、音の聴感、長時間動作は未確認。コミット、push、BIOS/外部ROM操作は行っていない。
+
+### APS-015: 起動・操作スモーク検証の自動化
+
+- 状態: 一次検収合格・実ROM操作自動検証は未確認（Dev Front、2026-08-04）
+- 優先度: 高
+- 起票日: 2026-08-04
+- 目的: APS-014で解消したCスタックとTGI描画バッファの衝突を再発させないため、通常の`make verify`とは独立して、ROM起動後のStage 1 `NORMAL`到達、方向入力、自機弾発射、`GAME OVER`への誤遷移なしをGearlynxまたは再現可能な同等手段で確認できるスモーク検証を整備する。
+- 前提: APS-014の未コミット修正（`GameState`の静的BSS移動、全バイト初期化、512件ゲーム回帰）は保全対象である。着手時差分のSHA-256は`f15faa89bbbf358f51d985377948b7f905008a2561c392a8c6f6ee5f881d29a8`。この差分をreset、checkout、stash、改変、除去してはならない。
+- 環境: Gearlynx 1.2.21は`/Applications/Gearlynx.app/Contents/MacOS/gearlynx`に導入済みで、`--headless`とMCP/デバッグモニタの起動引数を提供する。BIOSは取得・同梱・探索・読取しない。既存設定で実行不能なら、失敗理由と再現コマンドを明記する。
+
+#### APS-015完了条件
+
+- 起動・入力・状態を確認するスモーク手段と実行手順を追加し、通常の`make verify`の成功経路・外部BIOS非依存性を壊さない。可能な場合に既存設定のGearlynxで実ROMを検証し、不可能なら明確に失敗して理由を表示する。
+- Stage 1 `NORMAL`到達、方向入力による自機移動、自機弾発射、観測中に`GAME OVER`へ誤遷移しないことを再現可能に判定する。Hostロジック検査はこの不変条件を回帰としてカバーする。
+- Lynxメモリ配置制約（自動`GameState`をTGI第2バッファ先頭`0xC038`と重ねないこと、静的BSSの根拠）を設計書と利用手順に文書化する。
+- `make clean && ./scripts/verify.sh`、ASan/UBSan付き全ホストテスト、cc65 2.19のwarnings-as-errors、`sh -n scripts/*.sh`、LNXヘッダ検査、`git diff --check`を通し、終了コード、件数、ROMサイズ/SHA-256、エミュレータ確認の有無を記録する。コミット、push、BIOS/外部ROMの取得・同梱は禁止。
+
+#### APS-015実装・検証結果
+
+- 変更: `tests/test_smoke.c`を追加し、初期化→Stage 1 INTROの90更新→`NORMAL`、右入力による自機X移動、`GAME_INPUT_FIRE`による自機弾有効化、全観測中の`game_over=0`を4項目で独立検証した。`Makefile`へ`smoke-host`と任意の`smoke-gearlynx`を追加した。通常の`verify`経路にGearlynx依存は加えていない。
+- 実ROM: v002で`smoke-gearlynx.sh`は起動前に指定ポートの既存待受を`lsof`で拒否し、起動後も待受PIDが今回のGearlynxまたはその子プロセスに属する場合だけ成功候補とするよう修正した。任意の`GEARLYNX_DEBUG_PORT`、20秒タイムアウト、終了時の起動Gearlynx清掃は維持した。空きポート16502でGearlynx 1.2.21を`--headless --debug-monitor --debug-monitor-port 16502`で起動し、今回のプロセス所有の待受を確認した。占有したポート16503では起動前に`nc`のPIDを表示してスクリプト終了コード1で拒否し、誤成功しないことを確認した。デバッグモニタの入力注入・ゲーム状態読出しプロトコルは未定義のため、空きポートのスクリプト実行は終了コード3で操作・状態を**未検証**と明示する（`make smoke-gearlynx`経由ではmakeが終了コード2として報告）。BIOSの探索、読出し、変更、取得は行っていない。
+- 文書: `README.md`に両スモークの用途・実行方法・未検証の意味を、`docs/plan/design.md`に静的BSSを使う理由と確認手順を追加した。終了しない`main()`の約317-byte自動`GameState`をTGI第2バッファ先頭`0xC038`と重ねず、`main.c`の静的BSS `game`（APS-014時点`0x8BC9`）を維持する。リンクマップのBSSは`0x8BC5`〜`0x8E04`であり、表示バッファから分離する。
+- 検証: v002で`sh -n scripts/*.sh`、`make clean && ./scripts/verify.sh`、`make smoke-host`、`git diff --check`は各終了コード0（cc65 2.19 `-W error`、ゲーム512件、サウンド130件、起動・操作スモーク4件、shell構文、LNX検査）。ASan/UBSan付きゲーム512件、サウンド130件、起動・操作スモーク4件も各終了コード0。空きポートの`make smoke-gearlynx`は上記未検証を表すmake終了コード2、ポート競合はスクリプト終了コード1を確認した。ROMは`dist/asteroid-patrol.lnx`、35,544 bytes、SHA-256 `c9d7afc15a2445e8157848128a9f0110131603c9af411a211fa077b36adabd2f`。
+- 設計差分・未確認: 状態機械・ROM実装の仕様差分はない。Gearlynxの実ROMは、ポート競合を除外したヘッドレス起動だけを確認し、自動入力・メモリ読出し、GUI目視、実機、音の聴感は未確認。コミット、push、deploy、stash、reset、checkout、BIOS/外部ROM/素材の取得・探索・読出し・複製・同梱は行っていない。
+
+#### APS-015一次検収
+
+- Dev Frontがv001/v002を独立検収した。`make clean && ./scripts/verify.sh`は終了コード0（ゲーム512件、サウンド130件、cc65 2.19 `-W error`、shell lint、LNXヘッダ検査）。ASan/UBSan付きゲーム512件・サウンド130件・スモーク4件、`make smoke-host`、`sh -n scripts/*.sh`、`git diff --check`も各終了コード0を確認した。ROMは35,544 bytes、SHA-256 `c9d7afc15a2445e8157848128a9f0110131603c9af411a211fa077b36adabd2f`。
+- Gearlynx 1.2.21では実ROMをヘッドレス起動し、空きポート16504/16506で今回のGearlynxプロセスに属するデバッグ待受を確認した。事前に`nc`で占有したポート16505はスクリプト終了コード1で拒否し、誤成功しないことを確認した。デバッグモニタの入力注入・状態読出しプロトコルは未定義なので、実ROMのStage 1 NORMAL・方向入力・射撃・GAME OVER非遷移はホストの4項目スモークで検証し、実ROM操作自動検証は未確認のままとする。
+- APS-014の`src/game.c`、`src/main.c`、`tests/test_game.c`の未コミット差分は変更されていない。BSSは`0x8BC5`から`0x240` bytesで、TGI第2フレームバッファ先頭`0xC038`から分離している。コミット、push、BIOS/外部ROM操作は行っていない。
+
+### APS-014: 起動時GAME OVERループの緊急修正
+
+- 状態: 一次検収合格（Dev Front、2026-08-04）
+- 優先度: 緊急
+- 起票日: 2026-08-04
+- 報告事象: ユーザーの実機相当ROM起動で、`GAME OVER`表示だけがちらつき、Stage 1導入・移動・射撃へ進めない。
+- 基点: `850211a`（APS-013: 効果音とStage別BGM）。着手前の作業ツリーはクリーン。サウンド追加で`GameState`へ`SoundState`（ホストclangでは328 bytes）を追加し、`src/main.c`にMIKEY channel Aと`MSTEREO`への直接アクセスを導入している。
+- 調査範囲: `game_init()`と全GameStateフィールドの初期化、スタック/メモリ境界、A/B再開始入力エッジ、TGI二重バッファと`game_update()`・描画・`tgi_updatedisplay()`の同期、MIKEY channel A / `MSTEREO`の書込み先・順序・Timer/割り込みとの競合を重点確認する。原因を推測で確定しない。
+- 制約: 基点からの既存ゲーム仕様を保持し、固定配列・決定的整数・厳格C89を維持する。コミット・push・deploy、BIOS・`lynxboot.img`・外部ROMの取得/探索/読取/生成/複製/同梱は禁止する。
+
+#### APS-014完了条件
+
+- Gearlynx 1.2.21を既存設定だけで起動し、起動直後に`GAME OVER`へ遷移しないこと、Stage 1導入後に方向入力で移動し、A/Bで射撃できることを確認する。BIOSファイル自体を探索・読取しない。GUI自動化不能部分は確認方法と未確認理由を残す。
+- 原因を根拠（再現手順、差分、該当コード、必要ならエミュレータログ/画面）とともに記録し、修正後に同じ起動経路を再確認する。起動状態・初期化完全性・入力・描画/MIKEY安全境界をホスト回帰テストとして追加する。
+- `make clean && ./scripts/verify.sh`、ASan/UBSan付き全ホストテスト、cc65 2.19 warnings-as-errors、`sh -n scripts/*.sh`、LNXヘッダ検査、`git diff --check`を実行し、終了コードと件数、ROMサイズ/SHA-256を記録する。
+- `ISSUES.md`、`docs/plan/design.md`、`README.md`、`.briefs/APS-014/v001.md`を更新し、設計差分・Gearlynx確認有無・未確認事項・禁止操作不実施を記録する。
+
+#### APS-014実装・検証結果
+
+- 原因: cc65 2.19が終了しない`main()`のローカル`GameState`をCスタック先頭へ置いていた。生成アセンブリでは`game_init()`/`game_update()`/`draw_game()`へ`sp`を渡し、初期スタック先頭はTGIの第2フレームバッファ先頭`0xC038`である。`GameState`はcc65で317 bytes（ホストclangで328 bytes）なので、状態更新とTGI描画が同じ領域を相互に破壊していた。旧ROMをGearlynxで動かした際、`0xC038`から317 bytesが全てゼロになることを読出し、再現を確認した。
+- 修正: `src/main.c`の状態を静的BSSの`game`へ移した。修正ROMのリンクマップでは`_sound_hardware`が`0x8BC5`、`_game`が`0x8BC9`、BSS合計`0x240`であり、TGIバッファと分離される。`game_init()`は全バイトを先にゼロ化してから既存の決定的初期設定を適用する。TGI待機→入力→更新→サウンド反映→描画→表示更新、MIKEY channel A/MSTEREOの書込み先・順序は変更していない。
+- 回帰: 汚染値の異なる2個の`GameState`を`game_init()`して全バイト一致を確認する検査、起動時Stage 1 INTRO・GAME OVER非成立、導入中の方向/A/Bが移動・射撃にならない検査、90更新後のNORMAL移行、NORMALでの移動/A/B射撃を追加した。ゲームロジックは507件から512件になり、既存サウンド130件は維持した。
+- Gearlynx 1.2.21: 既存設定だけで修正ROMをヘッドレス起動し、MCPデバッグ読出しで`_game=0x8BC9`の状態が表示バッファから独立して持続すること、Stage 1の`NORMAL`（phase timer 42、`game_over=0`）まで到達することを確認した。右入力後の自機X=12、A入力後の先頭弾スロット有効も確認し、フレーム画面の取得に成功した。Timer 2はTGIのVBlank設定のまま有効で、channel A以外・Timer 0/7・OUT/DAC・COUNTへ本修正から新規書込みはない。GUIの目視・実機・聴感は未確認。
+- 検証: `make clean && ./scripts/verify.sh`は終了コード0（clang厳格C89、cc65 2.19 `-W error`、ゲーム512件、サウンド130件、shell構文、LNX検査）。ASan/UBSan付きゲーム512件とサウンド130件、`sh -n scripts/*.sh`、`git diff --check`も各終了コード0。ROMは`dist/asteroid-patrol.lnx`、35,544 bytes、SHA-256 `c9d7afc15a2445e8157848128a9f0110131603c9af411a211fa077b36adabd2f`。
+- 設計差分: 状態保管場所をローカルCスタックから静的BSSへ変更した以外はなし。コミット・push・deploy・stash・reset・checkout、BIOS/`lynxboot.img`/外部ROM/素材の探索・取得・複製・同梱は行っていない。Gearlynxは既存設定で起動しただけで、BIOSファイルそのものは操作していない。
+
+#### APS-014一次検収
+
+- Dev Frontが修正差分を独立確認した。`main()`の自動`GameState`を静的BSSへ移す変更は、cc65リンクマップのBSS `0x8BC5`〜`0x8E04`とTGIフレームバッファ先頭`0xC038`を分離する。`game_init()`の全バイト初期化、起動時INTRO、導入中入力無効、90更新後のNORMAL、NORMALでの移動/射撃の512件回帰テストを確認した。
+- `make clean && ./scripts/verify.sh`を独立再実行し、終了コード0、ゲーム512件・サウンド130件、cc65 2.19 `-W error`、shell lint、LNX検査を確認した。ASan/UBSan付きゲーム512件・サウンド130件、`git diff --check`も終了コード0。ROMは35,544 bytes、SHA-256 `c9d7afc15a2445e8157848128a9f0110131603c9af411a211fa077b36adabd2f`でDev報告と一致した。
+- MIKEY書込みは既存のchannel A (`0xFD20/21/23/24/25/27`) と`MSTEREO` (`0xFD50`) のみで、Timer、OUT/DAC、COUNT、他チャンネルへの新規書込みがないことを確認した。DevのGearlynx 1.2.21ヘッドレス確認では、Stage 1 NORMAL到達、右入力でX=12、A入力で弾生成を観測済み。GUI目視、実機、音の聴感・長時間動作は未確認として残す。コミット・push・BIOS操作はしていない。
 
 ### APS-013: 効果音とStage別BGM
 

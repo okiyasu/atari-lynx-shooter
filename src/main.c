@@ -120,6 +120,7 @@ static const SoundWaveRegister sound_wave_registers[SOUND_WAVE_COUNT] = {
 };
 
 static SoundHardwareState sound_hardware;
+static GameState game;
 
 static const BackgroundTheme background_themes[
     GAME_BACKGROUND_THEME_COUNT] = {
@@ -997,6 +998,18 @@ static void draw_game(const GameState* game)
     char lives_text[2u];
     char power_text[2u];
 
+    if (game->phase == GAME_PHASE_TITLE) {
+        tgi_setbgcolor(GAME_COLOR_BLACK);
+        tgi_clear();
+        tgi_setcolor(GAME_COLOR_WHITE);
+        tgi_outtextxy(24u, 18u, "ASTEROID PATROL");
+        tgi_outtextxy(32u, 42u, "A/B TO START");
+        tgi_outtextxy(28u, 62u, "ARROWS: MOVE");
+        tgi_outtextxy(36u, 74u, "A/B: FIRE");
+        tgi_updatedisplay();
+        return;
+    }
+
     stage_config = game_get_stage_config(game->stage);
     theme = &background_themes[stage_config->background_theme_id];
     tgi_setbgcolor(theme->background_color);
@@ -1027,10 +1040,7 @@ static void draw_game(const GameState* game)
     draw_phase_text(game);
     draw_environment(game, stage_config);
 
-    if (game->game_over != 0u) {
-        tgi_outtextxy(48u, 40u, "GAME OVER");
-        tgi_outtextxy(36u, 58u, "A/B TO RESTART");
-    } else if (game->phase != GAME_PHASE_ALL_CLEAR) {
+    if (game->phase != GAME_PHASE_ALL_CLEAR) {
         if (game->dying != 0u) {
             draw_mask((int)game->player.x,
                 (int)game->player.y - 1, 8u, 8u,
@@ -1073,13 +1083,15 @@ static void draw_game(const GameState* game)
             }
         }
     }
+    if (game->game_over != 0u) {
+        tgi_outtextxy(48u, 40u, "GAME OVER");
+        tgi_outtextxy(40u, 58u, "A/B TO TITLE");
+    }
     tgi_updatedisplay();
 }
 
 void main(void)
 {
-    GameState game;
-
     tgi_install(tgi_static_stddrv);
     tgi_init();
     joy_install(joy_static_stddrv);

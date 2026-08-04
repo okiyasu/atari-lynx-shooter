@@ -160,6 +160,18 @@ static const unsigned char rock_event_x[GAME_ROCKFALL_EVENT_COUNT] = {
 };
 
 static void enter_phase(GameState* game, unsigned char phase);
+static void return_to_title(GameState* game);
+
+static void clear_game_state(GameState* game)
+{
+    unsigned char* bytes;
+    unsigned int i;
+
+    bytes = (unsigned char*)game;
+    for (i = 0u; i < sizeof(*game); ++i) {
+        bytes[i] = 0u;
+    }
+}
 
 const GameStageConfig* game_get_stage_config(unsigned char stage)
 {
@@ -889,6 +901,7 @@ void game_init(GameState* game)
 {
     unsigned char i;
 
+    clear_game_state(game);
     game->player.x = 10u;
     game->player.y = 48u;
     game->player.width = GAME_PLAYER_WIDTH;
@@ -900,6 +913,7 @@ void game_init(GameState* game)
     game->lives = GAME_INITIAL_LIVES;
     game->game_over = 0u;
     game->restart_armed = 0u;
+    game->title_start_armed = 1u;
     game->dying = 0u;
     game->explosion_timer = 0u;
     game->invincibility_timer = 0u;
@@ -912,7 +926,7 @@ void game_init(GameState* game)
     game->animation_counter = 0u;
     game->animation_frame = 0u;
     game->stage = 1u;
-    game->phase = GAME_PHASE_STAGE_INTRO;
+    game->phase = GAME_PHASE_TITLE;
     game->phase_timer = 0u;
     sound_init(&game->sound);
 
@@ -955,6 +969,20 @@ void game_init(GameState* game)
         game->falling_rocks[i].rect.height = GAME_ENVIRONMENT_OBJECT_HEIGHT;
     }
     reset_environment(game);
+    sound_stop_all(&game->sound);
+}
+
+void game_start(GameState* game)
+{
+    game_init(game);
+    game->phase = GAME_PHASE_STAGE_INTRO;
+    sound_init(&game->sound);
+}
+
+static void return_to_title(GameState* game)
+{
+    game_init(game);
+    game->title_start_armed = 0u;
 }
 
 unsigned char game_aabb_intersects(const GameRect* a, const GameRect* b)
@@ -1424,11 +1452,27 @@ static void game_update_logic(GameState* game, unsigned char input)
 {
     unsigned char was_invincible;
 
-    if (game->game_over != 0u || game->phase == GAME_PHASE_ALL_CLEAR) {
+    if (game->phase == GAME_PHASE_TITLE) {
+        if ((input & GAME_INPUT_FIRE) == 0u) {
+            game->title_start_armed = 1u;
+        } else if (game->title_start_armed != 0u) {
+            game_start(game);
+        }
+        return;
+    }
+    if (game->game_over != 0u) {
         if ((input & GAME_INPUT_FIRE) == 0u) {
             game->restart_armed = 1u;
         } else if (game->restart_armed != 0u) {
-            game_init(game);
+            return_to_title(game);
+        }
+        return;
+    }
+    if (game->phase == GAME_PHASE_ALL_CLEAR) {
+        if ((input & GAME_INPUT_FIRE) == 0u) {
+            game->restart_armed = 1u;
+        } else if (game->restart_armed != 0u) {
+            game_start(game);
         }
         return;
     }
