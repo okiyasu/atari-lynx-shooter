@@ -190,7 +190,9 @@ static void advance_sfx(SoundState* sound)
 
 void sound_init(SoundState* sound)
 {
-    sound->bgm_active = 1u;
+    /* Keep the authored BGM tables for a later restore, but do not sequence
+     * or route them to MIKEY while combat tempo is being tuned. */
+    sound->bgm_active = 0u;
     sound->bgm_id = SOUND_BGM_STAGE_ONE;
     load_bgm_step(sound, 0u);
     sound->sfx_id = SOUND_SFX_NONE;
@@ -205,7 +207,7 @@ void sound_set_stage(SoundState* sound, unsigned char stage)
     if (stage < 1u || stage > SOUND_BGM_COUNT) {
         return;
     }
-    sound->bgm_active = 1u;
+    sound->bgm_active = 0u;
     sound->bgm_id = (unsigned char)(stage - 1u);
     load_bgm_step(sound, 0u);
     sound->sfx_id = SOUND_SFX_NONE;

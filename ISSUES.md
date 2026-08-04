@@ -4,6 +4,87 @@
 
 ## 課題台帳
 
+### APS-018: 戦闘UI・視認性・敵スプライト演出の改修
+
+- 状態: 実装・検証完了（Dev、2026-08-04）
+- 優先度: 高
+- 起票日: 2026-08-04
+- 目的: BGMを当面無効化して既存の効果音を維持し、ゲームの体感速度を上げる。同時に、敵弾と背景の星を色・形・描画順で明確に区別し、Stage 1開始までの進行表示とHUDを画面最上部の小さい一行へ集約する。HUD帯とプレイ領域を明確に分け、通常敵を個別シルエットを持つグラフィカルなスプライト風表現へ改修する。
+- 保全基点: 着手前に`HEAD`と`origin/main`がともに`617f3f4c383ae68925eaec2a4c159a8bbfa3b272`であること、APS-017の未コミット差分（`ISSUES.md`、`README.md`、`docs/plan/design.md`、`src/game.c`、`tests/test_game.c`、`tests/test_smoke.c`、`.briefs/APS-017/`、`evidence/`）が存在することを確認した。この差分をreset、checkout、stash、削除、改変してはならない。
+- 確定速度仕様: 描画・入力は75Hzを維持し、ゲーム内の決定的な進行・移動・クールダウン・環境イベントを**1.25倍**へ統一する。浮動小数は使わず、4描画フレームごとに計5ロジック更新（`5/4`）を行う。入力は当該描画フレームで取得した値をそのフレーム内の全ロジック更新へ適用し、`tgi_updatedisplay()`は描画フレームごとに一回だけにする。
+- 確定BGM無効化範囲: `sound.c`のBGMシーケンサとBGM由来のMIKEY出力だけを停止し、射撃・撃破・被弾・取得・WARNING・Boss撃破・Stage Clearの既存SFXは維持する。BGMデータは削除せず、将来の復帰可能性を保つ。外部音源・BIOS・`lynxboot.img`・外部ROM/素材は取得、探索、読取、複製、生成、同梱しない。
+
+#### APS-018完了条件
+
+- 速度倍率を台帳・設計書・README・回帰テストへ明記し、Stage導入、通常、WARNING、BOSS、STAGE CLEAR、死亡、GAME OVER、ALL CLEAR、タイトルの時間・入力・凍結境界を一貫して扱う。SFX・操作・タイトル、GAME OVER→タイトル、3ステージ進行を壊さない。
+- BGMは無音で、全既存SFXは鳴ることをホストのサウンド回帰で確認する。BGMを再開するための範囲を局所化し、BGMデータを無断で削除しない。
+- 背景星と敵弾は色、最小形状、描画順が異なり、Stage 1の実GUI画面で一目で区別できる。HUD帯はプレイ領域と境界線または配色で分離し、本文文字を縮小してStage 1導入までの状態・HUDを最上部の一行に収める。
+- 全通常敵は敵種ごとに異なる自作スプライト風の水平ラン/マスク表現とアニメーションを持ち、当たり判定・既存の敵種別・移動・発射・ドロップを変えない。
+- `make clean && ./scripts/verify.sh`、`make smoke-host`、ASan/UBSan付きゲーム・サウンド・スモークテスト、`sh -n scripts/*.sh`、`git diff --check`、LNXヘッダ検査を終了コード0で通し、件数、ROMサイズ、SHA-256を記録する。
+- Gearlynx **GUI**でタイトル、A/B後のStage 1導入、開始後のHUD帯・敵・敵弾・背景星を同一GUI画面で目視確認し、Git管理対象の`evidence/APS-018/`へキャプチャと再現手順を残す。ヘッドレスやホスト検査をGUIの代替にしない。
+- `ISSUES.md`、`README.md`、`docs/plan/design.md`、`.briefs/APS-018/v001.md`を更新し、設計との差分・未確認事項・禁止操作不実施を記録する。コミット、push、deployは行わない。
+
+#### APS-018実装・検証結果
+
+- 速度: `game_logic_updates_for_draw_frame()`を追加し、Lynxアダプタは各75Hz描画フレームで入力を一度だけ取得する。剰余スケジューラは4フレームで`1, 1, 1, 2`回、計5回の`game_update_logic()`を実行し、同じ入力を追加更新へ渡す。`tgi_updatedisplay()`は引き続き描画フレームごとに一回だけ。SFX tickは描画フレームごとに一回に分離し、SFXの長さ・優先順位・開始回数を75Hzのまま保つ。
+- サウンド: BGMデータ・ステージID・取得APIは残した。`sound_init()`と`sound_set_stage()`はBGMをアクティブ化せず、シーケンサ・BGM由来の論理出力・MIKEY出力を停止する。射撃、敵撃破、自機爆発、取得、WARNING、Boss撃破、Stage Clearの既存SFXは同じ優先順位と保留処理で維持した。
+- UI/視認性: HUDを0〜9行の黒い帯へ集約し、3x5の自作文字で`S<stage> <phase><progress> <score> L<lives> W<weapon>`を一行表示する。導入の中央`STAGE`文字は廃止してこの行へ統合し、下端線とHUD下クリップを追加した。Stage 1の背景星は低コントラストの背景のまま、敵弾は白色の短横ラン+下端ドットで前景に描く。敵弾のAABB、16発上限、速度、発射ロジックは不変。全9種の通常敵は8x8・2フレームの自作行マスクを保ち、Scout/Saucer/Dropperも先端・リム・貨物ポッドとして明確なスプライト風シルエットへ更新した。
+- 回帰: ホストの5/4スケジューラ回帰を追加し、4描画フレームで5ロジック更新、導入タイマの進行、75Hz SFX tickの無音BGM境界を確認した。BGM回帰は、無音・非進行・SFX完了後の無音、および全SFXの再生・優先順位・保留Stage Clearを確認するよう更新した。
+- 自動検証: `make clean && ./scripts/verify.sh`終了コード0（ゲーム523件、サウンド127件、clang厳格C89/warnings-as-errors、cc65 2.19 `-W error`、shell lint、LNX検査）。`make smoke-host`終了コード0（7件）。ASan/UBSan付きゲーム523件、サウンド127件、スモーク7件も各終了コード0。`sh -n scripts/*.sh`、`git diff --check`は終了コード0。LNXヘッダは`magic=LYNX version=1 bank0_page=1024 bank1_page=0 size=36933 bytes`、SHA-256は`2fb2ac6f4b16173e29eb01e7fef972c1b44dec973f9581d115cddc0292c0d8e0`。
+- GUI: Gearlynx GUI 1.2.21で上記最終ROMの絶対パスを明示した新規ウィンドウを起動し、タイトル、A/B後のStage 1導入、通常戦闘のHUD帯/境界・敵・敵弾・背景星を目視した。`evidence/APS-018/title-boot.png`、`stage1-intro.png`、`stage1-hud-combat.png`と同ディレクトリのREADMEに再現手順・SHAを保存した。
+- 設計差分: SFX tickのみをロジック速度倍率から外して75Hzのままにした。これは音の消失・二重開始を防ぎ、BGM停止中も既存SFXの実時間長を保つためであり、設計書へ明記した。その他の確定仕様との差分なし。
+- 未確認: Atari Lynx実機での表示・音量・入力状態、長時間連続プレイは未確認。Gearlynx GUIでのタイトル、Stage 1導入、通常戦闘画面は確認済み。
+- 禁止操作: コミット、push、deploy、stash、reset、checkoutは行っていない。BIOS、`lynxboot.img`、外部ROM、外部画像・音声素材の取得・探索・読取・複製・生成・同梱は行っていない。APS-017の既存差分・証跡と発行済み`.briefs/APS-018/v001.md`は変更していない（実装依頼は発行済み`v002.md`により確定）。
+- 文書整合是正（v003）: `docs/plan/design.md`の現行仕様を、BGM停止・SFXのみ75Hz、描画/入力/表示更新75Hz、ゲーム内ロジック`5/4`（4描画フレームで`1,1,1,2`）へ統一した。APS-013のBGM再生記述は履歴設計値として明示し、現行ではSFX後にBGMへ復帰しないことを明記した。`README.md`の旧HUD `PWR`表記は実装どおり`W<weapon>`へ修正した。v003では`src/`、`include/`、`tests/`、`evidence/APS-018/`、発行済みブリーフを変更していない。再検証の実測は本項へ追記する。
+- v003再検証: 文書のみの更新後に`make clean && ./scripts/verify.sh`、`make smoke-host`、`sh -n scripts/*.sh`、`git diff --check`、LNXヘッダ検査を再実行し、すべて終了コード0。ゲーム523件、サウンド127件、スモーク7件、cc65 2.19 `-W error`、clang厳格C89/warnings-as-errors、shell lintを確認した。ROMは36,933 bytes、SHA-256は`2fb2ac6f4b16173e29eb01e7fef972c1b44dec973f9581d115cddc0292c0d8e0`。ASan/UBSan付きゲーム523件・サウンド127件・スモーク7件はv002で終了コード0を確認済みであり、コード非変更のv003でも有効である。
+- v004は未実施: ブリーフ前提のHUD実測（21文字、開始X=2、右端X=84、表示幅83px）が誤っていることをDevが`src/main.c`の`hud_text[0]`〜`[20]`への代入と`draw_tiny_text(2u, 2u, ...)`から検出したため、v004に基づく文書変更・検証は行っていない。
+- 文書整合是正（v005）: `docs/plan/design.md`のHUDを実装どおり、NULを除く20文字（`hud_text[0]`〜`[19]`、`[20]`はNUL）、3x5文字・4pxピッチ・開始X=2・最終文字右端X=80・表示幅79pxへ訂正した。MIKEYバックエンドの更新経路も、Lynx main loopが直接呼ばない`game_update()`後ではなく、各描画フレームの`game_update_logic()`群と75Hzの`game_sound_tick()`後へ訂正した。BGM停止、ゲーム内ロジック1.25倍、SFX 75Hzの現行記述とも照合済み。変更は本台帳と設計書のみである。
+- v005再検証: `make clean && ./scripts/verify.sh`、`make smoke-host`、`sh -n scripts/*.sh`、`git diff --check`、`./scripts/inspect-lnx.sh dist/asteroid-patrol.lnx`はすべて終了コード0。ゲーム523件、サウンド127件、スモーク7件、clang厳格C89/warnings-as-errors、cc65 2.19 `-W error`、shell lintを確認した。LNXは`magic=LYNX version=1 bank0_page=1024 bank1_page=0 size=36933 bytes`、SHA-256は`2fb2ac6f4b16173e29eb01e7fef972c1b44dec973f9581d115cddc0292c0d8e0`。ASan/UBSan付きゲーム523件・サウンド127件・スモーク7件はv002で終了コード0を確認済みで、コード非変更のv005でも有効である。
+
+#### APS-018 THOROUGH検収
+
+- Dev Frontがv002〜v005の差分を独立確認した。Lynx main loopは75Hzで入力を一度だけ取得し、剰余スケジューラで`1,1,1,2`回のロジック更新を繰り返すため、ゲーム内だけが決定的に1.25倍となる。SFX tickと表示更新は各描画フレーム一回で、BGMは`bgm_active=0`のまま、7種SFXの優先順位とBoss撃破→Stage Clearの保留処理を維持する。
+- Gearlynx 1.2.21のGUI証跡を目視した。タイトルは判読可能で、Stage 1導入では中央の大文字進行表示を使わず最上部HUDへ集約し、通常戦闘では黒いHUD帯・境界線、低コントラストの星、高コントラストの白い短横ラン+下端ドットの敵弾、敵種別ごとのスプライト風シルエットを同一画面で識別できる。証跡と再現手順は`evidence/APS-018/`にあり、Git除外されていない。
+- 独立実測: `./scripts/verify.sh`、`make smoke-host`、ASan/UBSan付きゲーム・サウンド・スモーク、`sh -n scripts/*.sh`、`git diff --check`、LNXヘッダ検査は全て終了コード0。ゲーム523件、サウンド127件、スモーク7件、最終ROMは36,933 bytes、SHA-256 `2fb2ac6f4b16173e29eb01e7fef972c1b44dec973f9581d115cddc0292c0d8e0`。BSSは`0x9132`〜`0x9372`でTGI第2バッファ`0xC038`から分離している。
+- 文書の現行仕様を再照合した。BGM停止・SFX 75Hz、`5/4`ロジック、HUD実測（NULを除く20文字、開始X=2、右端X=80、幅79px）、Lynx側の`game_update_logic()`群と`game_sound_tick()`の更新経路を実装と一致させた。v004の誤った前提は未反映である。
+- `HEAD`と`origin/main`はいずれも`617f3f4c383ae68925eaec2a4c159a8bbfa3b272`のまま、既存APS-017差分を含む全成果は未コミットで保全した。コミット、push、deploy、BIOS/外部ROM/外部素材の取得・探索・読取・同梱は行っていない。残課題はAtari Lynx実機の表示・音量・入力状態と長時間連続プレイのみ。
+
+### APS-017: Gearlynx GUIでのタイトル起動不良の再現・修正
+
+- 状態: 一次検収合格（Dev Front、2026-08-04）
+- 優先度: 緊急
+- 起票日: 2026-08-04
+- 報告事象: ユーザーがエミュレータで確認したところ、タイトル画面が表示されない。ホスト検証・ヘッドレス起動だけでは合格とせず、Gearlynx GUIで実際に起動されるROMを特定して、起動直後のタイトル表示とA/BによるStage 1開始を確認する。
+- 基点・照合値: 基点は`617f3f4c383ae68925eaec2a4c159a8bbfa3b272`。ローカル`dist/asteroid-patrol.lnx`は36,055 bytes、SHA-256 `53c1839270dbc55085cb83c6576bace013a886d785e3924219b9c916685d6202`。起票時点で`origin/main`は同じ`617f3f4`を指すことを確認した。実際にGUIへ渡す絶対パス・SHA・起動経路を再検証し、古いROMの起動、初期フェーズ遷移、文字描画、初期入力処理のどれが原因かを根拠とともに切り分ける。
+- 制約: `CLAUDE.md`と設計書の固定状態機械、静的BSS/TGI二重バッファ境界、MIKEY書込み境界を保つ。コミット、push、BIOS・`lynxboot.img`・外部ROM/素材の取得・探索・読取・複製・生成・同梱は禁止する。既存の発行済みブリーフを上書きしない。
+
+#### APS-017完了条件
+
+- Gearlynx **GUI**で`/Users/mammycloud-m4/Documents/develop-m4/atari-lynx-shooter/dist/asteroid-patrol.lnx`を明示して起動し、起動直後に`ASTEROID PATROL`と開始案内を読み取れる形で表示する証跡を残す。ヘッドレス、ホストテスト、デバッグモニタのみをGUI確認の代替にしない。
+- GUI上でAまたはBを一度離してから押し、Stage 1 `GAME_PHASE_STAGE_INTRO`開始を画面で確認する。入力注入を使う場合も、同じGUIウィンドウの遷移画面をキャプチャする。
+- 古いROM、初期フェーズ、文字描画、初期入力を順に切り分け、原因・修正・非該当の根拠を記録する。修正時は該当ホスト回帰を追加し、全自動検証を再実行する。
+- `make clean && ./scripts/verify.sh`、ASan/UBSan付き全ホストテスト、`make smoke-host`、`sh -n scripts/*.sh`、`git diff --check`、LNXヘッダ検査を実行し、終了コード・件数・ROMサイズ/SHA-256を記録する。設計との差分、未確認事項、禁止操作不実施を記す。
+- GUIキャプチャと再現手順はGit管理対象の`evidence/APS-017/`へ保存し、実行環境に依存する操作はREADMEで明示する。BIOSその他の秘密・外部ファイルを証跡へ含めない。
+
+#### APS-017実装・GUI検証実績
+
+- 原因: `game_init()`が起動直後に`title_start_armed=1`としていた。このためGearlynx起動時にA/Bが押下状態として観測された場合、離してからの新規入力を待たずにタイトルを通過していた。最初のGUI確認では、8月3日から残っていたGearlynxプロセスが旧ROMセッションを再利用し、現行ソースと異なる`A/B TO RESTART`画面を表示した。対象プロセスを終了して最終ROMを新規GUI起動した後に切り分けた。
+- 修正: `game_init()`で`title_start_armed=0`とし、タイトルはA/B解除で武装してからの新規A/B押下だけで`game_start()`するようにした。GAME OVERからタイトルへの復帰も同じ初期化を使うため、復帰押下の開始への連鎖防止を維持する。`src/main.c`のタイトル描画と各フレーム一回の`tgi_updatedisplay()`は正しかったため変更していない。
+- 回帰: `tests/test_game.c`へ、起動時のA/B押しっぱなしがタイトルを通過も発射もせず、解除後の新規A/BだけがStage 1 INTROを開始する検証を追加した。`tests/test_smoke.c`にも同じ起動入力境界を追加した。
+- ROM照合: 基点`617f3f4c383ae68925eaec2a4c159a8bbfa3b272`、`HEAD`、`origin/main`は着手時に一致した。着手前の候補ROMは36,055 bytes、SHA-256 `53c1839270dbc55085cb83c6576bace013a886d785e3924219b9c916685d6202`。最終GUI対象は`/Users/mammycloud-m4/Documents/develop-m4/atari-lynx-shooter/dist/asteroid-patrol.lnx`、36,037 bytes、SHA-256 `aa83ce74322a766e56cfea18083afc39a274a977d7d1a216fa8dca4d45c57491`。
+- Gearlynx GUI 1.2.21で、最終ROMを上記絶対パス引数として新規ウィンドウへ渡して確認した。`evidence/APS-017/title-boot.png`は`ASTEROID PATROL`、`A/B TO START`と操作案内を判読可能に示す。A/Bに割り当てられた`z`を100ms注入した後、`evidence/APS-017/stage1-after-a-or-b.png`で`STAGE 1`導入、Lives 3を確認した。再現手順・コマンド・SHAは同ディレクトリのREADMEに記録した。
+- 自動検証: `make clean && ./scripts/verify.sh`（終了コード0）はゲーム517件、サウンド130件、clang厳格C89/warnings-as-errors、cc65 2.19 `-W error`、shell lint、LNX検査に成功した。`make smoke-host`（終了コード0）は7件成功。ASan/UBSan付きゲーム517件、サウンド130件、スモーク7件も各終了コード0。`sh -n scripts/*.sh`、`git diff --check`は終了コード0。LNXヘッダは`magic=LYNX version=1 bank0_page=1024 bank1_page=0 size=36037 bytes`。
+- 設計差分: APS-016の「起動時タイトルは即時開始」という記述を、起動時のA/B押しっぱなしを無視して解除・再押下を必要とする安全な開始条件へ更新した。タイトル文言・状態機械・TGI二重バッファ分離・MIKEY書込み境界・サウンドは変更していない。
+- 未確認事項: Atari Lynx実機での起動入力状態、実機のキーマッピング、長時間連続プレイは未確認。Gearlynx GUIでの起動直後タイトルとA/B後のStage 1導入は確認済み。
+- 禁止操作: コミット、push、deploy、stash、reset、checkoutは行っていない。BIOS、`lynxboot.img`、外部ROM、外部素材の取得・探索・読取・複製・生成・同梱は行っていない。
+
+#### APS-017 THOROUGH検収
+
+- Dev Frontが差分を独立確認した。`game_init()`は`title_start_armed=0`でタイトルを未武装化し、`game_update_logic()`はA/B解除でのみ武装、次のA/Bだけで`game_start()`する。起動時のA/B押しっぱなしでタイトルを飛ばす経路を遮断し、GAME OVERからのタイトル復帰は同じ未武装初期化を使う。タイトル描画は`ASTEROID PATROL`、`A/B TO START`、操作案内を表示し、タイトル分岐・通常分岐ともに`draw_game()`内の`tgi_updatedisplay()`は一回だけであることを確認した。
+- GUI証跡を目視した。`evidence/APS-017/title-boot.png`にはGearlynx 1.2.21のGUIウィンドウと`asteroid-patrol.lnx`、判読可能なタイトル・開始/操作案内があり、`stage1-after-a-or-b.png`にはA/B後の`STAGE 1`導入とLives 3がある。再現用READMEは新規GUI起動コマンド、最終ROMの絶対パス、サイズ、SHA-256、入力手順を記録しており、証跡は`.gitignore`で除外されていない。
+- 独立実測: `make clean && ./scripts/verify.sh`、`make smoke-host`、ASan/UBSan付きゲーム・サウンド・スモーク、`sh -n scripts/*.sh`、LNXヘッダ検査、`git diff --check`はすべて終了コード0。ゲーム517件、サウンド130件、起動スモーク7件、LNXは36,037 bytesで、最終ROM SHA-256は`aa83ce74322a766e56cfea18083afc39a274a977d7d1a216fa8dca4d45c57491`と一致した。
+- GitHub `origin/main`と着手時`HEAD`はともに`617f3f4c383ae68925eaec2a4c159a8bbfa3b272`を指すことを再確認した。最終ROMと修正は未コミットの作業ツリーにあり、コミット・push・BIOS/外部ROM操作は行っていない。実機の入力状態・キーマッピング・長時間プレイは未確認として残す。
+
 ### APS-016: タイトル画面とGAME OVERからの復帰導線
 
 - 状態: 一次検収合格（Dev Front、2026-08-04）

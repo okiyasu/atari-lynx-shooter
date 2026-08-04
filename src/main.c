@@ -13,7 +13,7 @@
 #define GAME_COLOR_NEAR_STAR 7u
 #define GAME_COLOR_PLAYER 10u
 #define GAME_COLOR_BULLET 14u
-#define GAME_COLOR_ENEMY_BULLET 6u
+#define GAME_COLOR_ENEMY_BULLET 15u
 #define GAME_COLOR_SCOUT 4u
 #define GAME_COLOR_SAUCER 12u
 #define GAME_COLOR_DROPPER 9u
@@ -372,16 +372,19 @@ static const unsigned char player_masks[2][GAME_PLAYER_HEIGHT] = {
 static const unsigned char enemy_masks[GAME_ENEMY_TYPE_COUNT][2]
     [GAME_ENEMY_HEIGHT] = {
     {
-        { 0x18u, 0x3cu, 0x7eu, 0xdbu, 0xffu, 0x24u, 0x42u, 0x81u },
-        { 0x18u, 0x3cu, 0x7eu, 0xbdu, 0xffu, 0x42u, 0x24u, 0x81u }
+        /* SCOUT: pointed interceptor with a blinking tail fin. */
+        { 0x10u, 0x38u, 0x7cu, 0xfeu, 0xffu, 0x7cu, 0x24u, 0x42u },
+        { 0x08u, 0x1cu, 0x7eu, 0xffu, 0xfeu, 0x3eu, 0x24u, 0x81u }
     },
     {
-        { 0x00u, 0x18u, 0x7eu, 0xffu, 0xbdu, 0x7eu, 0x24u, 0x00u },
-        { 0x00u, 0x3cu, 0x7eu, 0xdbu, 0xffu, 0x7eu, 0x42u, 0x00u }
+        /* SAUCER: flat rim, dome and alternating landing lights. */
+        { 0x18u, 0x3cu, 0x7eu, 0xffu, 0xffu, 0x7eu, 0x42u, 0x00u },
+        { 0x18u, 0x7eu, 0xffu, 0xffu, 0x7eu, 0x3cu, 0x81u, 0x00u }
     },
     {
-        { 0x24u, 0x7eu, 0x3cu, 0xffu, 0x7eu, 0x18u, 0x3cu, 0x24u },
-        { 0x42u, 0x7eu, 0x3cu, 0xffu, 0x7eu, 0x18u, 0x24u, 0x18u }
+        /* DROPPER: cargo pod with opening lower hatch. */
+        { 0x3cu, 0x7eu, 0xffu, 0xdbu, 0xdbu, 0xffu, 0x3cu, 0x18u },
+        { 0x3cu, 0x7eu, 0xffu, 0xbdu, 0xffu, 0x5au, 0x3cu, 0x24u }
     },
     {
         /* FIGHTER: narrow nose and swept wings. */
@@ -515,10 +518,24 @@ static unsigned char read_input(void)
 
 static void draw_rect(const GameRect* rect, unsigned char color)
 {
+    unsigned int y0;
+    unsigned int y1;
+
+    y0 = rect->y;
+    y1 = (unsigned int)rect->y + rect->height - 1u;
+    if (y1 < GAME_HUD_HEIGHT) {
+        return;
+    }
+    if (y0 < GAME_HUD_HEIGHT) {
+        y0 = GAME_HUD_HEIGHT;
+    }
+    if (y0 >= GAME_SCREEN_HEIGHT) {
+        return;
+    }
     tgi_setcolor(color);
-    tgi_bar(rect->x, rect->y,
+    tgi_bar(rect->x, y0,
         (unsigned int)rect->x + rect->width - 1u,
-        (unsigned int)rect->y + rect->height - 1u);
+        y1);
 }
 
 static unsigned char scroll_x(unsigned char x, unsigned char offset)
@@ -544,7 +561,8 @@ static void draw_planet(const GameState* game,
     }
     for (i = 0u; i < 32u; ++i) {
         draw_y = (int)GAME_PLANET_BASE_Y + (int)planet_runs[i].y;
-        if (draw_y < 0 || draw_y >= (int)GAME_SCREEN_HEIGHT) {
+        if (draw_y < (int)GAME_HUD_HEIGHT ||
+            draw_y >= (int)GAME_SCREEN_HEIGHT) {
             continue;
         }
         x0 = draw_x + (int)planet_runs[i].x0;
@@ -854,38 +872,129 @@ static unsigned char enemy_color(unsigned char type)
     return colors[type];
 }
 
-static void draw_phase_text(const GameState* game)
+static unsigned char tiny_glyph_row(char glyph, unsigned char row)
 {
-    char stage_text[2u];
-    unsigned int filled;
+    static const unsigned char digits[10][5] = {
+        { 7u, 5u, 5u, 5u, 7u }, { 2u, 6u, 2u, 2u, 7u },
+        { 7u, 1u, 7u, 4u, 7u }, { 7u, 1u, 7u, 1u, 7u },
+        { 5u, 5u, 7u, 1u, 1u }, { 7u, 4u, 7u, 1u, 7u },
+        { 7u, 4u, 7u, 5u, 7u }, { 7u, 1u, 2u, 2u, 2u },
+        { 7u, 5u, 7u, 5u, 7u }, { 7u, 5u, 7u, 1u, 7u }
+    };
+    static const unsigned char letters[8][5] = {
+        { 7u, 4u, 7u, 1u, 7u }, /* S */
+        { 7u, 2u, 2u, 2u, 7u }, /* I */
+        { 5u, 7u, 7u, 7u, 5u }, /* N */
+        { 5u, 5u, 5u, 7u, 2u }, /* W */
+        { 6u, 5u, 6u, 5u, 6u }, /* B */
+        { 7u, 4u, 4u, 4u, 7u }, /* C */
+        { 2u, 5u, 7u, 5u, 5u }, /* A */
+        { 4u, 4u, 4u, 4u, 7u }  /* L */
+    };
 
-    stage_text[0] = (char)('0' + game->stage);
-    stage_text[1] = '\0';
-    tgi_setcolor(GAME_COLOR_WHITE);
-    tgi_outtextxy(2u, 11u, "STAGE");
-    tgi_outtextxy(42u, 11u, stage_text);
-    if (game->phase == GAME_PHASE_STAGE_INTRO) {
-        tgi_outtextxy(54u, 45u, "STAGE");
-        tgi_outtextxy(98u, 45u, stage_text);
-    } else if (game->phase == GAME_PHASE_WARNING) {
+    if (glyph >= '0' && glyph <= '9') {
+        return digits[(unsigned char)(glyph - '0')][row];
+    }
+    if (glyph == 'S') return letters[0][row];
+    if (glyph == 'I') return letters[1][row];
+    if (glyph == 'N') return letters[2][row];
+    if (glyph == 'W') return letters[3][row];
+    if (glyph == 'B') return letters[4][row];
+    if (glyph == 'C') return letters[5][row];
+    if (glyph == 'A') return letters[6][row];
+    if (glyph == 'L') return letters[7][row];
+    return 0u;
+}
+
+static void draw_tiny_text(unsigned char x, unsigned char y,
+    const char* text, unsigned char color)
+{
+    unsigned char column;
+    unsigned char row;
+    unsigned char bits;
+
+    tgi_setcolor(color);
+    while (*text != '\0') {
+        for (row = 0u; row < 5u; ++row) {
+            bits = tiny_glyph_row(*text, row);
+            for (column = 0u; column < 3u; ++column) {
+                if ((bits & (unsigned char)(4u >> column)) != 0u) {
+                    tgi_bar(x + column, y + row, x + column, y + row);
+                }
+            }
+        }
+        x = (unsigned char)(x + 4u);
+        ++text;
+    }
+}
+
+static char phase_symbol(const GameState* game)
+{
+    if (game->phase == GAME_PHASE_STAGE_INTRO) return 'I';
+    if (game->phase == GAME_PHASE_NORMAL) return 'N';
+    if (game->phase == GAME_PHASE_WARNING) return 'W';
+    if (game->phase == GAME_PHASE_BOSS) return 'B';
+    if (game->phase == GAME_PHASE_STAGE_CLEAR) return 'C';
+    return 'A';
+}
+
+static void format_counter(unsigned int value, char* text)
+{
+    unsigned char i;
+
+    text[4u] = '\0';
+    for (i = 4u; i != 0u; --i) {
+        text[i - 1u] = (char)('0' + (value % 10u));
+        value /= 10u;
+    }
+}
+
+static void draw_hud(const GameState* game)
+{
+    char score_text[SCORE_DIGITS + 1u];
+    char timer_text[5u];
+    char hud_text[21u];
+
+    format_score(game->score, score_text);
+    format_counter(game->phase_timer, timer_text);
+    hud_text[0] = 'S';
+    hud_text[1] = (char)('0' + game->stage);
+    hud_text[2] = ' ';
+    hud_text[3] = phase_symbol(game);
+    hud_text[4] = timer_text[0];
+    hud_text[5] = timer_text[1];
+    hud_text[6] = timer_text[2];
+    hud_text[7] = timer_text[3];
+    hud_text[8] = ' ';
+    hud_text[9] = score_text[0];
+    hud_text[10] = score_text[1];
+    hud_text[11] = score_text[2];
+    hud_text[12] = score_text[3];
+    hud_text[13] = score_text[4];
+    hud_text[14] = ' ';
+    hud_text[15] = 'L';
+    hud_text[16] = (char)('0' + game->lives);
+    hud_text[17] = ' ';
+    hud_text[18] = 'W';
+    hud_text[19] = (char)('0' + game->weapon_level);
+    hud_text[20] = '\0';
+    tgi_setcolor(GAME_COLOR_BLACK);
+    tgi_bar(0u, 0u, GAME_SCREEN_WIDTH - 1u, GAME_HUD_HEIGHT - 1u);
+    draw_tiny_text(2u, 2u, hud_text, GAME_COLOR_WHITE);
+    tgi_setcolor(GAME_COLOR_NEAR_STAR);
+    tgi_line(0u, GAME_HUD_HEIGHT - 1u, GAME_SCREEN_WIDTH - 1u,
+        GAME_HUD_HEIGHT - 1u);
+}
+
+static void draw_phase_overlay(const GameState* game)
+{
+    if (game->phase == GAME_PHASE_WARNING) {
         tgi_outtextxy(52u, 45u, "WARNING");
     } else if (game->phase == GAME_PHASE_STAGE_CLEAR) {
         tgi_outtextxy(36u, 45u, "STAGE CLEAR");
     } else if (game->phase == GAME_PHASE_ALL_CLEAR) {
         tgi_outtextxy(44u, 40u, "ALL CLEAR");
         tgi_outtextxy(36u, 58u, "A/B TO RESTART");
-    } else if (game->phase == GAME_PHASE_BOSS) {
-        tgi_outtextxy(78u, 11u, "BOSS");
-        tgi_setcolor(GAME_COLOR_BOSS_DETAIL);
-        tgi_line(110u, 12u, 156u, 12u);
-        tgi_line(110u, 16u, 156u, 16u);
-        tgi_line(110u, 12u, 110u, 16u);
-        tgi_line(156u, 12u, 156u, 16u);
-        filled = ((unsigned int)game->boss.hp * 45u) /
-            game->boss.max_hp;
-        if (filled != 0u) {
-            tgi_bar(111u, 13u, 110u + filled, 15u);
-        }
     }
 }
 
@@ -994,9 +1103,6 @@ static void draw_game(const GameState* game)
     const GameStageConfig* stage_config;
     const BackgroundTheme* theme;
     unsigned char i;
-    char score_text[SCORE_DIGITS + 1u];
-    char lives_text[2u];
-    char power_text[2u];
 
     if (game->phase == GAME_PHASE_TITLE) {
         tgi_setbgcolor(GAME_COLOR_BLACK);
@@ -1023,21 +1129,9 @@ static void draw_game(const GameState* game)
         draw_planet(game, theme);
         draw_background(game, theme);
     }
+    draw_hud(game);
     tgi_setcolor(GAME_COLOR_WHITE);
-    tgi_line(0u, GAME_HUD_HEIGHT - 1u, GAME_SCREEN_WIDTH - 1u,
-        GAME_HUD_HEIGHT - 1u);
-    format_score(game->score, score_text);
-    tgi_outtextxy(2u, 1u, "SCORE");
-    tgi_outtextxy(42u, 1u, score_text);
-    lives_text[0] = (char)('0' + game->lives);
-    lives_text[1] = '\0';
-    tgi_outtextxy(112u, 1u, "LIVES");
-    tgi_outtextxy(152u, 1u, lives_text);
-    power_text[0] = (char)('0' + game->weapon_level);
-    power_text[1] = '\0';
-    tgi_outtextxy(72u, 1u, "PWR");
-    tgi_outtextxy(96u, 1u, power_text);
-    draw_phase_text(game);
+    draw_phase_overlay(game);
     draw_environment(game, stage_config);
 
     if (game->phase != GAME_PHASE_ALL_CLEAR) {
@@ -1078,8 +1172,26 @@ static void draw_game(const GameState* game)
         }
         for (i = 0u; i < GAME_MAX_ENEMY_BULLETS; ++i) {
             if (game->enemy_bullets[i].active != 0u) {
-                draw_rect(&game->enemy_bullets[i].rect,
-                    GAME_COLOR_ENEMY_BULLET);
+                unsigned int x1;
+                unsigned int y1;
+
+                x1 = (unsigned int)game->enemy_bullets[i].rect.x + 2u;
+                y1 = (unsigned int)game->enemy_bullets[i].rect.y + 1u;
+                if (game->enemy_bullets[i].rect.y >= GAME_HUD_HEIGHT) {
+                    if (x1 >= GAME_SCREEN_WIDTH) {
+                        x1 = GAME_SCREEN_WIDTH - 1u;
+                    }
+                    if (y1 >= GAME_SCREEN_HEIGHT) {
+                        y1 = GAME_SCREEN_HEIGHT - 1u;
+                    }
+                    tgi_setcolor(GAME_COLOR_ENEMY_BULLET);
+                    tgi_bar(game->enemy_bullets[i].rect.x,
+                        game->enemy_bullets[i].rect.y, x1,
+                        game->enemy_bullets[i].rect.y);
+                    tgi_bar((unsigned int)game->enemy_bullets[i].rect.x + 1u,
+                        y1, (unsigned int)game->enemy_bullets[i].rect.x + 1u,
+                        y1);
+                }
             }
         }
     }
@@ -1092,6 +1204,11 @@ static void draw_game(const GameState* game)
 
 void main(void)
 {
+    unsigned char logic_remainder;
+    unsigned char logic_updates;
+    unsigned char update;
+    unsigned char input;
+
     tgi_install(tgi_static_stddrv);
     tgi_init();
     joy_install(joy_static_stddrv);
@@ -1102,11 +1219,17 @@ void main(void)
     tgi_setframerate(75u);
     sound_backend_init();
     game_init(&game);
+    logic_remainder = 0u;
 
     for (;;) {
         while (tgi_busy() != 0u) {
         }
-        game_update(&game, read_input());
+        input = read_input();
+        logic_updates = game_logic_updates_for_draw_frame(&logic_remainder);
+        for (update = 0u; update < logic_updates; ++update) {
+            game_update_logic(&game, input);
+        }
+        game_sound_tick(&game);
         sound_backend_apply(&game.sound.output);
         draw_game(&game);
     }

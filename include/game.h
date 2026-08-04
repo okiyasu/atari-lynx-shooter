@@ -39,6 +39,8 @@
 #define GAME_NORMAL_FRAMES 1125u
 #define GAME_WARNING_FRAMES 120u
 #define GAME_STAGE_CLEAR_FRAMES 120u
+#define GAME_LOGIC_UPDATES_NUMERATOR 5u
+#define GAME_LOGIC_UPDATES_DENOMINATOR 4u
 
 #define GAME_PHASE_STAGE_INTRO 0u
 #define GAME_PHASE_NORMAL 1u
@@ -268,6 +270,9 @@ typedef struct GameState {
 
 void game_init(GameState* game);
 void game_start(GameState* game);
+unsigned char game_logic_updates_for_draw_frame(unsigned char* remainder);
+void game_update_logic(GameState* game, unsigned char input);
+void game_sound_tick(GameState* game);
 void game_update(GameState* game, unsigned char input);
 unsigned char game_aabb_intersects(const GameRect* a, const GameRect* b);
 unsigned char game_player_is_visible(const GameState* game);

@@ -913,7 +913,7 @@ void game_init(GameState* game)
     game->lives = GAME_INITIAL_LIVES;
     game->game_over = 0u;
     game->restart_armed = 0u;
-    game->title_start_armed = 1u;
+    game->title_start_armed = 0u;
     game->dying = 0u;
     game->explosion_timer = 0u;
     game->invincibility_timer = 0u;
@@ -982,7 +982,6 @@ void game_start(GameState* game)
 static void return_to_title(GameState* game)
 {
     game_init(game);
-    game->title_start_armed = 0u;
 }
 
 unsigned char game_aabb_intersects(const GameRect* a, const GameRect* b)
@@ -1448,7 +1447,18 @@ static void update_boss(GameState* game, unsigned char input,
     ++game->phase_timer;
 }
 
-static void game_update_logic(GameState* game, unsigned char input)
+unsigned char game_logic_updates_for_draw_frame(unsigned char* remainder)
+{
+    unsigned char total;
+    unsigned char updates;
+
+    total = (unsigned char)(*remainder + GAME_LOGIC_UPDATES_NUMERATOR);
+    updates = (unsigned char)(total / GAME_LOGIC_UPDATES_DENOMINATOR);
+    *remainder = (unsigned char)(total % GAME_LOGIC_UPDATES_DENOMINATOR);
+    return updates;
+}
+
+void game_update_logic(GameState* game, unsigned char input)
 {
     unsigned char was_invincible;
 
@@ -1526,11 +1536,16 @@ static void game_update_logic(GameState* game, unsigned char input)
     }
 }
 
-void game_update(GameState* game, unsigned char input)
+void game_sound_tick(GameState* game)
 {
     unsigned char freeze_bgm;
 
     freeze_bgm = game->dying;
-    game_update_logic(game, input);
     sound_tick(&game->sound, freeze_bgm);
+}
+
+void game_update(GameState* game, unsigned char input)
+{
+    game_update_logic(game, input);
+    game_sound_tick(game);
 }

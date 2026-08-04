@@ -474,14 +474,23 @@ static void test_boot_initialization_and_intro_input(void)
     expect(first.stage == 1u && first.phase == GAME_PHASE_TITLE &&
         first.phase_timer == 0u && first.lives == GAME_INITIAL_LIVES &&
         first.game_over == 0u && first.dying == 0u &&
-        first.restart_armed == 0u && first.title_start_armed != 0u &&
+        first.restart_armed == 0u && first.title_start_armed == 0u &&
         first.sound.output.active == 0u,
-        "boot starts at the clean title instead of game over");
+        "boot starts at the clean title with start input disarmed");
+    game_update(&first, GAME_INPUT_FIRE | GAME_INPUT_RIGHT);
+    expect(first.phase == GAME_PHASE_TITLE && first.title_start_armed == 0u &&
+        first.player.x == 10u && first.player.y == 48u &&
+        count_player_bullets(&first) == 0u,
+        "held boot fire cannot skip the title or fire a shot");
+    game_update(&first, GAME_INPUT_RIGHT);
+    expect(first.phase == GAME_PHASE_TITLE && first.title_start_armed != 0u &&
+        first.player.x == 10u && first.player.y == 48u,
+        "releasing fire arms a later title start without movement");
     game_update(&first, GAME_INPUT_FIRE | GAME_INPUT_RIGHT);
     expect(first.phase == GAME_PHASE_STAGE_INTRO && first.phase_timer == 0u &&
         first.player.x == 10u && first.player.y == 48u &&
         count_player_bullets(&first) == 0u,
-        "title fire starts intro without moving or firing");
+        "fresh title fire starts intro without moving or firing");
     game_update(&first, GAME_INPUT_FIRE | GAME_INPUT_RIGHT);
     expect(first.phase == GAME_PHASE_STAGE_INTRO && first.phase_timer == 1u &&
         first.player.x == 10u && first.player.y == 48u &&
@@ -2663,50 +2672,73 @@ static void reset_game_sound(GameState* game)
     sound_set_stage(&game->sound, game->stage);
 }
 
+static void test_draw_frame_logic_scheduler(void)
+{
+    GameState game;
+    unsigned char remainder;
+    unsigned char frame;
+    unsigned char update;
+    unsigned char updates;
+    unsigned int total_updates;
+
+    remainder = 0u;
+    total_updates = 0u;
+    for (frame = 0u; frame < GAME_LOGIC_UPDATES_DENOMINATOR; ++frame) {
+        updates = game_logic_updates_for_draw_frame(&remainder);
+        expect(updates == (frame == GAME_LOGIC_UPDATES_DENOMINATOR - 1u ?
+            2u : 1u),
+            "5/4 scheduler performs its extra deterministic update on frame four");
+        total_updates += updates;
+    }
+    expect(total_updates == GAME_LOGIC_UPDATES_NUMERATOR && remainder == 0u,
+        "four 75Hz draw frames always contain exactly five logic updates");
+
+    game_start(&game);
+    remainder = 0u;
+    for (frame = 0u; frame < GAME_LOGIC_UPDATES_DENOMINATOR; ++frame) {
+        updates = game_logic_updates_for_draw_frame(&remainder);
+        for (update = 0u; update < updates; ++update) {
+            game_update_logic(&game, 0u);
+        }
+        game_sound_tick(&game);
+    }
+    expect(game.phase_timer == GAME_LOGIC_UPDATES_NUMERATOR &&
+        game.sound.output.active == 0u,
+        "5/4 advances stage progression while the 75Hz sound tick stays silent");
+}
+
 static void test_sound_initial_phase_and_fire_integration(void)
 {
     GameState game;
     unsigned char i;
-    unsigned char old_step;
-    unsigned char old_remaining;
 
     game_start(&game);
-    expect(game.sound.bgm_active != 0u &&
+    expect(game.sound.bgm_active == 0u &&
         game.sound.bgm_id == SOUND_BGM_STAGE_ONE &&
         game.sound.bgm_step == 0u &&
         game.sound.sfx_id == SOUND_SFX_NONE,
-        "game init exposes stage one BGM head and no active SFX");
+        "game init keeps stage one BGM disabled with no active SFX");
     advance_frames(&game, 20u);
-    old_step = game.sound.bgm_step;
-    old_remaining = game.sound.bgm_remaining;
     game.phase_timer = GAME_STAGE_INTRO_FRAMES - 1u;
     game_update(&game, 0u);
     expect(game.phase == GAME_PHASE_NORMAL &&
         game.sound.bgm_id == SOUND_BGM_STAGE_ONE &&
-        (game.sound.bgm_step != 0u || game.sound.bgm_remaining != 15u) &&
-        (game.sound.bgm_step != old_step ||
-            game.sound.bgm_remaining != old_remaining),
-        "intro to normal keeps and advances the same stage BGM position");
+        game.sound.bgm_active == 0u && game.sound.output.active == 0u,
+        "intro to normal keeps BGM disabled");
 
     game.phase_timer = GAME_NORMAL_FRAMES - 1u;
-    old_step = game.sound.bgm_step;
-    old_remaining = game.sound.bgm_remaining;
     disable_enemies_except(&game, GAME_MAX_ENEMIES);
     game_update(&game, 0u);
     expect(game.phase == GAME_PHASE_WARNING &&
         game.sound.bgm_id == SOUND_BGM_STAGE_ONE &&
-        (game.sound.bgm_step != old_step ||
-            game.sound.bgm_remaining != old_remaining),
-        "normal to warning keeps advancing the same stage BGM position");
-    old_step = game.sound.bgm_step;
-    old_remaining = game.sound.bgm_remaining;
+        game.sound.bgm_active == 0u,
+        "normal to warning keeps BGM disabled while WARNING SFX takes priority");
     game.phase_timer = GAME_WARNING_FRAMES - 1u;
     game_update(&game, 0u);
     expect(game.phase == GAME_PHASE_BOSS &&
         game.sound.bgm_id == SOUND_BGM_STAGE_ONE &&
-        (game.sound.bgm_step != old_step ||
-            game.sound.bgm_remaining != old_remaining),
-        "warning to boss keeps advancing the same stage BGM position");
+        game.sound.bgm_active == 0u,
+        "warning to boss keeps BGM disabled");
 
     game.phase = GAME_PHASE_NORMAL;
     game.phase_timer = 0u;
@@ -2809,8 +2841,6 @@ static void test_sound_enemy_asteroid_and_power_integration(void)
 static void test_sound_damage_freeze_and_warning_integration(void)
 {
     GameState game;
-    unsigned char bgm_step;
-    unsigned char bgm_remaining;
     unsigned char lives;
 
     init_normal(&game);
@@ -2823,18 +2853,14 @@ static void test_sound_damage_freeze_and_warning_integration(void)
         game.sound.sfx_id == SOUND_SFX_PLAYER_EXPLOSION &&
         game.sound.sfx_remaining == 7u,
         "real damage begins one player-explosion SFX");
-    bgm_step = game.sound.bgm_step;
-    bgm_remaining = game.sound.bgm_remaining;
     advance_frames(&game, GAME_EXPLOSION_FRAMES);
-    expect(game.dying == 0u && game.sound.bgm_step == bgm_step &&
-        game.sound.bgm_remaining == bgm_remaining &&
-        game.sound.sfx_id == SOUND_SFX_NONE,
-        "all 32 death updates freeze BGM while explosion completes");
+    expect(game.dying == 0u && game.sound.bgm_active == 0u &&
+        game.sound.sfx_id == SOUND_SFX_NONE && game.sound.output.active == 0u,
+        "all 32 death updates keep BGM disabled while explosion completes");
     disable_enemies_except(&game, GAME_MAX_ENEMIES);
     game_update(&game, 0u);
-    expect(game.sound.bgm_remaining ==
-            (unsigned char)(bgm_remaining - 1u),
-        "first post-respawn update resumes exact frozen BGM position");
+    expect(game.sound.output.active == 0u,
+        "first post-respawn update remains silent without BGM");
 
     init_normal(&game);
     game.invincibility_timer = 2u;
@@ -2906,7 +2932,7 @@ static void test_sound_boss_chain_stage_terminal_and_restart(void)
     game_update(&game, 0u);
     expect(game.stage == 2u && game.phase == GAME_PHASE_STAGE_INTRO &&
         game.sound.bgm_id == SOUND_BGM_STAGE_TWO &&
-        game.sound.bgm_step == 0u && game.sound.sfx_id == SOUND_SFX_NONE &&
+        game.sound.bgm_active == 0u && game.sound.bgm_step == 0u && game.sound.sfx_id == SOUND_SFX_NONE &&
         game.sound.pending_stage_clear == 0u,
         "stage switch starts next BGM head and discards active and pending SFX");
 
@@ -2916,7 +2942,7 @@ static void test_sound_boss_chain_stage_terminal_and_restart(void)
     game_update(&game, 0u);
     expect(game.stage == 3u && game.phase == GAME_PHASE_STAGE_INTRO &&
         game.sound.bgm_id == SOUND_BGM_STAGE_THREE &&
-        game.sound.bgm_step == 0u && game.sound.sfx_id == SOUND_SFX_NONE,
+        game.sound.bgm_active == 0u && game.sound.bgm_step == 0u && game.sound.sfx_id == SOUND_SFX_NONE,
         "stage two switch starts stage three cave BGM at its exact head");
 
     game.phase = GAME_PHASE_STAGE_CLEAR;
@@ -2934,10 +2960,10 @@ static void test_sound_boss_chain_stage_terminal_and_restart(void)
     game_update(&game, 0u);
     game_update(&game, GAME_INPUT_FIRE);
     expect(game.stage == 1u && game.phase == GAME_PHASE_STAGE_INTRO &&
-        game.sound.bgm_active != 0u &&
+        game.sound.bgm_active == 0u &&
         game.sound.bgm_id == SOUND_BGM_STAGE_ONE &&
         game.sound.bgm_step == 0u && game.sound.sfx_id == SOUND_SFX_NONE,
-        "ALL CLEAR release and repress fully restarts stage one music");
+        "ALL CLEAR release and repress returns to stage one with BGM disabled");
 
     init_normal(&game);
     disable_enemies_except(&game, 0u);
@@ -2955,7 +2981,7 @@ static void test_sound_boss_chain_stage_terminal_and_restart(void)
     expect(game.game_over == 0u &&
         game.sound.bgm_id == SOUND_BGM_STAGE_ONE &&
         game.sound.bgm_step == 0u && game.sound.sfx_id == SOUND_SFX_NONE,
-        "GAME OVER release and repress fully restarts stage one music");
+        "GAME OVER release and repress returns to stage one with BGM disabled");
 }
 
 static void test_sound_simultaneous_priority_integration(void)
@@ -3033,6 +3059,7 @@ int main(void)
     test_stage_three_rockfall();
     test_environment_phase_boundaries_and_restart();
     test_all_clear_restart();
+    test_draw_frame_logic_scheduler();
     test_sound_initial_phase_and_fire_integration();
     test_sound_enemy_asteroid_and_power_integration();
     test_sound_damage_freeze_and_warning_integration();

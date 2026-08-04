@@ -139,38 +139,27 @@ static void test_sequence_tables(void)
 static void test_bgm_start_loop_stage_and_rest(void)
 {
     SoundState sound;
-    unsigned int length;
 
     sound_init(&sound);
-    expect(sound.bgm_active != 0u &&
+    expect(sound.bgm_active == 0u &&
         sound.bgm_id == SOUND_BGM_STAGE_ONE && sound.bgm_step == 0u &&
-        sound.bgm_remaining == 15u && sound.output.active != 0u &&
-        sound.output.note == 5u,
-        "sound init starts stage one BGM at its exact first note");
-    length = bgm_length(SOUND_BGM_STAGE_ONE);
-    advance_sound(&sound, length - 1u, 0u);
-    expect(sound.bgm_step == 7u && sound.bgm_remaining == 1u,
-        "stage one remains on its last step immediately before loop boundary");
-    sound_tick(&sound, 0u);
-    expect(sound.bgm_step == 0u && sound.bgm_remaining == 15u,
-        "stage one wraps exactly to its first step after one loop");
+        sound.bgm_remaining == 15u && sound.output.active == 0u,
+        "sound init keeps stage one BGM data but emits silence");
+    advance_sound(&sound, 240u, 0u);
+    expect(sound.bgm_step == 0u && sound.bgm_remaining == 15u &&
+        sound.output.active == 0u,
+        "disabled BGM neither sequences nor reaches the logical output");
 
     sound_set_stage(&sound, 2u);
     expect(sound.bgm_id == SOUND_BGM_STAGE_TWO && sound.bgm_step == 0u &&
-        sound.bgm_remaining == 5u && sound.output.note == 7u,
-        "stage two switch discards old position and starts flight song head");
-    advance_sound(&sound, 5u, 0u);
-    expect(sound.bgm_step == 1u && sound.bgm_remaining == 5u,
-        "stage two advances at its five-update fast boundary");
+        sound.bgm_remaining == 5u && sound.bgm_active == 0u &&
+        sound.output.active == 0u,
+        "stage switch updates retained BGM metadata without enabling it");
 
     sound_set_stage(&sound, 3u);
-    advance_sound(&sound, 18u, 0u);
-    expect(sound.bgm_step == 1u && sound.bgm_remaining == 9u,
-        "stage three reaches its first rest after the low opening note");
-    sound_tick(&sound, 0u);
-    expect(sound.output.active == 0u &&
-        sound.output.note == SOUND_NOTE_REST && sound.output.volume == 0u,
-        "stage three rest publishes a silent logical output");
+    expect(sound.bgm_id == SOUND_BGM_STAGE_THREE && sound.bgm_step == 0u &&
+        sound.bgm_remaining == 18u && sound.bgm_active == 0u,
+        "stage three metadata remains available for a future BGM restore");
     sound_set_stage(&sound, 0u);
     expect(sound.bgm_id == SOUND_BGM_STAGE_THREE,
         "invalid stage switch leaves the current BGM unchanged");
@@ -181,8 +170,6 @@ static void test_sfx_priority_retrigger_and_bgm_progress(void)
     SoundState sound;
     unsigned char active;
     unsigned char request;
-    unsigned char bgm_step;
-    unsigned char bgm_remaining;
 
     sound_init(&sound);
     sound_request_sfx(&sound, SOUND_SFX_SHOT);
@@ -215,47 +202,33 @@ static void test_sfx_priority_retrigger_and_bgm_progress(void)
 
     sound_init(&sound);
     sound_request_sfx(&sound, SOUND_SFX_ENEMY_DEFEAT);
-    bgm_step = sound.bgm_step;
-    bgm_remaining = sound.bgm_remaining;
     advance_sound(&sound,
         sound_get_sfx_length(SOUND_SFX_ENEMY_DEFEAT), 0u);
-    expect(sound.sfx_id == SOUND_SFX_NONE &&
-        (sound.bgm_step != bgm_step ||
-            sound.bgm_remaining != bgm_remaining),
-        "BGM cursor advances silently for the whole normal SFX");
+    expect(sound.sfx_id == SOUND_SFX_NONE && sound.bgm_active == 0u,
+        "normal SFX finishes while BGM remains disabled");
     sound_tick(&sound, 0u);
-    expect(sound.output.active != 0u &&
-        sound.output.note ==
-            sound_get_bgm_step(sound.bgm_id, sound.bgm_step)->note,
-        "first update after SFX returns output to the progressed BGM");
+    expect(sound.output.active == 0u,
+        "later ticks cannot restore disabled BGM output");
 }
 
 static void test_freeze_pending_and_stops(void)
 {
     SoundState sound;
-    unsigned char bgm_step;
-    unsigned char bgm_remaining;
     unsigned int boss_length;
     unsigned int clear_length;
 
     sound_init(&sound);
     advance_sound(&sound, 7u, 0u);
-    bgm_step = sound.bgm_step;
-    bgm_remaining = sound.bgm_remaining;
     sound_request_sfx(&sound, SOUND_SFX_PLAYER_EXPLOSION);
     advance_sound(&sound, 31u, 1u);
-    expect(sound.bgm_step == bgm_step &&
-        sound.bgm_remaining == bgm_remaining &&
-        sound.sfx_id == SOUND_SFX_PLAYER_EXPLOSION,
-        "first 31 death updates freeze BGM while explosion keeps progressing");
+    expect(sound.bgm_active == 0u && sound.sfx_id == SOUND_SFX_PLAYER_EXPLOSION,
+        "first 31 death updates keep disabled BGM silent while explosion progresses");
     sound_tick(&sound, 1u);
-    expect(sound.bgm_step == bgm_step &&
-        sound.bgm_remaining == bgm_remaining &&
-        sound.sfx_id == SOUND_SFX_NONE,
-        "death update 32 finishes explosion without advancing frozen BGM");
+    expect(sound.sfx_id == SOUND_SFX_NONE,
+        "death update 32 finishes the explosion SFX");
     sound_tick(&sound, 0u);
-    expect(sound.bgm_remaining == (unsigned char)(bgm_remaining - 1u),
-        "post-respawn update resumes BGM from the exact death position");
+    expect(sound.output.active == 0u,
+        "post-respawn update leaves BGM disabled");
 
     sound_init(&sound);
     sound_request_sfx(&sound, SOUND_SFX_BOSS_DEFEAT);
@@ -278,7 +251,7 @@ static void test_freeze_pending_and_stops(void)
     sound_request_sfx(&sound, SOUND_SFX_WARNING);
     sound.pending_stage_clear = 1u;
     sound_set_stage(&sound, 2u);
-    expect(sound.bgm_active != 0u && sound.bgm_id == SOUND_BGM_STAGE_TWO &&
+    expect(sound.bgm_active == 0u && sound.bgm_id == SOUND_BGM_STAGE_TWO &&
         sound.bgm_step == 0u && sound.sfx_id == SOUND_SFX_NONE &&
         sound.pending_stage_clear == 0u,
         "stage switch clears active and pending SFX and restarts next song");

@@ -35,9 +35,19 @@ int main(void)
         "boot starts title without GAME OVER");
 
     game_update(&game, GAME_INPUT_FIRE);
+    expect(game.phase == GAME_PHASE_TITLE && game.title_start_armed == 0u &&
+        game.game_over == 0u,
+        "held boot fire cannot bypass the title");
+
+    game_update(&game, 0u);
+    expect(game.phase == GAME_PHASE_TITLE && game.title_start_armed != 0u &&
+        game.game_over == 0u,
+        "releasing fire arms the title start");
+
+    game_update(&game, GAME_INPUT_FIRE);
     expect(game.phase == GAME_PHASE_STAGE_INTRO && game.phase_timer == 0u &&
         game.game_over == 0u,
-        "title fire starts Stage 1 INTRO without GAME OVER");
+        "fresh title fire starts Stage 1 INTRO without GAME OVER");
 
     advance_intro(&game);
     expect(game.phase == GAME_PHASE_NORMAL && game.game_over == 0u,
