@@ -7,8 +7,8 @@ Atari Lynxの標準160x102・16色モードで動く、最小構成の横スク�
 ## 構成
 
 - `src/game.c`: ハードウェア非依存の状態遷移。背景テーマID・通常敵編成ID・Boss設定ID・Boss外観IDを持つStage固定設定、Stage 1〜3の共通進行、固定設定表と攻撃手順表によるボス、移動、境界、12発の自機弾、符号付き速度を持つ16発の敵弾、3段階武器、8フレームの連射間隔、AABB、得点、4敵の再出現、敵ごとのドロップ能力と強化アイテム、残機、爆発・再出撃・無敵、ゲームオーバー、ALL CLEAR、完全再開始、3層背景、サウンドイベント発火を担当。
-- `src/sound.c`: 75Hzのハードウェア非依存サウンド状態。将来復帰用に保持する3曲の固定BGM表と、現在有効な7種SFX、優先度、固定1件保留、論理出力を担当する。現行ではBGMシーケンサとBGM由来のMIKEY出力は停止している。
-- `src/main.c`: cc65/Lynxアダプタ。標準ジョイスティックドライバを読み、Stage設定から選ぶ配色とTGIで固定水平ラン表の惑星・山・雲・洞窟地形、固定星、行マスクの自機と画面内の4敵、Stage 1宇宙要塞・Stage 2空中母艦・Stage 3岩石コア、両陣営の弾、Stage/フェーズ表示、ボスHPバー、HUDを背面から順に描く。純Cサウンド出力をMIKEY音源channel Aへ反映する。
+- `src/sound.c`: 75Hzのハードウェア非依存サウンド状態。3曲の固定BGM表と、7種SFX、優先度、固定1件保留を持つ。BGM・SFXは独立した論理出力（`output_bgm`/`output_sfx`）を持ち、`bgm_active`が真の間はBGMカーソルが常時BGM出力を生成し、SFXはアクティブな間だけ独立にSFX出力を生成する（APS-020で2ch復帰）。
+- `src/main.c`: cc65/Lynxアダプタ。標準ジョイスティックドライバを読み、Stage設定から選ぶ配色とTGIで固定水平ラン表の惑星・山・雲・洞窟地形、固定星、行マスクの自機と画面内の4敵、Stage 1宇宙要塞・Stage 2空中母艦・Stage 3岩石コア、両陣営の弾、Stage/フェーズ表示、ボスHPバー、HUDを背面から順に描く。純CのBGM論理出力をMIKEY音源channel Aへ、SFX論理出力をchannel Bへそれぞれ反映する。
 - `tests/test_game.c`と`tests/test_sound.c`: 同じゲーム/サウンドロジックをmacOS clangで実行する回帰テスト。
 
 描画フレームごとに入力を一度取得し、画面クリアと再描画、`tgi_updatedisplay()`、SFX tickを各一回だけ75Hzで行う。ゲーム内ロジックは剰余0からの`5/4`固定分数スケジューラで、連続4描画フレームに`1, 1, 1, 2`回、計5回更新する。同じ描画フレーム内の追加更新にも同一入力を渡すため、状態遷移、進行タイマ、移動、弾、クールダウン、敵発射、環境、死亡、無敵は決定的に1.25倍で進む。一方、SFX tickは追加ロジック更新へ追従させず、既存の実時間長、優先順位、開始回数を保つ。GAME OVER/ALL CLEARの解除・再押下判定を最優先し、爆発中は死亡タイマーだけをゲーム内ロジックとして進める。導入・警告・クリアは許可された背景・入力を一度更新してから境界判定する。NORMALは既存の通常戦闘順を維持し、BOSSは背景、自機、射撃、自機弾、ボス命中、既存敵弾、ボス移動/発射、自機損傷の順とする。HP0更新は直ちにクリアへ移って後続ボス処理を省略する。動的確保、外部アセット、外部音源を使わない。
@@ -133,7 +133,7 @@ NORMALの順序は、自機入力、環境イベント開始と風、自機発�
 
 実装するBGMはStage 1が8ステップ・各15更新・全120更新、Stage 2が8ステップ・各5更新・全40更新、Stage 3が低音18更新、休符9更新、低音18更新、休符9更新、ノイズ音12更新、休符12更新の全78更新とする。論理音程は休符0と1〜16、音量は0〜31、波形はtone/metallic/noise/pulseの4種に固定する。SFX全長は射撃8、敵撃破12、取得15、WARNING 32、自機爆発32、STAGE CLEAR 36、Boss撃破48更新で、Boss撃破と保留CLEARの合計84更新とする。
 
-この段落はAPS-013時点のBGM再生仕様であり、現行動作ではない。現行ではBGM表・Stage ID・取得APIを将来復帰用に保持するだけで、`sound_init()`と`sound_set_stage()`はBGMを開始せず、BGMステップもBGM由来のMIKEY出力も停止したままである。SFX終了後にBGMへ復帰する動作も行わない。
+この段落はAPS-013時点のBGM再生仕様である。APS-018でテンポ調整のため`sound_init()`と`sound_set_stage()`がBGMステップ・BGM由来のMIKEY出力を停止する期間があったが、APS-020でBGMシーケンサを復帰させ、SFX（channel B）と独立にBGM（channel A）が常時進行する構成へ戻した（詳細は下記「APS-020 BGM曲化・2ch復帰」）。
 
 SFXは成功射撃、通常敵/小惑星撃破、実損傷開始、自機によるアイテム取得、WARNING突入、Boss HP0確定、STAGE CLEAR突入の7種。失敗射撃と無敵中の損傷条件では鳴らさない。同一更新に複数の通常敵または小惑星を破壊した場合は敵撃破音を1回へ集約する。SFXはBGMより常に優先して単一出力を完全に上書きする。優先度は射撃1 < 敵撃破2 < 取得3 < WARNING 4 < 自機爆発5 < STAGE CLEAR 6 < Boss撃破7。同一以上は現在音を破棄して新音を先頭から始め、低優先度は破棄する。同一更新のBoss撃破→STAGE CLEARだけはCLEARを固定1件保留し、Boss終了後に一度再生する。両音の合計を120更新未満、自機爆発を32更新以下に収める。GAME OVER/ALL CLEAR、Stage切替、完全再開始ではactive/保留を破棄する。
 
@@ -145,8 +145,20 @@ cc65 2.19は`lynx_snd_*` APIと4チャンネルの`MIKEY`音源レジスタを�
 
 描画、入力取得、TGI表示更新、SFX tickは75Hzの描画フレームごとに一回だけ行う。Lynxアダプタは剰余0から`5/4`の固定分数スケジューラを進め、連続する4描画フレームで`1, 1, 1, 2`回、計5回の`game_update_logic()`を実行する。同じ描画フレーム内の追加更新にも、最初に一度だけ取得した同一入力を渡す。これにより状態遷移、進行タイマ、移動、弾、クールダウン、敵発射、環境、死亡、無敵はすべて1.25倍で決定的に進む。音のSFX tickはロジック追加更新には追従させず75Hzに固定するため、SFXは消失・二重開始・BGM化せず、既存の実時間長を保つ。
 
-BGMテーブルとステージIDは将来の復帰用に保持するが、`sound_init()`と`sound_set_stage()`は`bgm_active=0`とし、BGMステップの進行もMIKEY出力も停止する。SFXの優先順位、保留Stage Clear、停止境界は維持する。BGM停止は`src/sound.c`の論理出力だけで完結するため、LynxバックエンドはSFXがアクティブな場合だけ既存の許可済みchannel Aレジスタを書き込む。
+BGMテーブルとステージIDは、APS-018時点では`sound_init()`と`sound_set_stage()`が`bgm_active=0`としてBGMステップの進行・MIKEY出力を停止していたが、APS-020でBGMシーケンサを復帰させた（詳細は下記「APS-020 BGM曲化・2ch復帰」）。SFXの優先順位、保留Stage Clear、停止境界は変更していない。
 
 HUDは0〜9行の黒い帯に3x5の自作文字で一行表示する。`S<stage> <phase><4桁進行> <5桁score> L<lives> W<weapon>`はNULを除く20文字で、4pxピッチ・開始X=2から最終文字の右端X=80まで、表示幅79px（160px画面の一行）に収まる。導入中のStage 1進行も中央表示ではなく同じphase/progress欄に出す。帯の下端は明色線で区切る。戦闘物のマスク、弾矩形、敵弾の描画はHUD下へクリップする。Stage 1の背景星は低コントラストの1px/2px背景レイヤーのままとし、その後に前景の高コントラスト白色・短横ラン+下端ドットで敵弾を描く。敵弾のAABB、16発上限、速度、発射順は変更しない。
 
 通常敵は全9種を8x8の自作行マスク・2フレームで描く。Scoutは先端と尾翼、Saucerはリムとドーム、Dropperは貨物ポッドとハッチ、Stage 2/3の各敵も翼・機体・生物・ドリルが異なる水平ランで識別する。外観だけを変更範囲とし、既存AABB、座標、移動、発射、ドロップ、固定スロット上限、自機、ボスは不変とする。
+
+## APS-020 BGM曲化・2ch復帰
+
+APS-018でテンポ調整のため停止していたBGMシーケンサとBGM由来のMIKEY出力を復帰させ、BGM（MIKEY channel A）とSFX（channel B）を独立2ch構成にした。`SoundState`は単一の`SoundOutput output`ではなく`output_bgm`/`output_sfx`の独立2出力を持ち、`sound_tick()`は毎更新`update_bgm_output()`と`update_sfx_output()`を両方呼んでからBGMカーソルとSFXカーソルをそれぞれ進める。旧`select_output()`の「SFXがアクティブならSFXを、無ければBGMを選ぶ」排他選択（BGMを完全に上書きする実装）は廃止した。
+
+`sound_init()`と`sound_set_stage()`は`bgm_active=1`に戻し、呼び出し時点のBGMをその曲の先頭から即座に鳴らす。`sound_tick(sound, freeze_bgm)`の`freeze_bgm`（自機死亡32更新中はBGMカーソルのみ凍結、SFXは進行）、SFX優先度・同一以上先頭再始動・低優先度破棄・Boss撃破中のSTAGE CLEAR保留1件、Stage切替時の次曲頭切替、`sound_stop_all()`によるGAME OVER/ALL CLEAR時の停止、という既存規則の意味は変えていない。`game.c`の呼び出し構造（`game_init()`が末尾で`sound_stop_all()`を呼びタイトル画面を無音にし、`game_start()`がその後に`sound_init()`を呼び直してBGMを有効化する二段構成）はAPS-018以前からの既存構造のままで変更していない。この結果、タイトル画面は無音（新規タイトルBGMはスコープ外）、`game_start()`後のゲームプレイ中（Stage導入〜通常戦闘〜警告〜Boss〜Stage Clear）はBGMが常時鳴り、ALL CLEARからの再開始（`game_start()`を再度呼ぶ）でもBGMは即座に復帰する。GAME OVER後は`return_to_title()`（`game_init()`のみ呼ぶ）でタイトルに戻るため無音のままである。
+
+`src/main.c`はMIKEY channel B相当（`include/_mikey.h`の`channel_b`、`0xFD28`〜`0xFD2F`: `SOUND_B_VOL=0xFD28`, `SOUND_B_FEEDBACK=0xFD29`, `SOUND_B_SHIFT_LOW=0xFD2B`, `SOUND_B_RELOAD=0xFD2C`, `SOUND_B_CONTROL_A=0xFD2D`, `SOUND_B_CONTROL_B=0xFD2F`）のレジスタ定義と`sound_backend_apply_sfx()`を追加した。これは既存channel A実装（`sound_backend_apply_bgm()`、旧`sound_backend_apply()`を改称）と同一のレジスタオフセット・書込み規約（note/waveが変わる更新だけcontrol=0→shift-low/control-B/feedback→volume→reload→control=`prescaler|0x18`のフル再設定、volumeだけの変更はvolumeのみ再書込み）を持つ意図的な複製であり、共有ヘルパー化はしていない。`sound_backend_apply_bgm()`はBGM出力をchannel Aへ、`sound_backend_apply_sfx()`はSFX出力をchannel Bへ適用する。`MSTEREO`（`0xFD50`）は両ch unmute（0）のままで、Timer 0/2/7、IRQ、TGI表示制御、channel C/D、attenuation/panning、`lynx_snd_*`へは触れていない。
+
+既存3Stage BGM表のうちStage 1（旧20/18）とStage 2（旧20〜24）の音量は、SFX（射撃22〜STAGE CLEAR/Boss撃破31）と常時同時に鳴っても聴感上つぶれない帯域（14〜18）へ調整した（Stage 1: 17/15、Stage 2: 14〜18の昇順/降順）。Stage 3（18/17/16）は既に同帯域内のため変更していない。休符配置・ループ長・音程進行そのものは変更していない。タイトル画面用BGMの新規追加はスコープ外のため行っていない。
+
+聴感（実際に2ch同時再生した際の音量バランス・音色の衝突）とAtari Lynx実機でのCPU負荷・音質はAI実装では確認できず、未確認事項として残す。

@@ -47,6 +47,12 @@
 #define SOUND_A_RELOAD (*(volatile unsigned char*)0xfd24u)
 #define SOUND_A_CONTROL_A (*(volatile unsigned char*)0xfd25u)
 #define SOUND_A_CONTROL_B (*(volatile unsigned char*)0xfd27u)
+#define SOUND_B_VOL (*(volatile unsigned char*)0xfd28u)
+#define SOUND_B_FEEDBACK (*(volatile unsigned char*)0xfd29u)
+#define SOUND_B_SHIFT_LOW (*(volatile unsigned char*)0xfd2bu)
+#define SOUND_B_RELOAD (*(volatile unsigned char*)0xfd2cu)
+#define SOUND_B_CONTROL_A (*(volatile unsigned char*)0xfd2du)
+#define SOUND_B_CONTROL_B (*(volatile unsigned char*)0xfd2fu)
 #define SOUND_MASTER_STEREO (*(volatile unsigned char*)0xfd50u)
 #define SOUND_TIMER_ENABLE 0x18u
 
@@ -119,7 +125,8 @@ static const SoundWaveRegister sound_wave_registers[SOUND_WAVE_COUNT] = {
     { 0x24u, 0xb4u, 0u }
 };
 
-static SoundHardwareState sound_hardware;
+static SoundHardwareState sound_hardware_bgm;
+static SoundHardwareState sound_hardware_sfx;
 static GameState game;
 
 static const BackgroundTheme background_themes[
@@ -444,13 +451,23 @@ static void sound_backend_init(void)
     SOUND_MASTER_STEREO = 0u;
     SOUND_A_VOL = 0u;
     SOUND_A_CONTROL_A = 0u;
-    sound_hardware.active = 0u;
-    sound_hardware.note = SOUND_NOTE_REST;
-    sound_hardware.volume = 0u;
-    sound_hardware.wave = SOUND_WAVE_TONE;
+    sound_hardware_bgm.active = 0u;
+    sound_hardware_bgm.note = SOUND_NOTE_REST;
+    sound_hardware_bgm.volume = 0u;
+    sound_hardware_bgm.wave = SOUND_WAVE_TONE;
+    SOUND_B_VOL = 0u;
+    SOUND_B_CONTROL_A = 0u;
+    sound_hardware_sfx.active = 0u;
+    sound_hardware_sfx.note = SOUND_NOTE_REST;
+    sound_hardware_sfx.volume = 0u;
+    sound_hardware_sfx.wave = SOUND_WAVE_TONE;
 }
 
-static void sound_backend_apply(const SoundOutput* output)
+/* Applies the BGM logical output to MIKEY channel A. Kept as a literal
+ * duplicate of sound_backend_apply_sfx (channel B) rather than a shared
+ * helper, matching the register offsets and write ordering established for
+ * channel A in APS-013. */
+static void sound_backend_apply_bgm(const SoundOutput* output)
 {
     const SoundPitchRegister* pitch;
     const SoundWaveRegister* wave;
@@ -458,22 +475,22 @@ static void sound_backend_apply(const SoundOutput* output)
     if (output->active == 0u || output->note == SOUND_NOTE_REST ||
         output->note > SOUND_NOTE_COUNT ||
         output->wave >= SOUND_WAVE_COUNT) {
-        if (sound_hardware.active != 0u) {
+        if (sound_hardware_bgm.active != 0u) {
             SOUND_A_VOL = 0u;
             SOUND_A_CONTROL_A = 0u;
         }
-        sound_hardware.active = 0u;
-        sound_hardware.note = SOUND_NOTE_REST;
-        sound_hardware.volume = 0u;
-        sound_hardware.wave = SOUND_WAVE_TONE;
+        sound_hardware_bgm.active = 0u;
+        sound_hardware_bgm.note = SOUND_NOTE_REST;
+        sound_hardware_bgm.volume = 0u;
+        sound_hardware_bgm.wave = SOUND_WAVE_TONE;
         return;
     }
 
     pitch = &sound_pitch_registers[output->note - 1u];
     wave = &sound_wave_registers[output->wave];
-    if (sound_hardware.active == 0u ||
-        output->note != sound_hardware.note ||
-        output->wave != sound_hardware.wave) {
+    if (sound_hardware_bgm.active == 0u ||
+        output->note != sound_hardware_bgm.note ||
+        output->wave != sound_hardware_bgm.wave) {
         SOUND_A_CONTROL_A = 0u;
         SOUND_A_SHIFT_LOW = wave->shift_low;
         SOUND_A_CONTROL_B = wave->control_b;
@@ -482,13 +499,57 @@ static void sound_backend_apply(const SoundOutput* output)
         SOUND_A_RELOAD = pitch->reload;
         SOUND_A_CONTROL_A =
             (unsigned char)(pitch->prescaler | SOUND_TIMER_ENABLE);
-    } else if (output->volume != sound_hardware.volume) {
+    } else if (output->volume != sound_hardware_bgm.volume) {
         SOUND_A_VOL = output->volume;
     }
-    sound_hardware.active = 1u;
-    sound_hardware.note = output->note;
-    sound_hardware.volume = output->volume;
-    sound_hardware.wave = output->wave;
+    sound_hardware_bgm.active = 1u;
+    sound_hardware_bgm.note = output->note;
+    sound_hardware_bgm.volume = output->volume;
+    sound_hardware_bgm.wave = output->wave;
+}
+
+/* Applies the SFX logical output to MIKEY channel B. Duplicate of
+ * sound_backend_apply_bgm (channel A) using the channel B register block
+ * (0xFD28-0xFD2F per include/_mikey.h) with the same write convention. */
+static void sound_backend_apply_sfx(const SoundOutput* output)
+{
+    const SoundPitchRegister* pitch;
+    const SoundWaveRegister* wave;
+
+    if (output->active == 0u || output->note == SOUND_NOTE_REST ||
+        output->note > SOUND_NOTE_COUNT ||
+        output->wave >= SOUND_WAVE_COUNT) {
+        if (sound_hardware_sfx.active != 0u) {
+            SOUND_B_VOL = 0u;
+            SOUND_B_CONTROL_A = 0u;
+        }
+        sound_hardware_sfx.active = 0u;
+        sound_hardware_sfx.note = SOUND_NOTE_REST;
+        sound_hardware_sfx.volume = 0u;
+        sound_hardware_sfx.wave = SOUND_WAVE_TONE;
+        return;
+    }
+
+    pitch = &sound_pitch_registers[output->note - 1u];
+    wave = &sound_wave_registers[output->wave];
+    if (sound_hardware_sfx.active == 0u ||
+        output->note != sound_hardware_sfx.note ||
+        output->wave != sound_hardware_sfx.wave) {
+        SOUND_B_CONTROL_A = 0u;
+        SOUND_B_SHIFT_LOW = wave->shift_low;
+        SOUND_B_CONTROL_B = wave->control_b;
+        SOUND_B_FEEDBACK = wave->feedback;
+        SOUND_B_VOL = output->volume;
+        SOUND_B_RELOAD = pitch->reload;
+        SOUND_B_CONTROL_A =
+            (unsigned char)(pitch->prescaler | SOUND_TIMER_ENABLE);
+    } else if (output->volume != sound_hardware_sfx.volume) {
+        SOUND_B_VOL = output->volume;
+    }
+    sound_hardware_sfx.active = 1u;
+    sound_hardware_sfx.note = output->note;
+    sound_hardware_sfx.volume = output->volume;
+    sound_hardware_sfx.wave = output->wave;
 }
 
 static unsigned char read_input(void)
@@ -1230,7 +1291,8 @@ void main(void)
             game_update_logic(&game, input);
         }
         game_sound_tick(&game);
-        sound_backend_apply(&game.sound.output);
+        sound_backend_apply_bgm(&game.sound.output_bgm);
+        sound_backend_apply_sfx(&game.sound.output_sfx);
         draw_game(&game);
     }
 }

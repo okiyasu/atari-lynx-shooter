@@ -1,10 +1,49 @@
 # ISSUES
 
-最終更新: 2026-08-05
+最終更新: 2026-08-06
 
 ## 課題台帳
 
-### APS-019: 75Hz同期を維持した性能計測・最適化
+### APS-020: BGM曲化・2ch復帰
+
+- 状態: 一次検収合格・コミット待ち（Dev Front、2026-08-06。GUI目視/聴感確認はユーザー推奨として残存）
+- 優先度: 中
+- 起票日: 2026-08-06
+- 基点: `694d396`（APS-019完了時点のHEAD）。起票時点で作業ツリーはクリーン。originへ2 commits ahead。
+- 目的: APS-018でBGMシーケンサとBGM由来のMIKEY出力を停止して以来、無音のままだったBGMを、SFXと独立した2ch構成（BGM=MIKEY channel A、SFX=channel B）で復帰させ、既存の3Stage分プレースホルダーBGM表を実際に聴こえる音楽として機能させる。
+- 経緯: ローカルLLM（qwen3.6:27b）に実装を試させたが、35分・大量トークン消費の末に6ステップ中1ステップ（`sound.h`への構造体追加のみ）しか完了せず失敗した。使用した作業ツリー（`../atari-lynx-shooter-worktrees/bgm-local`、ブランチ`feature/aps-020-bgm-local`）には未完成の変更が残るが、本課題では参照不要。標準ルート（dev-front→dev）へ切り替える。
+- スコープ決定（Dev Front、2026-08-06）: 本課題は**2ch構造の復帰**を主目的とする。既存の3Stage BGM表（`src/sound.c`の`stage_one/two/three_bgm`）をベース楽曲として扱い、SFXとの音量・音色衝突回避のための調整（音量帯・波形の選び直し等）は許容するが、**タイトル画面用BGMの新規追加は対象外**とする（既存にタイトルBGM用スロットが無く、追加はスコープ拡大のため）。必要なら別課題として起票する。
+- 制約: 外部音源・権利不明素材・浮動小数・動的確保を使わない。固定小配列、整数、75Hzの決定的スケジュール、厳格C89、cc65 warnings-as-errors、ホストテスト可能なサウンド状態を維持する。コミット・push・deploy、BIOS・`lynxboot.img`・外部ROMの取得/探索/生成/同梱は禁止する。APS-018/019で確立した75Hz同期・`5/4`ロジックスケジューラは変更しない。
+
+#### APS-020完了条件
+
+- `include/sound.h`/`src/sound.c`の論理出力を、単一`SoundOutput output`から**BGM用・SFX用の独立した2出力**へ分離する。BGMは`bgm_active`時に常時ch A相当の出力を生成し、SFXはアクティブな間だけch B相当の出力を生成する。SFXがBGMを完全に上書きしていた旧仕様（`select_output()`の排他選択）を廃止し、両者が同時に鳴る構成へ変更する。
+- `sound_init()`と`sound_set_stage()`で`bgm_active`を1へ戻し、BGMシーケンサの進行を再開する。`sound_tick(sound, freeze_bgm)`の`freeze_bgm`（自機死亡中はBGMカーソルのみ凍結・SFXは進行）、SFX優先度・同一以上の先頭再始動・低優先度破棄・Boss撃破中のSTAGE CLEAR保留1件という既存規則はSFX側だけの規則として維持する。Stage切替時の次曲頭切替、GAME OVER/ALL CLEAR時の停止、完全再開始時のStage 1曲頭復帰という既存仕様も維持する。
+- `src/main.c`のLynxバックエンドへMIKEY channel B相当のレジスタ定義・書込み関数を追加する。アドレスは`include/_mikey.h`のchannel Bレイアウト（`0xFD20`起点の8レジスタ×4chのうち2番目、`0xFD28`〜`0xFD2F`）を根拠とし、既存channel A実装（`0xFD20/21/23/24/25/27`、公式順序control=0→shift-low/control-B/feedback→volume→reload→control=`prescaler|0x18`、音量のみ変更時はvolumeだけ再書込み）と同じレジスタオフセット・書込み規約・差分更新（同一note/waveならタイマ再起動しない）をch Bへ複製する。BGM出力はch A、SFX出力はch Bへ適用する。`MSTEREO`（`0xFD50`）は両ch unmute（0）を維持する。Timer 0/2/7、IRQ、TGI表示制御、channel C/D、attenuation/panning、`lynx_snd_*`へは一切触れない。
+- 既存3Stage BGM表の音量を、SFX（現行22〜31）と常時同時に鳴らしても聴感上つぶれない帯域（目安14〜18程度）へ必要に応じて調整してよい。休符・ループ長・音程進行の骨格変更は不要（ただし明らかな改善であれば許容）。タイトル画面BGMの新規追加はしない。
+- `tests/test_sound.c`・`tests/test_game.c`の`bgm_active`・`sound.output`関連アサーションを2出力構成（例: `output_bgm`/`output_sfx`、命名はDev裁量）に合わせて全面更新する。BGM常時進行、SFX同時再生、死亡中BGM凍結・SFX進行、Stage切替・停止・再開始時のBGM/SFX双方の状態を回帰させるテストを追加・更新する。
+- `docs/plan/design.md`のAPS-018時点「BGM停止・SFXのみ75Hz」の記述を、2ch復帰後の実仕様（BGM常時ch A・SFX ch B同時進行）へ書き換える。APS-013の履歴設計値セクションは変更しない。
+- `make clean && ./scripts/verify.sh`、ASan/UBSan付き全ホストテスト、`sh -n scripts/*.sh`、`git diff --check`、LNXヘッダ検査を成功させる。実装後、既存のGearlynx GUI環境でタイトル→Stage 1導入→通常戦闘→敵撃破/被弾のひととおりを起動し、クラッシュ・フリーズ・表示異常が無いことを確認する（聴感確認はAI実装では不可能なため「未確認事項」として明記する。BIOSファイルの探索・読取はしない）。
+- 変更ファイル一覧、最終チェック総数、ROMサイズ・SHA-256、設計との差分、未確認事項（聴感、Atari Lynx実機での音量・音質・処理負荷）を本項へ実装実績として追記する。
+
+#### APS-020 実装・検証結果
+
+- 変更ファイル: `include/sound.h`（`SoundOutput output`を`output_bgm`/`output_sfx`の2フィールドへ分離）、`src/sound.c`（`select_output()`を`update_bgm_output()`/`update_sfx_output()`へ分離して排他選択を廃止、`sound_init()`/`sound_set_stage()`で`bgm_active=1`へ復帰、`sound_tick()`で両出力を毎更新算出してから各カーソルを進行、Stage 1/2のBGM音量をSFXとの同時再生を前提にした14〜18帯へ調整）、`src/main.c`（channel Bレジスタ定義`SOUND_B_VOL/FEEDBACK/SHIFT_LOW/RELOAD/CONTROL_A/CONTROL_B`（`0xFD28`〜`0xFD2F`、`include/_mikey.h`の`channel_b`で確認）を追加、`sound_hardware`を`sound_hardware_bgm`/`sound_hardware_sfx`に分離、旧`sound_backend_apply()`を`sound_backend_apply_bgm()`に改称しchannel B用`sound_backend_apply_sfx()`を同一規約で複製追加、`sound_backend_init()`で両ch初期化、`main()`ループで両関数を呼び出し）、`tests/test_sound.c`・`tests/test_game.c`（`bgm_active`・`sound.output`関連アサーションを2出力構成へ全面更新し、BGM/SFX同時再生・死亡中BGM凍結とSFX進行・Stage切替・ALL CLEAR/GAME OVER時の停止・完全再開始の回帰を追加、サウンド側に`test_bgm_and_sfx_sound_together()`を新規追加）、`docs/plan/design.md`（構成節のsound.c/main.c要約とAPS-018節のBGM停止記述を実仕様へ更新し、新規「APS-020 BGM曲化・2ch復帰」節を追記。APS-013履歴設計値セクションは変更していない）。`src/game.c`は変更不要だった。`game_init()`終端の`sound_stop_all()`→`game_start()`内`sound_init()`という既存の二段初期化構造がそのまま「タイトル画面は無音・`game_start()`後のゲームプレイ中はBGM有効」という意図した挙動を成立させたため。
+- 最終検証: `make clean && ./scripts/verify.sh`は終了コード0（ゲーム523件、サウンド129件、cc65 2.19 `-W error`、shell lint、LNX検査）。ASan/UBSan付きホストテスト（`clang -fsanitize=address,undefined -fno-omit-frame-pointer`、他フラグは`verify.sh`と同一）はゲーム523件・サウンド129件とも終了コード0。`sh -n scripts/*.sh`・`git diff --check`は終了コード0。`make smoke-host`は7件成功。`./scripts/inspect-lnx.sh`はLNXヘッダOK。
+- ROM: `dist/asteroid-patrol.lnx` 37,550 bytes、SHA-256 `434b8ac0791cd77b41426a6a87ab0790a4cb50ba1b93afb2dfd18bde63fff27f`。
+- 設計との差分: ブリーフ・完了条件からの逸脱はない。`SoundOutput`2出力のフィールド名は`output_bgm`/`output_sfx`（ブリーフの命名例をそのまま採用）。channel B書込みはブリーフの指示どおり既存channel A実装を関数ごと複製する方式とし、共有ヘルパー化はしていない。BGM音量調整はStage 1（旧20/18→17/15）とStage 2（旧20〜24→14〜18の昇順/降順）のみ実施し、Stage 3（18/17/16）は既に目標帯域内のため変更していない。
+- 未確認事項: (1) 2ch同時再生時の聴感（音量バランス・音色の衝突）はAI実装では判定できない。(2) `make smoke-gearlynx`でGearlynx 1.2.21をheadless起動しROMがクラッシュなく起動しdebug-monitorが待受することは確認したが、そのプロトコルには入力送出・状態取得手段が無いため（スクリプト自身が`UNVERIFIED`と報告する既知の制約）、ブリーフが求めるタイトル→Stage 1導入→通常戦闘→敵撃破/被弾のインタラクティブなGUI確認はこのセッションでは実行できていない（GUI操作・画面目視の手段が無いため）。(3) Atari Lynx実機でのCPU負荷、2ch同時出力時の実機音質は未確認。
+
+#### APS-020一次検収（Dev Front、2026-08-06）
+
+- 独立再実行: `make clean && ./scripts/verify.sh`を再実行し終了コード0（ゲーム523件、サウンド129件、cc65 2.19 `-W error`、shell lint、LNX検査`size=37,550 bytes`）を確認。`shasum -a 256 dist/asteroid-patrol.lnx`は報告値`434b8ac0791cd77b41426a6a87ab0790a4cb50ba1b93afb2dfd18bde63fff27f`と一致。
+- コード検証: `src/main.c`のMIKEYレジスタ定義を`rg`で確認し、`0xFD20/21/23/24/25/27`（channel A）・`0xFD28/29/2B/2C/2D/2F`（channel B）・`0xFD50`（MSTEREO）以外の新規ハードウェア書込みが無いことを確認した。`src/sound.c`の`update_bgm_output()`/`update_sfx_output()`/`sound_tick()`を読み、旧`select_output()`の排他選択（SFXがBGMを上書き）が廃止され、`freeze_bgm`によるBGMカーソル凍結、SFX優先度・保留STAGE CLEARの規則が変更されずSFX側だけの規則として残っていることを確認した。
+- `src/game.c`は未変更（gitでも無変更）であることを確認。`game_init()`が末尾で`sound_init()`直後に`sound_stop_all()`を呼んで無音に戻し、`game_start()`が`game_init()`後に`sound_init()`を再度呼んでStage 1曲頭からBGMを開始する既存の二段構成を直接読み、報告どおり「タイトル無音・プレイ中BGM有効」が成立することをコードレベルで確認した。
+- `docs/plan/design.md`の差分を確認し、旧APS-018節「BGM停止・SFXのみ75Hz」の記述が新仕様と矛盾なく書き換えられていること（reviewer指摘の修正を含む）を確認した。
+- GUI確認の補完: Devの子セッションにはGUI操作手段が無く未実施だったため、Dev Front側で`open -na /Applications/Gearlynx.app --args <ROM絶対パス>`によりGearlynx 1.2.21を新規起動し、プロセスをおよそ44秒間観察した（`ps`でCPU 11〜12%を維持、状態は実行/スリープを継続、クラッシュ・異常終了なし）。ただし本環境には画面キャプチャ・キー入力送出の権限（Screen Recording/アクセシビリティ）が無く、`screencapture`・`System Events`とも権限エラーで失敗したため、タイトル/Stage 1導入/戦闘画面の目視やA/B入力によるシーン進行確認はできなかった。プロセス起動後のクラッシュ・即時フリーズが無いことまでは確認したが、ブリーフが求める視覚的な目視確認は依然未達のため、ユーザー自身によるGearlynx GUIでの目視・聴感確認を推奨する。
+- 判定: THOROUGH。上記コード・テスト・ハッシュの独立再現はすべて一致し、報告と実装に齟齬は無い。GUIの目視・聴感確認のみ、AI実装環境の権限制約により未達のまま残る（新規ブリーフでの差し戻しは不要、環境制約であり実装の不備ではないため）。
+
+
 
 - 状態: 実装・再現可能な性能比較・検証完了（Dev、2026-08-05）
 - 優先度: 高

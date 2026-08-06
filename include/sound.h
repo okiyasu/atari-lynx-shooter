@@ -48,7 +48,8 @@ typedef struct SoundState {
     unsigned char sfx_step;
     unsigned char sfx_remaining;
     unsigned char pending_stage_clear;
-    SoundOutput output;
+    SoundOutput output_bgm;
+    SoundOutput output_sfx;
 } SoundState;
 
 void sound_init(SoundState* sound);

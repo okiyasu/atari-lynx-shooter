@@ -475,8 +475,10 @@ static void test_boot_initialization_and_intro_input(void)
         first.phase_timer == 0u && first.lives == GAME_INITIAL_LIVES &&
         first.game_over == 0u && first.dying == 0u &&
         first.restart_armed == 0u && first.title_start_armed == 0u &&
-        first.sound.output.active == 0u,
-        "boot starts at the clean title with start input disarmed");
+        first.sound.bgm_active == 0u &&
+        first.sound.output_bgm.active == 0u &&
+        first.sound.output_sfx.active == 0u,
+        "boot starts at the clean silent title with start input disarmed");
     game_update(&first, GAME_INPUT_FIRE | GAME_INPUT_RIGHT);
     expect(first.phase == GAME_PHASE_TITLE && first.title_start_armed == 0u &&
         first.player.x == 10u && first.player.y == 48u &&
@@ -1530,7 +1532,9 @@ static void test_game_over_and_restart(void)
     game_update(&game, GAME_INPUT_FIRE);
     expect(game.phase == GAME_PHASE_TITLE && game.game_over == 0u &&
         game.lives == 3u && game.score == 0ul &&
-        game.sound.bgm_active == 0u && game.sound.output.active == 0u &&
+        game.sound.bgm_active == 0u &&
+        game.sound.output_bgm.active == 0u &&
+        game.sound.output_sfx.active == 0u &&
         game.title_start_armed == 0u,
         "fresh fire press returns game over to a silent clean title");
     game_update(&game, GAME_INPUT_FIRE);
@@ -2703,8 +2707,11 @@ static void test_draw_frame_logic_scheduler(void)
         game_sound_tick(&game);
     }
     expect(game.phase_timer == GAME_LOGIC_UPDATES_NUMERATOR &&
-        game.sound.output.active == 0u,
-        "5/4 advances stage progression while the 75Hz sound tick stays silent");
+        game.sound.bgm_step == 0u &&
+        game.sound.bgm_remaining ==
+            (unsigned char)(15u - GAME_LOGIC_UPDATES_DENOMINATOR) &&
+        game.sound.output_bgm.active != 0u,
+        "5/4 advances stage progression while the BGM/SFX tick stays at 75Hz, advancing once per draw frame rather than once per logic update");
 }
 
 static void test_sound_initial_phase_and_fire_integration(void)
@@ -2713,32 +2720,32 @@ static void test_sound_initial_phase_and_fire_integration(void)
     unsigned char i;
 
     game_start(&game);
-    expect(game.sound.bgm_active == 0u &&
+    expect(game.sound.bgm_active != 0u &&
         game.sound.bgm_id == SOUND_BGM_STAGE_ONE &&
         game.sound.bgm_step == 0u &&
         game.sound.sfx_id == SOUND_SFX_NONE,
-        "game init keeps stage one BGM disabled with no active SFX");
+        "game start enables stage one BGM at its head with no active SFX");
     advance_frames(&game, 20u);
     game.phase_timer = GAME_STAGE_INTRO_FRAMES - 1u;
     game_update(&game, 0u);
     expect(game.phase == GAME_PHASE_NORMAL &&
         game.sound.bgm_id == SOUND_BGM_STAGE_ONE &&
-        game.sound.bgm_active == 0u && game.sound.output.active == 0u,
-        "intro to normal keeps BGM disabled");
+        game.sound.bgm_active != 0u && game.sound.output_bgm.active != 0u,
+        "intro to normal keeps the same stage BGM running");
 
     game.phase_timer = GAME_NORMAL_FRAMES - 1u;
     disable_enemies_except(&game, GAME_MAX_ENEMIES);
     game_update(&game, 0u);
     expect(game.phase == GAME_PHASE_WARNING &&
         game.sound.bgm_id == SOUND_BGM_STAGE_ONE &&
-        game.sound.bgm_active == 0u,
-        "normal to warning keeps BGM disabled while WARNING SFX takes priority");
+        game.sound.bgm_active != 0u && game.sound.output_bgm.active != 0u,
+        "normal to warning keeps BGM running independently of the WARNING SFX");
     game.phase_timer = GAME_WARNING_FRAMES - 1u;
     game_update(&game, 0u);
     expect(game.phase == GAME_PHASE_BOSS &&
         game.sound.bgm_id == SOUND_BGM_STAGE_ONE &&
-        game.sound.bgm_active == 0u,
-        "warning to boss keeps BGM disabled");
+        game.sound.bgm_active != 0u,
+        "warning to boss keeps BGM running");
 
     game.phase = GAME_PHASE_NORMAL;
     game.phase_timer = 0u;
@@ -2854,13 +2861,14 @@ static void test_sound_damage_freeze_and_warning_integration(void)
         game.sound.sfx_remaining == 7u,
         "real damage begins one player-explosion SFX");
     advance_frames(&game, GAME_EXPLOSION_FRAMES);
-    expect(game.dying == 0u && game.sound.bgm_active == 0u &&
-        game.sound.sfx_id == SOUND_SFX_NONE && game.sound.output.active == 0u,
-        "all 32 death updates keep BGM disabled while explosion completes");
+    expect(game.dying == 0u && game.sound.bgm_active != 0u &&
+        game.sound.sfx_id == SOUND_SFX_NONE &&
+        game.sound.output_bgm.active != 0u,
+        "all 32 death updates freeze the BGM cursor while explosion SFX plays, and BGM keeps running once it completes");
     disable_enemies_except(&game, GAME_MAX_ENEMIES);
     game_update(&game, 0u);
-    expect(game.sound.output.active == 0u,
-        "first post-respawn update remains silent without BGM");
+    expect(game.sound.output_bgm.active != 0u,
+        "first post-respawn update keeps BGM sounding");
 
     init_normal(&game);
     game.invincibility_timer = 2u;
@@ -2932,9 +2940,9 @@ static void test_sound_boss_chain_stage_terminal_and_restart(void)
     game_update(&game, 0u);
     expect(game.stage == 2u && game.phase == GAME_PHASE_STAGE_INTRO &&
         game.sound.bgm_id == SOUND_BGM_STAGE_TWO &&
-        game.sound.bgm_active == 0u && game.sound.bgm_step == 0u && game.sound.sfx_id == SOUND_SFX_NONE &&
+        game.sound.bgm_active != 0u && game.sound.bgm_step == 0u && game.sound.sfx_id == SOUND_SFX_NONE &&
         game.sound.pending_stage_clear == 0u,
-        "stage switch starts next BGM head and discards active and pending SFX");
+        "stage switch restarts BGM at the next song head and discards active and pending SFX");
 
     game.phase = GAME_PHASE_STAGE_CLEAR;
     game.phase_timer = GAME_STAGE_CLEAR_FRAMES - 1u;
@@ -2942,7 +2950,7 @@ static void test_sound_boss_chain_stage_terminal_and_restart(void)
     game_update(&game, 0u);
     expect(game.stage == 3u && game.phase == GAME_PHASE_STAGE_INTRO &&
         game.sound.bgm_id == SOUND_BGM_STAGE_THREE &&
-        game.sound.bgm_active == 0u && game.sound.bgm_step == 0u && game.sound.sfx_id == SOUND_SFX_NONE,
+        game.sound.bgm_active != 0u && game.sound.bgm_step == 0u && game.sound.sfx_id == SOUND_SFX_NONE,
         "stage two switch starts stage three cave BGM at its exact head");
 
     game.phase = GAME_PHASE_STAGE_CLEAR;
@@ -2955,15 +2963,16 @@ static void test_sound_boss_chain_stage_terminal_and_restart(void)
         game.sound.bgm_active == 0u &&
         game.sound.sfx_id == SOUND_SFX_NONE &&
         game.sound.pending_stage_clear == 0u &&
-        game.sound.output.active == 0u,
-        "ALL CLEAR stops BGM and clears active and pending SFX");
+        game.sound.output_bgm.active == 0u &&
+        game.sound.output_sfx.active == 0u,
+        "ALL CLEAR stops BGM and clears active and pending SFX on both channels");
     game_update(&game, 0u);
     game_update(&game, GAME_INPUT_FIRE);
     expect(game.stage == 1u && game.phase == GAME_PHASE_STAGE_INTRO &&
-        game.sound.bgm_active == 0u &&
+        game.sound.bgm_active != 0u &&
         game.sound.bgm_id == SOUND_BGM_STAGE_ONE &&
         game.sound.bgm_step == 0u && game.sound.sfx_id == SOUND_SFX_NONE,
-        "ALL CLEAR release and repress returns to stage one with BGM disabled");
+        "ALL CLEAR release and repress restarts gameplay with BGM running from stage one head");
 
     init_normal(&game);
     disable_enemies_except(&game, 0u);
@@ -2974,8 +2983,9 @@ static void test_sound_boss_chain_stage_terminal_and_restart(void)
     advance_frames(&game, GAME_EXPLOSION_FRAMES);
     expect(game.game_over != 0u && game.sound.bgm_active == 0u &&
         game.sound.sfx_id == SOUND_SFX_NONE &&
-        game.sound.output.active == 0u,
-        "GAME OVER stops all sound after final explosion completion");
+        game.sound.output_bgm.active == 0u &&
+        game.sound.output_sfx.active == 0u,
+        "GAME OVER stops all sound on both channels after final explosion completion");
     game_update(&game, 0u);
     game_update(&game, GAME_INPUT_FIRE);
     expect(game.game_over == 0u &&

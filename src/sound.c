@@ -6,25 +6,25 @@ typedef struct SoundSequence {
 } SoundSequence;
 
 static const SoundStep stage_one_bgm[] = {
-    { 5u, 15u, 20u, SOUND_WAVE_TONE },
-    { 9u, 15u, 18u, SOUND_WAVE_TONE },
-    { 12u, 15u, 20u, SOUND_WAVE_PULSE },
-    { 9u, 15u, 18u, SOUND_WAVE_TONE },
-    { 6u, 15u, 20u, SOUND_WAVE_TONE },
-    { 10u, 15u, 18u, SOUND_WAVE_TONE },
-    { 13u, 15u, 20u, SOUND_WAVE_PULSE },
-    { 10u, 15u, 18u, SOUND_WAVE_TONE }
+    { 5u, 15u, 17u, SOUND_WAVE_TONE },
+    { 9u, 15u, 15u, SOUND_WAVE_TONE },
+    { 12u, 15u, 17u, SOUND_WAVE_PULSE },
+    { 9u, 15u, 15u, SOUND_WAVE_TONE },
+    { 6u, 15u, 17u, SOUND_WAVE_TONE },
+    { 10u, 15u, 15u, SOUND_WAVE_TONE },
+    { 13u, 15u, 17u, SOUND_WAVE_PULSE },
+    { 10u, 15u, 15u, SOUND_WAVE_TONE }
 };
 
 static const SoundStep stage_two_bgm[] = {
-    { 7u, 5u, 20u, SOUND_WAVE_PULSE },
-    { 9u, 5u, 21u, SOUND_WAVE_PULSE },
-    { 11u, 5u, 22u, SOUND_WAVE_PULSE },
-    { 13u, 5u, 23u, SOUND_WAVE_PULSE },
-    { 15u, 5u, 24u, SOUND_WAVE_METALLIC },
-    { 13u, 5u, 22u, SOUND_WAVE_PULSE },
-    { 11u, 5u, 21u, SOUND_WAVE_PULSE },
-    { 9u, 5u, 20u, SOUND_WAVE_PULSE }
+    { 7u, 5u, 14u, SOUND_WAVE_PULSE },
+    { 9u, 5u, 15u, SOUND_WAVE_PULSE },
+    { 11u, 5u, 16u, SOUND_WAVE_PULSE },
+    { 13u, 5u, 17u, SOUND_WAVE_PULSE },
+    { 15u, 5u, 18u, SOUND_WAVE_METALLIC },
+    { 13u, 5u, 16u, SOUND_WAVE_PULSE },
+    { 11u, 5u, 15u, SOUND_WAVE_PULSE },
+    { 9u, 5u, 14u, SOUND_WAVE_PULSE }
 };
 
 static const SoundStep stage_three_bgm[] = {
@@ -100,12 +100,12 @@ static const SoundSequence sfx_sequences[SOUND_SFX_COUNT] = {
     { boss_defeat_sfx, ARRAY_COUNT(boss_defeat_sfx) }
 };
 
-static void set_silent_output(SoundState* sound)
+static void set_silent_output(SoundOutput* output)
 {
-    sound->output.active = 0u;
-    sound->output.note = SOUND_NOTE_REST;
-    sound->output.volume = 0u;
-    sound->output.wave = SOUND_WAVE_TONE;
+    output->active = 0u;
+    output->note = SOUND_NOTE_REST;
+    output->volume = 0u;
+    output->wave = SOUND_WAVE_TONE;
 }
 
 static void load_bgm_step(SoundState* sound, unsigned char step)
@@ -124,23 +124,36 @@ static void start_sfx(SoundState* sound, unsigned char sfx_id)
     sound->sfx_remaining = sfx_sequences[sfx_id].steps[0].duration;
 }
 
-static void select_output(SoundState* sound)
+static void update_bgm_output(SoundState* sound)
 {
     const SoundStep* step;
 
-    if (sound->sfx_id != SOUND_SFX_NONE) {
-        step = &sfx_sequences[sound->sfx_id].steps[sound->sfx_step];
-    } else if (sound->bgm_active != 0u) {
-        step = &bgm_sequences[sound->bgm_id].steps[sound->bgm_step];
-    } else {
-        set_silent_output(sound);
+    if (sound->bgm_active == 0u) {
+        set_silent_output(&sound->output_bgm);
         return;
     }
-    sound->output.active = (unsigned char)(step->note != SOUND_NOTE_REST &&
+    step = &bgm_sequences[sound->bgm_id].steps[sound->bgm_step];
+    sound->output_bgm.active = (unsigned char)(step->note != SOUND_NOTE_REST &&
         step->volume != 0u);
-    sound->output.note = step->note;
-    sound->output.volume = step->volume;
-    sound->output.wave = step->wave;
+    sound->output_bgm.note = step->note;
+    sound->output_bgm.volume = step->volume;
+    sound->output_bgm.wave = step->wave;
+}
+
+static void update_sfx_output(SoundState* sound)
+{
+    const SoundStep* step;
+
+    if (sound->sfx_id == SOUND_SFX_NONE) {
+        set_silent_output(&sound->output_sfx);
+        return;
+    }
+    step = &sfx_sequences[sound->sfx_id].steps[sound->sfx_step];
+    sound->output_sfx.active = (unsigned char)(step->note != SOUND_NOTE_REST &&
+        step->volume != 0u);
+    sound->output_sfx.note = step->note;
+    sound->output_sfx.volume = step->volume;
+    sound->output_sfx.wave = step->wave;
 }
 
 static void advance_bgm(SoundState* sound)
@@ -190,16 +203,17 @@ static void advance_sfx(SoundState* sound)
 
 void sound_init(SoundState* sound)
 {
-    /* Keep the authored BGM tables for a later restore, but do not sequence
-     * or route them to MIKEY while combat tempo is being tuned. */
-    sound->bgm_active = 0u;
+    /* BGM sequences continuously on MIKEY channel A once active; SFX are
+     * independent on channel B and no longer overwrite it (APS-020). */
+    sound->bgm_active = 1u;
     sound->bgm_id = SOUND_BGM_STAGE_ONE;
     load_bgm_step(sound, 0u);
     sound->sfx_id = SOUND_SFX_NONE;
     sound->sfx_step = 0u;
     sound->sfx_remaining = 0u;
     sound->pending_stage_clear = 0u;
-    select_output(sound);
+    update_bgm_output(sound);
+    update_sfx_output(sound);
 }
 
 void sound_set_stage(SoundState* sound, unsigned char stage)
@@ -207,14 +221,15 @@ void sound_set_stage(SoundState* sound, unsigned char stage)
     if (stage < 1u || stage > SOUND_BGM_COUNT) {
         return;
     }
-    sound->bgm_active = 0u;
+    sound->bgm_active = 1u;
     sound->bgm_id = (unsigned char)(stage - 1u);
     load_bgm_step(sound, 0u);
     sound->sfx_id = SOUND_SFX_NONE;
     sound->sfx_step = 0u;
     sound->sfx_remaining = 0u;
     sound->pending_stage_clear = 0u;
-    select_output(sound);
+    update_bgm_output(sound);
+    update_sfx_output(sound);
 }
 
 void sound_stop_all(SoundState* sound)
@@ -224,7 +239,8 @@ void sound_stop_all(SoundState* sound)
     sound->sfx_step = 0u;
     sound->sfx_remaining = 0u;
     sound->pending_stage_clear = 0u;
-    set_silent_output(sound);
+    set_silent_output(&sound->output_bgm);
+    set_silent_output(&sound->output_sfx);
 }
 
 void sound_request_sfx(SoundState* sound, unsigned char sfx_id)
@@ -243,12 +259,13 @@ void sound_request_sfx(SoundState* sound, unsigned char sfx_id)
         return;
     }
     start_sfx(sound, sfx_id);
-    select_output(sound);
+    update_sfx_output(sound);
 }
 
 void sound_tick(SoundState* sound, unsigned char freeze_bgm)
 {
-    select_output(sound);
+    update_bgm_output(sound);
+    update_sfx_output(sound);
     if (freeze_bgm == 0u) {
         advance_bgm(sound);
     }
