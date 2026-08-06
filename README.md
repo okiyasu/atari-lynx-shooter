@@ -10,6 +10,7 @@ macOSでXcode Command Line Tools、Git、Makeが利用できる状態で実行�
 make toolchain  # cc65 2.19を.cacheへ取得・検証・ローカルビルド
 make verify     # clean、clangテスト、lint、ROMビルド、LNXヘッダ検査
 ./scripts/verify.sh  # make verifyの実出力を.cache/logs/verify.logにも保存
+make perf-host  # 開発専用: 75Hz/無待機のホスト側スケジューラ計測
 ```
 
 ROMは`dist/asteroid-patrol.lnx`に生成されます。`.cache/`、`build/`、`dist/`はGit管理外です。ツールチェーンスクリプトは`V2.19`の固定コミットを検査し、`cl65 -t lynx`でROMを作ります。
@@ -64,6 +65,14 @@ make smoke-gearlynx # 任意: 既存Gearlynx設定でROMをヘッドレス起動
 ```
 
 `smoke-host`は90更新後の`NORMAL`到達、方向入力、自機弾の有効化、その観測中の`game_over=0`を独立して判定します。`smoke-gearlynx`は、起動前にデバッグポートの未使用を確認し、起動後も待受PIDが今回のGearlynxプロセス（またはその子）に属する場合だけヘッドレス起動を確認します。ポート競合や別プロセスの待受は失敗（終了コード1）です。リポジトリ内には同モニタの入力・状態読出しプロトコル定義がないため、操作・状態の実ROM自動検証は終了コード3の**未検証**として明示します。通常の`make verify`にはGearlynxを含めません。
+
+## 開発専用の性能計測
+
+`make perf-host`は通常ROMへ入らない`GAME_PERF_INSTRUMENT`付きホストベンチを作る。`--sync`は実時間75Hzで1秒間、`--unthrottled`は同じ1秒間に待機なしで、Lynx main loopと同じ「描画フレームごとの入力相当 → `5/4`ロジック → SFX tick」順を実行する。出力の`draw_frames`、`logic_updates`、`sound_ticks`、`game_speed_x`は実測値であり、ゲーム時間はロジック更新数（75Hz時93.75更新/秒を1倍）から算出する。
+
+同じターゲットは、最適化前の4スロット`hit_enemies`再走査を`GAME_PERF_LEGACY_HIT_RESCAN`でだけ復元した旧経路もビルドする。このフラグは`GAME_PERF_INSTRUMENT`なしではコンパイルエラーになり、cc65/通常ROMには含まれない。旧経路の全ゲーム回帰を先に実行した後、固定500万描画フレームを各1回ウォームアップし、旧/新の実行順を交互にした7組を測定する。各組、中央値、最小/最大、対ごとの差を出力するため、同一ホスト上で再比較できる。実測値とその解釈は`ISSUES.md`のAPS-019に記録する。
+
+このベンチはTGI描画やVBlank自体をエミュレートしないため、無待機値はホスト上のロジック更新速度であってLynxの描画性能ではない。通常ROMは必ず`src/main.c`の`tgi_busy()`待機と`tgi_setframerate(75u)`を使う。詳細な実測値、ホットパス計数、無待機の副作用は`ISSUES.md`のAPS-019を参照する。
 
 終了しない`main()`へ大きな自動`GameState`を置かないでください。cc65 2.19ではCスタック先頭とTGI第2フレームバッファ先頭`0xC038`が衝突し得ます。`src/main.c`の静的BSS `game`を使い、ROMビルド後に`build/asteroid-patrol.map`のBSS範囲（APS-014時点では`0x8BC5`〜`0x8E04`、`game`は`0x8BC9`）が表示バッファから分離していることを確認します。
 

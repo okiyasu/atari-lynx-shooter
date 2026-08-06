@@ -26,6 +26,20 @@
 #define ASTEROID_SCORE 250ul
 #define ROCK_START_Y 10u
 #define ROCK_LANDING_Y 94u
+#define PLAYER_BULLET_RESULT_POWER_ITEM 0x01u
+#define PLAYER_BULLET_RESULT_ENEMY_DESTROYED 0x02u
+
+#if defined(GAME_PERF_LEGACY_HIT_RESCAN) && !defined(GAME_PERF_INSTRUMENT)
+#error GAME_PERF_LEGACY_HIT_RESCAN requires GAME_PERF_INSTRUMENT
+#endif
+
+#ifdef GAME_PERF_INSTRUMENT
+static GamePerfCounters game_perf_counters;
+
+#define GAME_PERF_COUNT(field) ++game_perf_counters.field
+#else
+#define GAME_PERF_COUNT(field) ((void)0)
+#endif
 
 typedef struct EnemyMovementConfig {
     unsigned char horizontal_speed;
@@ -158,6 +172,24 @@ static const unsigned int rock_event_frames[GAME_ROCKFALL_EVENT_COUNT] = {
 static const unsigned char rock_event_x[GAME_ROCKFALL_EVENT_COUNT] = {
     24u, 72u, 120u, 48u, 136u, 96u, 16u
 };
+
+#ifdef GAME_PERF_INSTRUMENT
+void game_perf_reset(void)
+{
+    unsigned char* bytes;
+    unsigned int i;
+
+    bytes = (unsigned char*)&game_perf_counters;
+    for (i = 0u; i < sizeof(game_perf_counters); ++i) {
+        bytes[i] = 0u;
+    }
+}
+
+const GamePerfCounters* game_perf_get(void)
+{
+    return &game_perf_counters;
+}
+#endif
 
 static void enter_phase(GameState* game, unsigned char phase);
 static void return_to_title(GameState* game);
@@ -667,6 +699,7 @@ static void update_enemy_bullets(GameState* game)
         int x;
         int y;
 
+        GAME_PERF_COUNT(enemy_bullet_slots);
         if (game->enemy_bullets[i].active == 0u) {
             continue;
         }
@@ -1010,10 +1043,19 @@ static unsigned char update_player_bullets_normal(GameState* game,
 {
     unsigned char i;
     unsigned char j;
+#ifdef GAME_PERF_LEGACY_HIT_RESCAN
     unsigned char power_item_created;
+#else
+    unsigned char result;
+#endif
 
+#ifdef GAME_PERF_LEGACY_HIT_RESCAN
     power_item_created = 0u;
+#else
+    result = 0u;
+#endif
     for (i = 0u; i < GAME_MAX_PLAYER_BULLETS; ++i) {
+        GAME_PERF_COUNT(player_bullet_slots);
         if (game->bullets[i].active == 0u) {
             continue;
         }
@@ -1025,6 +1067,7 @@ static unsigned char update_player_bullets_normal(GameState* game,
         game->bullets[i].rect.x =
             (unsigned char)(game->bullets[i].rect.x + BULLET_SPEED);
         for (j = 0u; j < GAME_MAX_ENEMIES; ++j) {
+            GAME_PERF_COUNT(enemy_collision_slots);
             if (game->enemies[j].active != 0u &&
                 game->enemies[j].rect.x < GAME_SCREEN_WIDTH &&
                 hit_enemies[j] == 0u &&
@@ -1033,16 +1076,32 @@ static unsigned char update_player_bullets_normal(GameState* game,
                 game->bullets[i].active = 0u;
                 game->score += 100ul;
                 if (game->enemies[j].drops_power != 0u) {
+#ifdef GAME_PERF_LEGACY_HIT_RESCAN
                     power_item_created = spawn_power_item(game,
                         &game->enemies[j]);
+#else
+                    if (spawn_power_item(game, &game->enemies[j]) != 0u) {
+                        result |= PLAYER_BULLET_RESULT_POWER_ITEM;
+                    } else {
+                        result = (unsigned char)(result &
+                            (unsigned char)~PLAYER_BULLET_RESULT_POWER_ITEM);
+                    }
+#endif
                 }
                 respawn_enemy(game, j);
                 hit_enemies[j] = 1u;
+#ifndef GAME_PERF_LEGACY_HIT_RESCAN
+                result |= PLAYER_BULLET_RESULT_ENEMY_DESTROYED;
+#endif
                 break;
             }
         }
     }
+#ifdef GAME_PERF_LEGACY_HIT_RESCAN
     return power_item_created;
+#else
+    return result;
+#endif
 }
 
 static void apply_damage(GameState* game, unsigned char damage,
@@ -1275,12 +1334,14 @@ static void update_normal(GameState* game, unsigned char input,
     unsigned char i;
     unsigned char hit_enemies[GAME_MAX_ENEMIES];
     unsigned char power_item_created;
+    unsigned char player_bullet_result;
     unsigned char damage;
     unsigned char new_environment_slot;
     unsigned char enemy_destroyed;
     unsigned char power_item_collected;
     const GameStageConfig* stage_config;
 
+    GAME_PERF_COUNT(normal_updates);
     move_player(game, input);
     stage_config = &stage_configs[game->stage - 1u];
     new_environment_slot = start_environment_event(game);
@@ -1297,15 +1358,27 @@ static void update_normal(GameState* game, unsigned char input,
         sound_request_sfx(&game->sound, SOUND_SFX_SHOT);
     }
     for (i = 0u; i < GAME_MAX_ENEMIES; ++i) {
+        GAME_PERF_COUNT(normal_hit_flag_slots);
         hit_enemies[i] = 0u;
     }
-    power_item_created = update_player_bullets_normal(game, hit_enemies);
+    player_bullet_result = update_player_bullets_normal(game, hit_enemies);
+#ifdef GAME_PERF_LEGACY_HIT_RESCAN
+    /* Host-only baseline: preserve the pre-APS-019 second flag scan. */
+    power_item_created = (unsigned char)(player_bullet_result &
+        PLAYER_BULLET_RESULT_POWER_ITEM);
     enemy_destroyed = 0u;
     for (i = 0u; i < GAME_MAX_ENEMIES; ++i) {
+        GAME_PERF_COUNT(normal_hit_flag_slots);
         if (hit_enemies[i] != 0u) {
             enemy_destroyed = 1u;
         }
     }
+#else
+    power_item_created = (unsigned char)(player_bullet_result &
+        PLAYER_BULLET_RESULT_POWER_ITEM);
+    enemy_destroyed = (unsigned char)(player_bullet_result &
+        PLAYER_BULLET_RESULT_ENEMY_DESTROYED);
+#endif
     if (stage_config->environment_id == GAME_ENVIRONMENT_ASTEROIDS) {
         if (hit_asteroids_with_player_bullets(game,
             new_environment_slot) != 0u) {
@@ -1355,6 +1428,7 @@ static void update_normal(GameState* game, unsigned char input,
         }
     }
     for (i = 0u; i < GAME_MAX_ENEMY_BULLETS; ++i) {
+        GAME_PERF_COUNT(enemy_bullet_slots);
         if (game->enemy_bullets[i].active != 0u &&
             game_aabb_intersects(&game->player,
                 &game->enemy_bullets[i].rect) != 0u) {
@@ -1462,6 +1536,7 @@ void game_update_logic(GameState* game, unsigned char input)
 {
     unsigned char was_invincible;
 
+    GAME_PERF_COUNT(logic_updates);
     if (game->phase == GAME_PHASE_TITLE) {
         if ((input & GAME_INPUT_FIRE) == 0u) {
             game->title_start_armed = 1u;

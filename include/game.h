@@ -268,6 +268,21 @@ typedef struct GameState {
     SoundState sound;
 } GameState;
 
+#ifdef GAME_PERF_INSTRUMENT
+/* Host-only counters. Normal ROM builds do not include these or their state. */
+typedef struct GamePerfCounters {
+    unsigned long logic_updates;
+    unsigned long normal_updates;
+    unsigned long player_bullet_slots;
+    unsigned long enemy_collision_slots;
+    unsigned long enemy_bullet_slots;
+    unsigned long normal_hit_flag_slots;
+} GamePerfCounters;
+
+void game_perf_reset(void);
+const GamePerfCounters* game_perf_get(void);
+#endif
+
 void game_init(GameState* game);
 void game_start(GameState* game);
 unsigned char game_logic_updates_for_draw_frame(unsigned char* remainder);
