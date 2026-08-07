@@ -98,18 +98,21 @@ static void test_sequence_tables(void)
         sound_get_bgm_step(SOUND_BGM_STAGE_THREE, 0u)->duration == 18u,
         "three songs expose clearly different slow fast and sparse tempos");
     expect(minimum_note[SOUND_BGM_STAGE_THREE] <
-            minimum_note[SOUND_BGM_STAGE_ONE] &&
+            minimum_note[SOUND_BGM_STAGE_TWO] &&
         maximum_note[SOUND_BGM_STAGE_TWO] >
-            maximum_note[SOUND_BGM_STAGE_ONE],
-        "cave range is lower and flight range is higher than space");
-    expect(rests[SOUND_BGM_STAGE_ONE] == 0u &&
+            maximum_note[SOUND_BGM_STAGE_THREE],
+        "cave range is lower and flight range is higher than each other");
+    expect(minimum_note[SOUND_BGM_STAGE_ONE] >= 1u &&
+        maximum_note[SOUND_BGM_STAGE_ONE] <= 7u,
+        "APS-024 space melody (Twinkle Twinkle Little Star) stays within a single diatonic octave");
+    expect(rests[SOUND_BGM_STAGE_ONE] == 6u &&
         rests[SOUND_BGM_STAGE_TWO] == 0u &&
         rests[SOUND_BGM_STAGE_THREE] == 3u,
-        "only the cave motif uses its designed frequent rests");
-    expect(bgm_length(SOUND_BGM_STAGE_ONE) == 120u &&
+        "space now takes one phrase-end breath per phrase (APS-024); flight stays rest-free and cave keeps its frequent rests");
+    expect(bgm_length(SOUND_BGM_STAGE_ONE) == 810u &&
         bgm_length(SOUND_BGM_STAGE_TWO) == 40u &&
         bgm_length(SOUND_BGM_STAGE_THREE) == 78u,
-        "all three original BGM loops have fixed distinct lengths");
+        "all three BGM loops have fixed distinct lengths");
 
     for (sfx = SOUND_SFX_SHOT; sfx < SOUND_SFX_COUNT; ++sfx) {
         unsigned int length;
@@ -151,6 +154,7 @@ static void test_sequence_tables(void)
 static void test_bgm_start_loop_stage_and_rest(void)
 {
     SoundState sound;
+    unsigned int stage_one_length;
 
     sound_init(&sound);
     expect(sound.bgm_active != 0u &&
@@ -158,7 +162,8 @@ static void test_bgm_start_loop_stage_and_rest(void)
         sound.bgm_remaining == 15u && sound.output_bgm.active != 0u &&
         sound.output_sfx.active == 0u,
         "sound init enables stage one BGM at its head with no SFX active");
-    advance_sound(&sound, 240u, 0u);
+    stage_one_length = bgm_length(SOUND_BGM_STAGE_ONE);
+    advance_sound(&sound, stage_one_length * 2u, 0u);
     expect(sound.bgm_step == 0u && sound.bgm_remaining == 15u &&
         sound.bgm_active != 0u && sound.output_sfx.active == 0u,
         "enabled BGM keeps looping back to its head and channel B stays free");
@@ -297,20 +302,62 @@ static void test_freeze_pending_and_stops(void)
 }
 
 /* APS-022: the BGM tables are now compiled from the assets/music MML
- * sources by mml2c. This regression pins every generated step to the exact
- * APS-020 hand-written values, proving the MML migration is
- * byte-identical and audibly unchanged. */
+ * sources by mml2c. This regression pins every generated step to the
+ * designed values, proving the MML source is compiled byte-identically.
+ * Stage one was replaced in APS-024 ("Twinkle Twinkle Little Star",
+ * public domain) to be recognizable as a real melody instead of the
+ * APS-020 arpeggio placeholder; stage two/three are unchanged. */
 static void test_bgm_exact_mml_migration(void)
 {
-    static const SoundStep expected_stage_one[8] = {
+    static const SoundStep expected_stage_one[48] = {
+        { 1u, 15u, 17u, SOUND_WAVE_TONE },
+        { 1u, 15u, 17u, SOUND_WAVE_TONE },
         { 5u, 15u, 17u, SOUND_WAVE_TONE },
-        { 9u, 15u, 15u, SOUND_WAVE_TONE },
-        { 12u, 15u, 17u, SOUND_WAVE_PULSE },
-        { 9u, 15u, 15u, SOUND_WAVE_TONE },
+        { 5u, 15u, 17u, SOUND_WAVE_TONE },
         { 6u, 15u, 17u, SOUND_WAVE_TONE },
-        { 10u, 15u, 15u, SOUND_WAVE_TONE },
-        { 13u, 15u, 17u, SOUND_WAVE_PULSE },
-        { 10u, 15u, 15u, SOUND_WAVE_TONE }
+        { 6u, 15u, 17u, SOUND_WAVE_TONE },
+        { 5u, 30u, 17u, SOUND_WAVE_TONE },
+        { SOUND_NOTE_REST, 15u, 0u, SOUND_WAVE_TONE },
+        { 4u, 15u, 17u, SOUND_WAVE_TONE },
+        { 4u, 15u, 17u, SOUND_WAVE_TONE },
+        { 3u, 15u, 17u, SOUND_WAVE_TONE },
+        { 3u, 15u, 17u, SOUND_WAVE_TONE },
+        { 2u, 15u, 17u, SOUND_WAVE_TONE },
+        { 2u, 15u, 17u, SOUND_WAVE_TONE },
+        { 1u, 30u, 17u, SOUND_WAVE_TONE },
+        { SOUND_NOTE_REST, 15u, 0u, SOUND_WAVE_TONE },
+        { 5u, 15u, 17u, SOUND_WAVE_TONE },
+        { 5u, 15u, 17u, SOUND_WAVE_TONE },
+        { 4u, 15u, 17u, SOUND_WAVE_TONE },
+        { 4u, 15u, 17u, SOUND_WAVE_TONE },
+        { 3u, 15u, 17u, SOUND_WAVE_TONE },
+        { 3u, 15u, 17u, SOUND_WAVE_TONE },
+        { 2u, 30u, 17u, SOUND_WAVE_TONE },
+        { SOUND_NOTE_REST, 15u, 0u, SOUND_WAVE_TONE },
+        { 5u, 15u, 17u, SOUND_WAVE_TONE },
+        { 5u, 15u, 17u, SOUND_WAVE_TONE },
+        { 4u, 15u, 17u, SOUND_WAVE_TONE },
+        { 4u, 15u, 17u, SOUND_WAVE_TONE },
+        { 3u, 15u, 17u, SOUND_WAVE_TONE },
+        { 3u, 15u, 17u, SOUND_WAVE_TONE },
+        { 2u, 30u, 17u, SOUND_WAVE_TONE },
+        { SOUND_NOTE_REST, 15u, 0u, SOUND_WAVE_TONE },
+        { 1u, 15u, 17u, SOUND_WAVE_TONE },
+        { 1u, 15u, 17u, SOUND_WAVE_TONE },
+        { 5u, 15u, 17u, SOUND_WAVE_TONE },
+        { 5u, 15u, 17u, SOUND_WAVE_TONE },
+        { 6u, 15u, 17u, SOUND_WAVE_TONE },
+        { 6u, 15u, 17u, SOUND_WAVE_TONE },
+        { 5u, 30u, 17u, SOUND_WAVE_TONE },
+        { SOUND_NOTE_REST, 15u, 0u, SOUND_WAVE_TONE },
+        { 4u, 15u, 17u, SOUND_WAVE_TONE },
+        { 4u, 15u, 17u, SOUND_WAVE_TONE },
+        { 3u, 15u, 17u, SOUND_WAVE_TONE },
+        { 3u, 15u, 17u, SOUND_WAVE_TONE },
+        { 2u, 15u, 17u, SOUND_WAVE_TONE },
+        { 2u, 15u, 17u, SOUND_WAVE_TONE },
+        { 1u, 30u, 17u, SOUND_WAVE_TONE },
+        { SOUND_NOTE_REST, 15u, 0u, SOUND_WAVE_TONE }
     };
     static const SoundStep expected_stage_two[8] = {
         { 7u, 5u, 14u, SOUND_WAVE_PULSE },
@@ -336,7 +383,7 @@ static void test_bgm_exact_mml_migration(void)
     unsigned char bgm;
     unsigned char i;
 
-    expect(sound_get_bgm_step_count(SOUND_BGM_STAGE_ONE) == 8u &&
+    expect(sound_get_bgm_step_count(SOUND_BGM_STAGE_ONE) == 48u &&
         sound_get_bgm_step_count(SOUND_BGM_STAGE_TWO) == 8u &&
         sound_get_bgm_step_count(SOUND_BGM_STAGE_THREE) == 6u,
         "MML-compiled BGM tracks keep the exact APS-020 step counts");
@@ -411,9 +458,13 @@ static void test_bass_tables_bounds_and_phase_lock(void)
  * the same way test_bgm_exact_mml_migration pins the melody. */
 static void test_bass_exact_mml_compile(void)
 {
-    static const SoundStep expected_stage_one_bass[2] = {
-        { 5u, 60u, 16u, SOUND_WAVE_TONE },
-        { 6u, 60u, 16u, SOUND_WAVE_TONE }
+    static const SoundStep expected_stage_one_bass[6] = {
+        { 1u, 135u, 16u, SOUND_WAVE_TONE },
+        { 4u, 135u, 16u, SOUND_WAVE_TONE },
+        { 5u, 135u, 16u, SOUND_WAVE_TONE },
+        { 5u, 135u, 16u, SOUND_WAVE_TONE },
+        { 1u, 135u, 16u, SOUND_WAVE_TONE },
+        { 4u, 135u, 16u, SOUND_WAVE_TONE }
     };
     static const SoundStep expected_stage_two_bass[2] = {
         { 2u, 20u, 15u, SOUND_WAVE_PULSE },
@@ -429,7 +480,7 @@ static void test_bass_exact_mml_compile(void)
         expected_stage_three_bass
     };
     static const unsigned char expected_count[SOUND_BGM_COUNT] = {
-        2u, 2u, 3u
+        6u, 2u, 3u
     };
     unsigned char bgm;
     unsigned char i;

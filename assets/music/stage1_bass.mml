@@ -1,9 +1,13 @@
-; Stage 1 (space) bass line (APS-023): channel C root pedal under the
-; melody's g/d and a/e dyads (assets/music/stage1.mml). The 120-tick
-; loop matches the melody's total duration exactly so both voices land
-; back on step 0 together; two long root notes are enough because the
-; bass holds each half's root instead of repeating the melody's
-; eight-step motion.
-t60 o1 v16 w0
+; Stage 1 (space) bass line (APS-024): channel C root pedal under the
+; "Twinkle Twinkle Little Star" melody (assets/music/stage1.mml). One
+; held root per melodic phrase, I-IV-V-I within C major (C F G G C F),
+; each root exactly as long as its 135-tick phrase so both voices land
+; back on step 0 together (six roots x 135 ticks = 810, matching the
+; melody's six-phrase, 810-tick total).
+t135 o1 v16 w0
+c
+f
 g
-a
+g
+c
+f

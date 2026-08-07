@@ -1,5 +1,13 @@
-; Stage 1 (space) BGM - byte-identical MML port of the APS-020 table.
-; Scale indices: o1 g=5 a=6, o2 d=9 e=10 g=12 a=13.
-t15 o1
-v17 w0 g  | v15 o2 d | v17 w3 g | v15 w0 d
-v17 o1 a  | v15 o2 e | v17 w3 a | v15 w0 e
+; Stage 1 (space) BGM - "Twinkle Twinkle Little Star" (Ah vous
+; dirai-je Maman, public domain), APS-024 replacement for the APS-020
+; arpeggio placeholder. Six phrases in C major, all within o1 (c..a,
+; degrees 1-6). Each phrase's last melodic note before its rest is
+; twice the default length (half note vs. quarter note) to land the
+; familiar phrasing.
+t15 o1 v17 w0
+c c g g a a g30 r
+f f e e d d c30 r
+g g f f e e d30 r
+g g f f e e d30 r
+c c g g a a g30 r
+f f e e d d c30 r

@@ -1,6 +1,6 @@
 # ISSUES
 
-最終更新: 2026-08-07
+最終更新: 2026-08-07(APS-024)
 
 ## 課題台帳
 
@@ -14,6 +14,34 @@
 - 検証結果(APS-024のきらきら星ROMに対して実行): channel 0(メロディ)は10秒間で3回のピッチ変化(`0xFA→0xB8→0xAC`、音量`0x11`=設計値`v17`と一致)、channel 2(ベース)は30秒間で1回のピッチ変化(`0xFA→0xC6`、音量`0x10`=設計値`v16`と一致)を観測。**両チャンネルとも設計どおり複数の異なるピッチを演奏していることを直接確認した**(ユーザーが感じた「BEEP音のまま」は、ピッチ進行自体のバグではなく、envelope(音量の立ち上がり/減衰)を持たない生の矩形波/パルス波という音色そのものに起因すると判断できる)。
 - 既知の制約: headless+MCPポーリング下では実時間の進行が通常プレイより大幅に遅い(観測ではメロディ1音あたり実時間2.6〜3.6秒、想定ゲーム内200〜400msの約9〜13倍)。ロジックの正しさの検証には支障ないが、実際の再生速度・聴感のテンポ感はこの方法では確認できない(引き続き実機/通常起動でのユーザー確認が必要)。
 - 今後の使い方: BGM関連の変更(曲差し替え、envelope追加等)のたびに`python3 scripts/verify-audio-gearlynx.py --seconds N --channel 0/2`を実行し、チャンネルが無音化・固着していないかをAI側で機械的に確認できる。
+
+### APS-024: Stage1 BGMを「きらきら星」へ差し替え
+
+- 状態: 実装完了・レビュー待ち(Dev、2026-08-07)
+- 優先度: 中
+- 起票日: 2026-08-07
+- 基点: `f29fad7`(APS-023完了・push済み時点のHEAD)。着手前`git status --short`はクリーン。
+- 目的: ユーザーが実際にGearlynxでAPS-023の多声化BGMを聴き「BGMが変わった気がするがBEEP音のままにも感じる」とフィードバック。既存曲(APS-020由来の単純アルペジオ)を、誰でも聴いてすぐ曲と分かる有名な旋律「きらきら星(Twinkle Twinkle Little Star / Ah vous dirai-je Maman、パブリックドメイン)」へ差し替えて確認する。
+- スコープ: Stage1のBGMのみ(メロディ`assets/music/stage1.mml`+ベース`assets/music/stage1_bass.mml`)。Stage2/3・SFX・`tools/mml2c`の言語仕様・ゲームロジック・HUDは変更しない。
+
+#### APS-024実装実績(Dev、2026-08-07)
+
+- 変更ファイル: `assets/music/stage1.mml`(全面差し替え)、`assets/music/stage1_bass.mml`(全面差し替え)、`tests/test_sound.c`(stage1関連の固定回帰値を新曲用に更新)、`ISSUES.md`(本項)、`.briefs/APS-024/v001.md`(新規、実施記録)。`tools/mml2c.c`・`Makefile`・`src/`配下・Stage2/3の`.mml`は無変更。
+- メロディ: ハ長調・o1のみ(度数1〜6、c〜a)で6フレーズ(ドドソソララソ/ファファミミレレド/ソソファファミミレ×2/ドドソソララソ/ファファミミレレド)。各フレーズ末尾の音のみ`t15`既定の2倍(`30`)に延長し、直後に既定長(`15`)の休符を1つ挟んでフレーズ感を出した。8ステップ×6フレーズ=48ステップ、合計810 tick。音量は`v17`・波形は`w0`(tone)で全編固定(APS-023でベースが独立チャンネルになったため、旧曲にあったw0/w3交互のアルペジオ疑似合奏は不要と判断)。
+- ベース: 各フレーズの下でルート音を1音・フレーズ全長(135 tick)だけ保持する形(I→IV→V→V→I→IVのハ長調進行、C F G G C F)。6音×135 tick=810 tickでメロディの合計と完全一致させ、APS-023で確立した「メロディ/ベースの合計durationを一致させ両ボイスが同時にstep 0へ戻る」フェイズロック制約を維持した。音量`v16`・波形`w0`(既存stage1_bassの値を踏襲)。
+- テスト更新(`tests/test_sound.c`、いずれもstage1関連のみ):
+  - `test_bgm_exact_mml_migration()`: `expected_stage_one`を8要素→48要素へ差し替え、`sound_get_bgm_step_count(STAGE_ONE)`の期待値を`8u`→`48u`へ変更。
+  - `test_bass_exact_mml_compile()`: `expected_stage_one_bass`を2要素→6要素へ差し替え、`expected_count[STAGE_ONE]`を`2u`→`6u`へ変更。
+  - `test_sequence_tables()`: 新曲はo1のみ(度数1〜6)を使うため、旧来の「stage1がstage3より低音・stage2より低い」という前提の比較アサーションが成立しなくなった。stage2/stage3同士の比較(`cave range is lower and flight range is higher than each other`)へ差し替え、stage1については「o1の範囲(1〜7)に収まる」という新曲の設計意図に沿ったアサーションを新設した。フレーズ末の休符により`rests[STAGE_ONE]`が`0u`→`6u`、`bgm_length(STAGE_ONE)`が`120u`→`810u`に変化したため期待値を更新した。
+  - `test_bgm_start_loop_stage_and_rest()`: ループ長が810 tickへ伸びたため、固定`240u`ティック分の`advance_sound`では周回してstep0に戻らない。`bgm_length(SOUND_BGM_STAGE_ONE) * 2u`(2周分)へ変更し、周回してstep0へ戻ることを検証する意図を保った。
+  - Stage2/Stage3関連のテスト値は無変更。
+- 検証結果(すべて終了コード0):
+  - `make clean && ./scripts/verify.sh`: ゲーム524件PASS(無変更)、サウンド279件PASS(184件→279件、stage1回帰テストの内容拡張による自然増)、cc65 2.19 `-W error`コンパイル・リンク成功、shell lint成功、LNX検査`magic=LYNX version=1 bank0_page=1024 bank1_page=0 size=37627 bytes`成功。
+  - ROMサイズ実測差分: 37,276 bytes(APS-023時点)→37,627 bytes(**+351 bytes、約+0.94%**)。stage1メロディ/ベースのテーブルがそれぞれ8→48/2→6ステップへ増えた分。
+  - SHA-256: `10373b8853c1cf8f016c243a0ba912d990f8e624c8301731ea9524cd8ba631f4`
+- design.mdとの差分: 本課題はブリーフの範囲(曲データ差し替えのみ)通りに実装し、`docs/plan/design.md`は更新していない(仕様変更を伴わないデータ差し替えのため)。
+- 未確認事項: 実機/Gearlynxでの聴感確認はAI実装環境では実施不可のため、ユーザーが行う。生成されたメロディ・ベースのテーブル値(scale index・duration)は手計算とmml2c出力の突き合わせで検証済みだが、実際に「きらきら星と分かるか」はユーザーの聴感判断に依存する。
+- コミット・pushは実施していない(作業ツリーに変更を残している)。
 
 ### APS-023: BGMの多声化(MIKEY channel C追加使用)
 
