@@ -194,3 +194,13 @@ BGMのステップテーブルを、テキストのMML風表記から生成す�
 - 実装前後のROMサイズは36,587 bytes → 37,276 bytes(+689 bytes、+約1.9%)。ベーステーブル3曲分のデータと`sound.c`/`main.c`の追加ロジックによる増分。
 
 聴感(実際にchannel A+Cの2声を同時再生した際に「曲らしく」聞こえるか、音量バランス・音色の衝突)とAtari Lynx実機での動作はAI実装では確認できず、未確認事項として残す。Gearlynxはヘッドレス起動でのプロセスレベル確認(ROM読み込み・クラッシュなし)のみ行った――本環境はScreen Recording/アクセシビリティ権限が無くGUI目視・音声確認ができない(APS-020以降の既知の制約と同一)。
+
+### APS-023 コミット前リファクタ(ボイス数非依存化)
+
+コミット前の見直しで、上記実装のメロディ/ベース並列構造をボイス数非依存の形へ整理した(挙動・公開API・`SoundState`レイアウト・生成される曲データは不変。全テストで回帰確認済み)。
+
+- `src/sound.c`: ボイスごとの並列関数(`load_bgm_step()`/`load_bass_step()`/`update_bgm_output()`/`update_bass_output()`)を廃止し、`MusicVoiceRef`(あるボイスのシーケンス・カーソル・論理出力への参照ビュー)を`music_voice(sound, voice, ref)`で構築して共有ヘルパー`load_voice_step()`/`advance_voice_step()`へ渡す構造にした。`restart_bgm()`/`advance_music()`(旧`advance_bgm()`)/`update_music_outputs()`/`sound_stop_all()`は`MUSIC_VOICE_COUNT`のループで全ボイスを回す。公開アクセサの表引き(`sound_get_bgm_step()`系)も`music_sequence_tables[voice]`経由の共有ヘルパー`music_table_step()`/`music_table_step_count()`へ統合した。
+- `src/main.c`: (MIKEYチャンネル先頭アドレス, `SoundHardwareState`, 論理出力)の3つ組を`sound_channel_map[]`テーブルへ集約し、`sound_backend_init()`とメインループ(`sound_backend_apply_all()`)はテーブルを反復する。レジスタ書込み順は従来のA→C→Bをテーブル行順で維持。
+- 3声目(channel D)の追加は「`SoundState`へカーソル/出力フィールド追加+`music_voice()`に1分岐+`music_sequence_tables`/`sound_channel_map`に1行+カウント2箇所の更新」で済む構造になった(channel D自体の実装は引き続きスコープ外)。
+- `tools/mml2c.c`は元よりトラック数非依存(`MAX_TRACKS=8`)で多声化による重複が生じていないため変更していない。
+- このリファクタによるROMサイズ増は+175 bytes(37,276 → 37,451 bytes)。ヘルパー抽出とループ化に伴うコード生成の差分で、データ(曲テーブル)は不変。

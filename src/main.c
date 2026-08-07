@@ -132,6 +132,26 @@ static SoundHardwareState sound_hardware_bgm_bass;
 static SoundHardwareState sound_hardware_sfx;
 static GameState game;
 
+/* Fixed wiring of one logical sound output to one MIKEY channel. The
+ * map rows keep the historical register write order (A, C, B). Adding
+ * a voice (channel D at 0xfd38) is one more row here plus its
+ * SoundOutput in SoundState -- init and the main loop iterate the map
+ * instead of naming each channel. */
+typedef struct SoundChannelMap {
+    volatile unsigned char* mikey_channel;
+    SoundHardwareState* hardware;
+    const SoundOutput* output;
+} SoundChannelMap;
+
+#define SOUND_CHANNEL_MAP_COUNT 3u
+
+static const SoundChannelMap sound_channel_map[SOUND_CHANNEL_MAP_COUNT] = {
+    { SOUND_CHANNEL_A, &sound_hardware_bgm, &game.sound.output_bgm },
+    { SOUND_CHANNEL_C, &sound_hardware_bgm_bass,
+        &game.sound.output_bgm_bass },
+    { SOUND_CHANNEL_B, &sound_hardware_sfx, &game.sound.output_sfx }
+};
+
 static const BackgroundTheme background_themes[
     GAME_BACKGROUND_THEME_COUNT] = {
     { GAME_COLOR_BLACK,
@@ -464,19 +484,21 @@ static void sound_backend_silence_channel(volatile unsigned char* channel,
 
 static void sound_backend_init(void)
 {
+    unsigned char i;
+
     SOUND_MASTER_STEREO = 0u;
-    sound_backend_silence_channel(SOUND_CHANNEL_A, &sound_hardware_bgm, 1u);
-    sound_backend_silence_channel(SOUND_CHANNEL_C, &sound_hardware_bgm_bass,
-        1u);
-    sound_backend_silence_channel(SOUND_CHANNEL_B, &sound_hardware_sfx, 1u);
+    for (i = 0u; i < SOUND_CHANNEL_MAP_COUNT; ++i) {
+        sound_backend_silence_channel(sound_channel_map[i].mikey_channel,
+            sound_channel_map[i].hardware, 1u);
+    }
 }
 
 /* Applies one logical channel output to one MIKEY channel. Shared by
- * BGM (channel A) and SFX (channel B) since APS-021: the previous
- * per-channel duplicates used the same register offsets and the same
- * APS-013 write ordering (control=0, shift-low, control-B, feedback,
- * volume, reload, control=prescaler|enable; volume-only rewrite when
- * just the volume changes), which this helper preserves verbatim. */
+ * every sound_channel_map row since APS-021: the previous per-channel
+ * duplicates used the same register offsets and the same APS-013
+ * write ordering (control=0, shift-low, control-B, feedback, volume,
+ * reload, control=prescaler|enable; volume-only rewrite when just the
+ * volume changes), which this helper preserves verbatim. */
 static void sound_backend_apply(volatile unsigned char* channel,
     SoundHardwareState* hardware, const SoundOutput* output)
 {
@@ -510,6 +532,19 @@ static void sound_backend_apply(volatile unsigned char* channel,
     hardware->note = output->note;
     hardware->volume = output->volume;
     hardware->wave = output->wave;
+}
+
+/* Pushes every logical output onto its mapped MIKEY channel; called
+ * once per draw frame from the main loop. */
+static void sound_backend_apply_all(void)
+{
+    const SoundChannelMap* map;
+    unsigned char i;
+
+    for (i = 0u; i < SOUND_CHANNEL_MAP_COUNT; ++i) {
+        map = &sound_channel_map[i];
+        sound_backend_apply(map->mikey_channel, map->hardware, map->output);
+    }
 }
 
 static unsigned char read_input(void)
@@ -1208,12 +1243,7 @@ void main(void)
             game_update_logic(&game, input);
         }
         game_sound_tick(&game);
-        sound_backend_apply(SOUND_CHANNEL_A, &sound_hardware_bgm,
-            &game.sound.output_bgm);
-        sound_backend_apply(SOUND_CHANNEL_C, &sound_hardware_bgm_bass,
-            &game.sound.output_bgm_bass);
-        sound_backend_apply(SOUND_CHANNEL_B, &sound_hardware_sfx,
-            &game.sound.output_sfx);
+        sound_backend_apply_all();
         draw_game(&game);
     }
 }
