@@ -1,0 +1,10 @@
+; Stage 3 (cave) bass line (APS-023): channel C sparse low pedal under
+; the melody's eerie metallic/noise motif and rests
+; (assets/music/stage3.mml). The 78-tick loop matches the melody's
+; total duration exactly; a slow root-subdominant-root tone-wave drift
+; stays out of the way of the melody's noise/metallic accents instead
+; of competing with them.
+t27 o1 v14 w0
+c
+f
+c24

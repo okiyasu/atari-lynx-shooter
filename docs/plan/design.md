@@ -181,3 +181,16 @@ BGMのステップテーブルを、テキストのMML風表記から生成す�
 - Makefileはbuild/mml2cのビルドとbuild/gen/music_data.{h,c}の生成をROM/ホストテスト双方のビルド依存へ追加した。生成物はbuild/配下(.gitignore済み)でリポジトリにはコミットしない。
 - 今後新曲を追加する場合はassets/music/*.mmlを書き足すかテキストを差し替えるだけでよく、SoundStep配列を手で書く必要がなくなる。Stage 2/3用のより長い曲やタイトル曲への展開は本コミットのスコープ外。
 
+
+## APS-023 BGMの多声化(MIKEY channel C追加使用)
+
+ユーザーがAPS-022完了時点のBGMを実際に聴き「BEEP音で曲ではない感じ」とフィードバックした。原因はBGM(channel A)が単声で和音・ベースラインを持たないことにあり、MIKEY未使用のchannel Cを新たに使いベースライン(第2ボイス)を追加して2声構成にした。これはAPS-020の「channel C/D・attenuation/panning・lynx_snd_*に触れない」制約を明示的に覆す設計変更(ユーザー承知の上)。3声目(channel D)は追加していない――2声化でユーザー報告の核心(単声・和音欠如)が解消されるため、聴感確認前に3声目まで踏み込むと設計・作曲・テストの手戻りリスクが増えると判断した(ISSUES.md APS-023のスコープ決定と同一理由)。
+
+- `src/main.c`へ`SOUND_CHANNEL_C`(`0xfd30u`起点、`include/_mikey.h`のchannel Cレイアウトに基づく)を追加し、APS-021で統合済みの`sound_backend_apply(channel, hardware, output)`をそのまま第3チャネルへ適用した。新規レジスタ書込みロジックは実装していない(既存ヘルパーの再利用のみ)。`sound_backend_init()`が呼ぶ`sound_backend_silence_channel()`にもchannel C分(`sound_hardware_bgm_bass`)を追加し、main loop末尾の`sound_backend_apply()`呼び出しにもchannel C分を追加した。
+- `include/sound.h`の`SoundState`へベース用の第2ボイスカーソル`bass_step`/`bass_remaining`と独立出力`output_bgm_bass`を追加した。既存の`bgm_step`/`bgm_remaining`/`output_bgm`(メロディ)の意味・挙動は変更していない。ベースカーソルはメロディと同じ`bgm_active`・`freeze_bgm`(自機死亡32更新中の凍結)に従い、`sound_init()`/`sound_set_stage()`でメロディと同時にStage先頭へ復帰し、`sound_stop_all()`で同時に無音へ戻る。カーソル前進・読込のロジックはメロディ・ベースで完全に重複していたため、`load_step_cursor()`/`advance_step_cursor()`という2つの共有ヘルパーへ統合し(APS-021のDRY方針を踏襲)、`load_bgm_step()`/`load_bass_step()`と`advance_bgm()`(内部でメロディ・ベース両カーソルを進める)がそれらを呼ぶ形にした。
+- `assets/music/stage{1,2,3}_bass.mml`を新規追加し、`tools/mml2c`(変更不要、`MAX_TRACKS=8`で6トラックまで対応可能)・`Makefile`の`MUSIC_TRACKS`/`MUSIC_SOURCES`へ追加した。ベースはo1中心の低音域・音量14〜18・tone/pulse波形のみ(noise/metallicはSFXやメロディの効果音的アクセントと衝突するため避けた)。各ステージのベースループの総duration(120/40/78 tick)はメロディのループ長と完全に一致させている――メロディより疎な(ステップ数が少なく1ステップが長い)構成にしつつ、両ボイスが毎ループ必ず同時にstep 0へ巻き戻る「フェイズロック」を保証するための設計判断で、独立ループ(非同期)は採用していない。具体的にはStage 1はメロディのg/d・a/eの2和音区間ごとにルート音(g→a)を1音ずつ保持、Stage 2はメロディの高速パルスラン全体を通してd→gの2音、Stage 3はメロディの休符混じりの不気味な動機に対しc→f→cの緩やかな低音ドリフトを充てた。
+- `include/sound.h`/`src/sound.c`へ`sound_get_bgm_bass_step()`/`sound_get_bgm_bass_step_count()`を追加した。既存の`sound_get_bgm_step()`/`sound_get_bgm_step_count()`と対になるAPIで、ベーステーブルをテストから検証できるようにするための最小限の追加。
+- `tests/test_sound.c`へ、ベーステーブルの値域(volume 14〜18・wave tone/pulse限定・note非休符)とメロディとのフェイズロック(ループ長一致)を検証する`test_bass_tables_bounds_and_phase_lock()`、生成された全ベースステップをMMLソースへ固定回帰する`test_bass_exact_mml_compile()`、開始・凍結・Stage切替・停止の同期挙動を検証する`test_bass_syncs_with_bgm_start_freeze_stage_and_stop()`を追加した。`tests/test_game.c`にも`game_start()`経由でベース出力がメロディと同時に有効化されることを1件追加した。
+- 実装前後のROMサイズは36,587 bytes → 37,276 bytes(+689 bytes、+約1.9%)。ベーステーブル3曲分のデータと`sound.c`/`main.c`の追加ロジックによる増分。
+
+聴感(実際にchannel A+Cの2声を同時再生した際に「曲らしく」聞こえるか、音量バランス・音色の衝突)とAtari Lynx実機での動作はAI実装では確認できず、未確認事項として残す。Gearlynxはヘッドレス起動でのプロセスレベル確認(ROM読み込み・クラッシュなし)のみ行った――本環境はScreen Recording/アクセシビリティ権限が無くGUI目視・音声確認ができない(APS-020以降の既知の制約と同一)。

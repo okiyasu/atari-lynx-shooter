@@ -2725,6 +2725,8 @@ static void test_sound_initial_phase_and_fire_integration(void)
         game.sound.bgm_step == 0u &&
         game.sound.sfx_id == SOUND_SFX_NONE,
         "game start enables stage one BGM at its head with no active SFX");
+    expect(game.sound.output_bgm_bass.active != 0u,
+        "game start also enables the stage one bassline through the full game update path");
     advance_frames(&game, 20u);
     game.phase_timer = GAME_STAGE_INTRO_FRAMES - 1u;
     game_update(&game, 0u);

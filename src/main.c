@@ -42,11 +42,13 @@
 #define SCORE_DIGITS 5u
 
 /* MIKEY audio channel register blocks (include/_mikey.h layout): eight
- * registers per channel starting at 0xFD20 (channel A) and 0xFD28
- * (channel B). Both channels share the same in-block offsets, so the
- * backend addresses them as base pointer plus offset (APS-021). */
+ * registers per channel starting at 0xFD20 (channel A), 0xFD28
+ * (channel B) and 0xFD30 (channel C, added APS-023 for the bassline).
+ * All three channels share the same in-block offsets, so the backend
+ * addresses them as base pointer plus offset (APS-021). */
 #define SOUND_CHANNEL_A ((volatile unsigned char*)0xfd20u)
 #define SOUND_CHANNEL_B ((volatile unsigned char*)0xfd28u)
+#define SOUND_CHANNEL_C ((volatile unsigned char*)0xfd30u)
 #define SOUND_REG_VOL 0u
 #define SOUND_REG_FEEDBACK 1u
 #define SOUND_REG_SHIFT_LOW 3u
@@ -126,6 +128,7 @@ static const SoundWaveRegister sound_wave_registers[SOUND_WAVE_COUNT] = {
 };
 
 static SoundHardwareState sound_hardware_bgm;
+static SoundHardwareState sound_hardware_bgm_bass;
 static SoundHardwareState sound_hardware_sfx;
 static GameState game;
 
@@ -463,6 +466,8 @@ static void sound_backend_init(void)
 {
     SOUND_MASTER_STEREO = 0u;
     sound_backend_silence_channel(SOUND_CHANNEL_A, &sound_hardware_bgm, 1u);
+    sound_backend_silence_channel(SOUND_CHANNEL_C, &sound_hardware_bgm_bass,
+        1u);
     sound_backend_silence_channel(SOUND_CHANNEL_B, &sound_hardware_sfx, 1u);
 }
 
@@ -1205,6 +1210,8 @@ void main(void)
         game_sound_tick(&game);
         sound_backend_apply(SOUND_CHANNEL_A, &sound_hardware_bgm,
             &game.sound.output_bgm);
+        sound_backend_apply(SOUND_CHANNEL_C, &sound_hardware_bgm_bass,
+            &game.sound.output_bgm_bass);
         sound_backend_apply(SOUND_CHANNEL_B, &sound_hardware_sfx,
             &game.sound.output_sfx);
         draw_game(&game);

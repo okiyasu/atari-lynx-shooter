@@ -1,0 +1,8 @@
+; Stage 2 (flight) bass line (APS-023): channel C root pedal under the
+; melody's fast pulse run (assets/music/stage2.mml). The 40-tick loop
+; matches the melody's total duration exactly; two sustained pulse
+; notes keep the low end driving without doubling the melody's eight
+; fast notes.
+t20 o1 v15 w3
+d
+g

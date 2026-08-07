@@ -36,6 +36,18 @@ static unsigned int bgm_length(unsigned char bgm_id)
     return length;
 }
 
+static unsigned int bgm_bass_length(unsigned char bgm_id)
+{
+    unsigned char i;
+    unsigned int length;
+
+    length = 0u;
+    for (i = 0u; i < sound_get_bgm_bass_step_count(bgm_id); ++i) {
+        length += sound_get_bgm_bass_step(bgm_id, i)->duration;
+    }
+    return length;
+}
+
 static void test_sequence_tables(void)
 {
     unsigned char bgm;
@@ -360,6 +372,142 @@ static void test_bgm_and_sfx_sound_together(void)
         "BGM keeps advancing on its own 75Hz schedule while SFX plays concurrently");
 }
 
+/* APS-023: MIKEY channel C carries a second bassline voice, compiled
+ * from assets/music's *_bass.mml sources the same way as the melody
+ * (APS-022). These checks pin its table content and behavior. */
+static void test_bass_tables_bounds_and_phase_lock(void)
+{
+    unsigned char bgm;
+    unsigned char i;
+
+    for (bgm = 0u; bgm < SOUND_BGM_COUNT; ++bgm) {
+        expect(sound_get_bgm_bass_step_count(bgm) >= 2u,
+            "every bass track has a bounded multi-step loop");
+        for (i = 0u; i < sound_get_bgm_bass_step_count(bgm); ++i) {
+            const SoundStep* step;
+
+            step = sound_get_bgm_bass_step(bgm, i);
+            expect(step != (const SoundStep*)0 && step->duration != 0u &&
+                step->note != SOUND_NOTE_REST &&
+                step->note <= SOUND_NOTE_COUNT &&
+                step->volume >= 14u && step->volume <= 18u &&
+                (step->wave == SOUND_WAVE_TONE ||
+                    step->wave == SOUND_WAVE_PULSE),
+                "every bass step is a non-rest tone or pulse note inside its designed volume band");
+        }
+        expect(bgm_bass_length(bgm) == bgm_length(bgm),
+            "each stage's bass loop duration matches its melody's exactly so both voices stay phase locked");
+    }
+    expect(sound_get_bgm_bass_step(SOUND_BGM_COUNT, 0u) ==
+            (const SoundStep*)0 &&
+        sound_get_bgm_bass_step(SOUND_BGM_STAGE_ONE,
+            sound_get_bgm_bass_step_count(SOUND_BGM_STAGE_ONE)) ==
+            (const SoundStep*)0 &&
+        sound_get_bgm_bass_step_count(SOUND_BGM_COUNT) == 0u,
+        "bass table lookup rejects invalid song and step IDs exactly like the melody table");
+}
+
+/* Pins every generated bass step to the assets/music bass MML sources,
+ * the same way test_bgm_exact_mml_migration pins the melody. */
+static void test_bass_exact_mml_compile(void)
+{
+    static const SoundStep expected_stage_one_bass[2] = {
+        { 5u, 60u, 16u, SOUND_WAVE_TONE },
+        { 6u, 60u, 16u, SOUND_WAVE_TONE }
+    };
+    static const SoundStep expected_stage_two_bass[2] = {
+        { 2u, 20u, 15u, SOUND_WAVE_PULSE },
+        { 5u, 20u, 15u, SOUND_WAVE_PULSE }
+    };
+    static const SoundStep expected_stage_three_bass[3] = {
+        { 1u, 27u, 14u, SOUND_WAVE_TONE },
+        { 4u, 27u, 14u, SOUND_WAVE_TONE },
+        { 1u, 24u, 14u, SOUND_WAVE_TONE }
+    };
+    static const SoundStep* const expected[SOUND_BGM_COUNT] = {
+        expected_stage_one_bass, expected_stage_two_bass,
+        expected_stage_three_bass
+    };
+    static const unsigned char expected_count[SOUND_BGM_COUNT] = {
+        2u, 2u, 3u
+    };
+    unsigned char bgm;
+    unsigned char i;
+
+    for (bgm = 0u; bgm < SOUND_BGM_COUNT; ++bgm) {
+        expect(sound_get_bgm_bass_step_count(bgm) == expected_count[bgm],
+            "every MML-compiled bass track keeps its designed step count");
+        for (i = 0u; i < sound_get_bgm_bass_step_count(bgm); ++i) {
+            const SoundStep* step;
+
+            step = sound_get_bgm_bass_step(bgm, i);
+            expect(step->note == expected[bgm][i].note &&
+                step->duration == expected[bgm][i].duration &&
+                step->volume == expected[bgm][i].volume &&
+                step->wave == expected[bgm][i].wave,
+                "every MML-compiled bass step is byte-identical to its designed source");
+        }
+    }
+}
+
+static void test_bass_syncs_with_bgm_start_freeze_stage_and_stop(void)
+{
+    SoundState sound;
+    unsigned int stage_one_length;
+    unsigned char frozen_bgm_step;
+    unsigned char frozen_bgm_remaining;
+    unsigned char frozen_bass_step;
+    unsigned char frozen_bass_remaining;
+
+    sound_init(&sound);
+    expect(sound.bass_step == 0u &&
+        sound.bass_remaining ==
+            sound_get_bgm_bass_step(SOUND_BGM_STAGE_ONE, 0u)->duration &&
+        sound.output_bgm_bass.active != 0u,
+        "sound init enables the stage one bassline at its head alongside the melody");
+
+    stage_one_length = bgm_length(SOUND_BGM_STAGE_ONE);
+    advance_sound(&sound, stage_one_length, 0u);
+    expect(sound.bgm_step == 0u && sound.bass_step == 0u,
+        "melody and bass both wrap back to step zero after one full phase-locked loop");
+
+    advance_sound(&sound, 7u, 0u);
+    frozen_bgm_step = sound.bgm_step;
+    frozen_bgm_remaining = sound.bgm_remaining;
+    frozen_bass_step = sound.bass_step;
+    frozen_bass_remaining = sound.bass_remaining;
+    sound_request_sfx(&sound, SOUND_SFX_PLAYER_EXPLOSION);
+    advance_sound(&sound, 31u, 1u);
+    expect(sound.bgm_step == frozen_bgm_step &&
+        sound.bgm_remaining == frozen_bgm_remaining &&
+        sound.bass_step == frozen_bass_step &&
+        sound.bass_remaining == frozen_bass_remaining,
+        "the death freeze holds the melody and bass cursors together");
+    sound_tick(&sound, 1u);
+    expect(sound.bass_step == frozen_bass_step &&
+        sound.bass_remaining == frozen_bass_remaining,
+        "death update 32 still holds the bass cursor while the explosion SFX finishes");
+    sound_tick(&sound, 0u);
+    expect(sound.bass_remaining ==
+            (unsigned char)(frozen_bass_remaining - 1u),
+        "post-respawn update thaws the bass cursor and resumes its progress");
+
+    sound_set_stage(&sound, 2u);
+    expect(sound.bass_step == 0u &&
+        sound.bass_remaining ==
+            sound_get_bgm_bass_step(SOUND_BGM_STAGE_TWO, 0u)->duration &&
+        sound.output_bgm_bass.active != 0u,
+        "stage switch restarts the bassline at the new stage's head alongside the melody");
+
+    sound_stop_all(&sound);
+    expect(sound.output_bgm_bass.active == 0u &&
+        sound.output_bgm_bass.volume == 0u,
+        "terminal stop silences the bass channel exactly like the melody channel");
+    sound_tick(&sound, 0u);
+    expect(sound.output_bgm_bass.active == 0u,
+        "stopped bass output remains silent across later ticks");
+}
+
 int main(void)
 {
     test_sequence_tables();
@@ -368,6 +516,9 @@ int main(void)
     test_freeze_pending_and_stops();
     test_bgm_exact_mml_migration();
     test_bgm_and_sfx_sound_together();
+    test_bass_tables_bounds_and_phase_lock();
+    test_bass_exact_mml_compile();
+    test_bass_syncs_with_bgm_start_freeze_stage_and_stop();
     printf("PASS: %u sound logic checks\n", checks);
     return EXIT_SUCCESS;
 }

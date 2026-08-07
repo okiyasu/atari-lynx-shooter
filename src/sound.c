@@ -63,6 +63,18 @@ static const SoundSequence bgm_sequences[SOUND_BGM_COUNT] = {
     { sound_bgm_stage_three_steps, SOUND_BGM_STAGE_THREE_STEP_COUNT }
 };
 
+/* APS-023: bassline steps compiled from the assets/music bass tracks
+ * onto MIKEY channel C. Indexed by the same bgm_id as bgm_sequences;
+ * each bass loop's total duration matches its melody's exactly (see
+ * the assets/music bass MML file headers) so the two voices land back
+ * on step 0 together, even though the bass has fewer, longer steps. */
+static const SoundSequence bass_sequences[SOUND_BGM_COUNT] = {
+    { sound_bgm_stage_one_bass_steps, SOUND_BGM_STAGE_ONE_BASS_STEP_COUNT },
+    { sound_bgm_stage_two_bass_steps, SOUND_BGM_STAGE_TWO_BASS_STEP_COUNT },
+    { sound_bgm_stage_three_bass_steps,
+        SOUND_BGM_STAGE_THREE_BASS_STEP_COUNT }
+};
+
 static const SoundSequence sfx_sequences[SOUND_SFX_COUNT] = {
     { (const SoundStep*)0, 0u },
     { shot_sfx, ARRAY_COUNT(shot_sfx) },
@@ -94,13 +106,41 @@ static void set_step_output(SoundOutput* output, const SoundStep* step)
     output->wave = step->wave;
 }
 
+/* Shared step-cursor load/advance (APS-023): the melody and bass
+ * voices each have their own SoundSequence and cursor fields but move
+ * through them identically, so both go through these two helpers
+ * instead of duplicating the loop-and-wrap logic per voice. */
+static void load_step_cursor(const SoundSequence* sequence,
+    unsigned char* step, unsigned char* remaining, unsigned char at)
+{
+    *step = at;
+    *remaining = sequence->steps[at].duration;
+}
+
+static void advance_step_cursor(const SoundSequence* sequence,
+    unsigned char* step, unsigned char* remaining)
+{
+    --(*remaining);
+    if (*remaining != 0u) {
+        return;
+    }
+    ++(*step);
+    if (*step == sequence->count) {
+        *step = 0u;
+    }
+    *remaining = sequence->steps[*step].duration;
+}
+
 static void load_bgm_step(SoundState* sound, unsigned char step)
 {
-    const SoundSequence* sequence;
+    load_step_cursor(&bgm_sequences[sound->bgm_id], &sound->bgm_step,
+        &sound->bgm_remaining, step);
+}
 
-    sequence = &bgm_sequences[sound->bgm_id];
-    sound->bgm_step = step;
-    sound->bgm_remaining = sequence->steps[step].duration;
+static void load_bass_step(SoundState* sound, unsigned char step)
+{
+    load_step_cursor(&bass_sequences[sound->bgm_id], &sound->bass_step,
+        &sound->bass_remaining, step);
 }
 
 static void start_sfx(SoundState* sound, unsigned char sfx_id)
@@ -120,6 +160,18 @@ static void update_bgm_output(SoundState* sound)
         &bgm_sequences[sound->bgm_id].steps[sound->bgm_step]);
 }
 
+/* APS-023: the bassline (MIKEY channel C) follows the same bgm_active
+ * gate as the melody so both voices start, freeze and stop together. */
+static void update_bass_output(SoundState* sound)
+{
+    if (sound->bgm_active == 0u) {
+        set_silent_output(&sound->output_bgm_bass);
+        return;
+    }
+    set_step_output(&sound->output_bgm_bass,
+        &bass_sequences[sound->bgm_id].steps[sound->bass_step]);
+}
+
 static void update_sfx_output(SoundState* sound)
 {
     if (sound->sfx_id == SOUND_SFX_NONE) {
@@ -130,23 +182,21 @@ static void update_sfx_output(SoundState* sound)
         &sfx_sequences[sound->sfx_id].steps[sound->sfx_step]);
 }
 
+/* APS-023: advances both the melody and bass cursors on the shared
+ * bgm_active gate, so freeze_bgm (checked by the sound_tick caller)
+ * freezes both voices together. Each voice keeps its own sequence and
+ * step count, so a bass loop with fewer/longer steps than its melody
+ * still wraps back to step 0 in phase every loop (their total
+ * durations are equal; see the assets/music bass MML files). */
 static void advance_bgm(SoundState* sound)
 {
-    const SoundSequence* sequence;
-
     if (sound->bgm_active == 0u) {
         return;
     }
-    --sound->bgm_remaining;
-    if (sound->bgm_remaining != 0u) {
-        return;
-    }
-    sequence = &bgm_sequences[sound->bgm_id];
-    ++sound->bgm_step;
-    if (sound->bgm_step == sequence->count) {
-        sound->bgm_step = 0u;
-    }
-    sound->bgm_remaining = sequence->steps[sound->bgm_step].duration;
+    advance_step_cursor(&bgm_sequences[sound->bgm_id], &sound->bgm_step,
+        &sound->bgm_remaining);
+    advance_step_cursor(&bass_sequences[sound->bgm_id], &sound->bass_step,
+        &sound->bass_remaining);
 }
 
 static void advance_sfx(SoundState* sound)
@@ -186,11 +236,13 @@ static void restart_bgm(SoundState* sound, unsigned char bgm_id)
     sound->bgm_active = 1u;
     sound->bgm_id = bgm_id;
     load_bgm_step(sound, 0u);
+    load_bass_step(sound, 0u);
     sound->sfx_id = SOUND_SFX_NONE;
     sound->sfx_step = 0u;
     sound->sfx_remaining = 0u;
     sound->pending_stage_clear = 0u;
     update_bgm_output(sound);
+    update_bass_output(sound);
     update_sfx_output(sound);
 }
 
@@ -215,6 +267,7 @@ void sound_stop_all(SoundState* sound)
     sound->sfx_remaining = 0u;
     sound->pending_stage_clear = 0u;
     set_silent_output(&sound->output_bgm);
+    set_silent_output(&sound->output_bgm_bass);
     set_silent_output(&sound->output_sfx);
 }
 
@@ -240,6 +293,7 @@ void sound_request_sfx(SoundState* sound, unsigned char sfx_id)
 void sound_tick(SoundState* sound, unsigned char freeze_bgm)
 {
     update_bgm_output(sound);
+    update_bass_output(sound);
     update_sfx_output(sound);
     if (freeze_bgm == 0u) {
         advance_bgm(sound);
@@ -255,6 +309,16 @@ const SoundStep* sound_get_bgm_step(unsigned char bgm_id,
         return (const SoundStep*)0;
     }
     return &bgm_sequences[bgm_id].steps[step];
+}
+
+const SoundStep* sound_get_bgm_bass_step(unsigned char bgm_id,
+    unsigned char step)
+{
+    if (bgm_id >= SOUND_BGM_COUNT ||
+        step >= bass_sequences[bgm_id].count) {
+        return (const SoundStep*)0;
+    }
+    return &bass_sequences[bgm_id].steps[step];
 }
 
 const SoundStep* sound_get_sfx_step(unsigned char sfx_id,
@@ -273,6 +337,14 @@ unsigned char sound_get_bgm_step_count(unsigned char bgm_id)
         return 0u;
     }
     return bgm_sequences[bgm_id].count;
+}
+
+unsigned char sound_get_bgm_bass_step_count(unsigned char bgm_id)
+{
+    if (bgm_id >= SOUND_BGM_COUNT) {
+        return 0u;
+    }
+    return bass_sequences[bgm_id].count;
 }
 
 unsigned char sound_get_sfx_step_count(unsigned char sfx_id)

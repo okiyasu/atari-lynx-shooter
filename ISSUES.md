@@ -4,6 +4,59 @@
 
 ## 課題台帳
 
+### APS-023: BGMの多声化(MIKEY channel C追加使用)
+
+- 状態: 一次検収合格・コミット待ち(Dev Front、2026-08-07。GUI目視/聴感確認と3声化要否の判断はユーザー推奨として残存)
+- 優先度: 中
+- 起票日: 2026-08-07
+- 基点: `655123e`(APS-022完了時点のHEAD)。起票時点で作業ツリーはクリーン。着手前`make clean && ./scripts/verify.sh`はゲーム523件・サウンド152件PASS、ROM `dist/asteroid-patrol.lnx` 36,587 bytes、SHA-256 `8d39d935599f91e6eae8c256397fb90144409a0b3809307381bf18dc12d1d7fb`。
+- 目的: APS-022実装後にユーザーが実際に聴いたところ「BEEP音で曲ではない感じ」というフィードバックを受けた。原因はAPS-020以来BGM(channel A)が単声・和音/ベースラインが無いことにある。MIKEY未使用のchannel Cを新たに使い、ベースライン(第2ボイス)を追加して2声構成にすることで「曲らしさ」を改善する。
+- 経緯: ユーザーへ改善案を2つ提示し、「MIKEY未使用channel C/Dを使い2〜3声構成にする」を選択された。これはAPS-020で明示した制約(channel C/D・attenuation/panning・`lynx_snd_*`に触れない)を明示的に覆す設計変更であり、ユーザーが承知の上での選択である。標準ルート(dev-front→dev)で進める。
+- スコープ決定(Dev Front、2026-08-07): 本課題は**channel Cを使った2声(メロディ=channel A・ベース=channel C)化**を必須スコープとする。channel D(3声目・和音/パーカッション)追加は、2声化後のROM容量・実装コストが軽微であれば任意の追加スコープとして許容するが、必須ではない。理由: ユーザー報告の核心(単声・和音/ベースライン欠如)は2声化で直接解消でき、3声を最初から必須にすると設計・作曲・レジスタ配線・テストの手戻りリスクと見積り不確実性が増える。3声化が望ましいと判明した場合は聴感確認後に別途追いブリーフで指示する。
+- 制約: 75Hz同期・`5/4`ロジックスケジューラ・cc65 C89・warnings-as-errors・固定小配列・動的確保無し・浮動小数無しは変更しない。SFXが最優先で単一chを完全に上書きする既存規則(channel B限定)は変更しない。attenuation/panning(`0xFD40`〜`0xFD44`)・Timer・IRQ・TGI表示制御・`lynx_snd_*`には触れない。git stashに退避済みの別方式MML実装(`stash@{0}`)には一切触れない(ユーザー確認待ち)。コミット・push・deployはユーザー承認後のみ。
+
+#### APS-023完了条件
+
+- `include/_mikey.h`のchannel Cレイアウト(`0xFD30`起点、channel A/Bと同一の8レジスタ/chブロック構成、DAC`+2`とCOUNT`+6`は既存同様未使用)を根拠に、`src/main.c`へ`SOUND_CHANNEL_C`(`(volatile unsigned char*)0xfd30u`)を追加し、既存の汎用`sound_backend_apply(channel, hardware, output)`ヘルパー(APS-021で統合済み)をそのまま追加チャンネルへ適用する。新規レジスタ書込みロジックの複製・追加実装はしない(既存ヘルパーの再利用のみ)。`sound_backend_init()`・`sound_backend_silence_channel()`呼び出しにもchannel C分を追加する。
+- `include/sound.h`/`src/sound.c`へベースライン用の第2ボイスカーソル(例: `bass_step`/`bass_remaining`)と独立出力(例: `output_bgm_bass`)を追加する。既存`bgm_step`/`bgm_remaining`/`output_bgm`(メロディ)の意味・挙動は変更しない。ベースカーソルはメロディと同じ`bgm_active`・`freeze_bgm`(自機死亡中の凍結)に従い、`sound_init()`/`sound_set_stage()`でメロディと同時にStage先頭へ復帰し、`sound_stop_all()`で同時に停止する。カーソル前進ロジックの重複実装を避けるため、`advance_bgm()`相当の処理を共有ヘルパー化してメロディ・ベース両方から呼べる形を推奨する(必須ではないが、APS-021のDRY方針に沿うこと)。
+- `assets/music/stage{1,2,3}_bass.mml`を新規追加し、`tools/mml2c`(変更不要、`MAX_TRACKS=8`で対応可能)・`Makefile`の`MUSIC_TRACKS`/`MUSIC_SOURCES`へ追加する。ベースは低音域(概ねo1)・メロディより疎な音符配置・メロディ/SFXと衝突しない音量帯(概ね14〜18)を目安とし、tone/pulse波形を基本にする(noise/metallicはSFXと衝突しやすいため避ける)。3曲のループ長をメロディと一致させるか独立ループにするかはDevの設計判断でよいが、決定と理由をISSUES.mdへ記録する。
+- (任意・必須ではない) 上記が完了しROM容量・実装コストに余裕があれば、`SOUND_CHANNEL_D`(`0xfd38u`)を使った3声目(和音/パーカッション)を同じ枠組みで追加してよい。追加する場合は同様にテスト・design.mdへ反映する。追加しない場合はその判断もISSUES.mdへ記録する。
+- `tests/test_sound.c`・`tests/test_game.c`へベース(および3声化した場合はその声部)の独立進行・死亡中凍結・Stage切替時の同時復帰・停止時の同時無音化を検証する回帰テストを追加する。既存523/152件の意味を壊さない。
+- `docs/plan/design.md`へ多声化の仕様(声部構成、channel割当、既存規則との整合)を追記する。
+- `make clean && ./scripts/verify.sh`、ASan/UBSan付き全ホストテスト、`sh -n scripts/*.sh`、`git diff --check`、LNXヘッダ検査を成功させる。実装前後のROMサイズ差分を報告する(見積りでなく実測値)。
+- 可能であればGearlynxで実際に起動し聴感を確認する(APS-020一次検収の実施例と同じ制約: 本環境はScreen Recording/アクセシビリティ権限が無くGUI目視・入力送出ができない場合がある。その場合は未確認事項として明記し、プロセスレベルの起動安定性確認で代替する)。
+- 変更ファイル一覧、最終チェック総数、ROMサイズ・SHA-256、3声化の採否とその理由、design.mdとの差分、未確認事項(聴感の実際の改善度、実機での音量バランス)をISSUES.mdへ実装実績として追記する。
+
+#### APS-023実装実績(Dev、2026-08-07)
+
+- 変更ファイル: `include/sound.h`, `src/sound.c`, `src/main.c`, `Makefile`, `assets/music/stage1_bass.mml`(新規), `assets/music/stage2_bass.mml`(新規), `assets/music/stage3_bass.mml`(新規), `tests/test_sound.c`, `tests/test_game.c`, `docs/plan/design.md`, 本項(ISSUES.md)。`tools/mml2c.c`は変更不要(既存トラック仕様のまま6トラックまで対応、`MAX_TRACKS=8`の余裕内)。
+- channel C配線: `src/main.c`へ`SOUND_CHANNEL_C`(`0xfd30u`)と`sound_hardware_bgm_bass`を追加し、既存`sound_backend_apply()`/`sound_backend_silence_channel()`をそのまま再利用した(新規レジスタ書込みロジックなし)。
+- `SoundState`へ`bass_step`/`bass_remaining`/`output_bgm_bass`を追加。カーソルの読込・前進は`load_step_cursor()`/`advance_step_cursor()`という共有ヘルパーへ統合し、メロディ(`load_bgm_step`/既存`advance_bgm`)・ベース(`load_bass_step`)の両方から呼ぶ形にした(APS-021のDRY方針を踏襲)。`restart_bgm()`/`sound_stop_all()`/`sound_tick()`にベース分の同期処理を追加。
+- ベースMML3曲を新規作成。設計判断: **各ステージのベースループ総durationをメロディのループ長と完全一致**させた(120/40/78 tick)。理由: 独立ループにすると毎回位相がずれて音楽的な一貫性が失われるため、フェイズロック(両ボイスが必ず同時にstep 0へ戻る)を優先した。音量帯14〜18・波形はtone/pulseのみ(noise/metallicは避けた)。
+- 3声化(channel D)は**採用しなかった**。理由: ユーザー報告の核心(単声・和音/ベースライン欠如)は2声化で解消でき、スコープ決定(Dev Front、上記)通り2声化を優先し3声は聴感確認後の判断に委ねる。
+- テスト追加: `tests/test_sound.c`に`test_bass_tables_bounds_and_phase_lock()`(値域・フェイズロック検証)、`test_bass_exact_mml_compile()`(生成ステップの固定回帰)、`test_bass_syncs_with_bgm_start_freeze_stage_and_stop()`(開始・凍結・Stage切替・停止の同期)を追加。`tests/test_game.c`の`test_sound_initial_phase_and_fire_integration()`へ`game_start()`経由でのベース有効化確認を1件追加。ベーステーブルをテストから読めるよう`sound_get_bgm_bass_step()`/`sound_get_bgm_bass_step_count()`を`sound.h`/`sound.c`へ追加(既存の`sound_get_bgm_step()`系と対称の最小API)。既存523/152件は変更していない(524/184件へ増加、差分は今回追加した1件+32件)。
+- 検証結果(すべて終了コード0):
+  - `make clean && ./scripts/verify.sh`: ゲーム524件・サウンド184件PASS、cc65 2.19 `-W error`、shell lint、LNX検査すべて成功。
+  - ASan/UBSan付きホストテスト: `clang -fsanitize=address,undefined -fno-omit-frame-pointer`でゲーム524件・サウンド184件とも成功。
+  - `make smoke-host`: 起動・操作スモーク7件成功。
+  - `sh -n scripts/*.sh`、`git diff --check`: 成功。
+  - `./scripts/inspect-lnx.sh`: `magic=LYNX version=1 bank0_page=1024 bank1_page=0 size=37276 bytes` OK。
+  - `make smoke-gearlynx`(ヘッドレス、プロセスレベル確認): `Gearlynx headless ROM launch OK` — ROM読み込み・クラッシュなしを確認。デバッグモニタに入力/状態プロトコルの文書が無いため`UNVERIFIED`終了(既知の制約、APS-020以降と同様)。本環境はScreen Recording/アクセシビリティ権限が無くGUI目視・音声確認は不可のため未確認事項として残す。
+- ROMサイズ実測差分: 36,587 bytes → 37,276 bytes(**+689 bytes、約+1.9%**)。新規SHA-256: `1d805b7bf1e081cec7149e96cd5ec908844dda991f28d1afd7d4283fb8c85974`。
+- design.mdとの差分: ブリーフ・完了条件通りに実装。設計からの逸脱はなし(共有ヘルパー化・API追加・ループ長一致は「推奨/任意/設計判断でよい」とされていた項目についての具体的選択)。
+- 未確認事項: (1) 聴感上の実際の改善度(2声化で「曲らしく」聞こえるか)はAI実装では確認不能。(2) 実機/実エミュレータでのchannel A+C同時再生時の音量バランス・音色の衝突。(3) Gearlynx GUIでの目視・音声確認(環境の権限制約により未実施、ヘッドレスのプロセスレベル確認のみ)。
+- コミット・push・deploy・`git stash`操作はいずれも実施していない(`stash@{0}`は未接触)。
+
+#### APS-023一次検収(Dev Front、2026-08-07)
+
+- 独立再実行: `make clean && ./scripts/verify.sh`を再実行し終了コード0(ゲーム524件、サウンド184件、cc65 `-W error`、shell lint、LNX検査`size=37,276 bytes`)を確認。`shasum -a 256 dist/asteroid-patrol.lnx`は報告値`1d805b7bf1e081cec7149e96cd5ec908844dda991f28d1afd7d4283fb8c85974`と一致。ASan/UBSan付きゲーム524件・サウンド184件も別途再実行し一致。
+- `git status --short`で変更ファイルが報告どおり(`ISSUES.md`/`Makefile`/`docs/plan/design.md`/`include/sound.h`/`src/main.c`/`src/sound.c`/`tests/test_game.c`/`tests/test_sound.c`変更、`assets/music/stage{1,2,3}_bass.mml`新規)であること、`git stash list`が`stash@{0}`1件のまま未変更であることを確認した。
+- コード検証: `src/main.c`のMIKEYアドレス定義を`rg`で確認し、`SOUND_CHANNEL_C=0xfd30u`のみが新規で、`0xFD38`(channel D)・`0xFD40`〜`0xFD44`(attenuation/panning)・`lynx_snd_*`への接触が無いことを確認。channel C配線が既存`sound_backend_apply()`/`sound_backend_silence_channel()`の再利用のみで新規レジスタ書込みロジックが無いことをコード直読で確認した。
+- `src/sound.c`を全文読み、`load_step_cursor()`/`advance_step_cursor()`という共有ヘルパーへメロディ・ベース双方のカーソル前進が統合されていること、`advance_bgm()`が`bgm_active`ゲートの下で両カーソルを同時に進めること(`freeze_bgm`は呼び出し元`sound_tick()`が両方に等しく効かせる)、`restart_bgm()`/`sound_stop_all()`が両ボイスを同時に復帰・停止させることを確認した。
+- `assets/music/stage{1,2,3}_bass.mml`の総durationを手計算で検証: Stage1メロディ8×15=120tick、ベース60+60=120tick。Stage2メロディ8×5=40tick、ベース20+20=40tick。Stage3メロディ18+9+18+9+12+12=78tick、ベース27+27+24=78tick。いずれも報告どおり完全一致(フェイズロック)しており、波形もベース側はtone/pulseのみでSFX的なnoise/metallicを避けていることを確認した。
+- GUI確認の補完: Dev Frontの環境でも`open -na /Applications/Gearlynx.app --args <ROM絶対パス>`で新規起動し、約27秒観察(CPU約8%で安定、クラッシュ・フリーズなし)。APS-020と同様、本環境にはScreen Recording/アクセシビリティ権限が無く画面キャプチャ・キー入力送出ができないため、目視・聴感確認はできなかった。確認後は起動したプロセスのみ終了させた(観察開始前から起動していた別のGearlynxプロセスは本検証と無関係のため触れていない)。
+- 判定: THOROUGH。コード・テスト・ハッシュ・ROMサイズ差分の独立再現はすべて報告と一致し、齟齬は無い。GUI目視・聴感確認のみ、AI実装環境の権限制約により未達のまま残る(実装の不備ではなく環境制約のため差し戻し不要)。ユーザー自身によるGearlynx GUIでの目視・聴感確認と、その結果に基づく3声化(channel D)要否の判断を推奨する。
+
 ### APS-022: MMLサウンドドライバ
 
 - 状態: 実装・全自動検証合格・コミット待ち(Fable、2026-08-07。ISSUES.md/design.md/.briefsはRyokoが検収時に追記)

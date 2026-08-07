@@ -13,10 +13,14 @@ ROM := dist/asteroid-patrol.lnx
 ROM_OBJECTS := build/main.o build/game.o build/sound.o build/music_data.o
 MUSIC_DATA := $(GEN_DIR)/music_data.c
 MUSIC_SOURCES := assets/music/stage1.mml assets/music/stage2.mml \
-	assets/music/stage3.mml
+	assets/music/stage3.mml assets/music/stage1_bass.mml \
+	assets/music/stage2_bass.mml assets/music/stage3_bass.mml
 MUSIC_TRACKS := stage_one=assets/music/stage1.mml \
 	stage_two=assets/music/stage2.mml \
-	stage_three=assets/music/stage3.mml
+	stage_three=assets/music/stage3.mml \
+	stage_one_bass=assets/music/stage1_bass.mml \
+	stage_two_bass=assets/music/stage2_bass.mml \
+	stage_three_bass=assets/music/stage3_bass.mml
 PERF_WORKLOAD_FRAMES := 5000000
 PERF_PAIR_COUNT := 7
 
