@@ -1,0 +1,5 @@
+; Stage 3 (cave) BGM - byte-identical MML port of the APS-020 table.
+; Sparse low motif with designed rests: 3 r 2 r 4 r.
+t18 o1 w1
+v18 e | r9 | v17 d | r9
+v16 w2 f12 | r12

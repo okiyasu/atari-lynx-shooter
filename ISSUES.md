@@ -4,6 +4,16 @@
 
 ## 課題台帳
 
+### APS-022: MMLサウンドドライバ
+
+- 状態: 実装・全自動検証合格・コミット待ち(Fable、2026-08-07。ISSUES.md/design.md/.briefsはRyokoが検収時に追記)
+- 優先度: 中
+- 基点: APS-021完了時点
+- 目的: BGMのステップテーブルをテキストのMML風表記から生成できるようにし、以後の作曲・曲差し替えをSoundStep配列の手書きなしで行えるようにする。
+- 実装: 新規ホスト専用ツールtools/mml2c.c(C89)がassets/music/*.mmlを読み、const SoundStep配列を持つCソース(build/gen/music_data.{h,c}、.gitignore対象で非コミット)を生成し、ROM/ホストテスト双方がリンクする。Lynx ROM側はランタイムパーサを持たない。assets/music/stage1〜3.mmlはAPS-020の既存BGM(音程・duration・volume・波形)をバイト単位で忠実に移植したもので、聴感は変化しない(tests/test_sound.cのtest_bgm_exact_mml_migrationで固定回帰)。
+- 検証: Ryokoが独立にmake clean && ./scripts/verify.shを実行し、ゲーム523件・サウンド152件PASS、cc65/LNXビルド成功、shell lint成功を確認。ROMはdist/asteroid-patrol.lnx 36,587 bytes、SHA-256 8d39d935599f91e6eae8c256397fb90144409a0b3809307381bf18dc12d1d7fb。
+- 残課題: タイトル画面用BGM・Stage2/3向けのより長い曲は未着手(スコープ外)。実機・Gearlynxでの聴感確認は未実施。
+
 ### APS-021: コード整理(重複排除)
 
 - 状態: 実装・全自動検証合格・コミット待ち(Fable、2026-08-07。ISSUES.md/design.md/.briefsはRyokoが検収時に追記)

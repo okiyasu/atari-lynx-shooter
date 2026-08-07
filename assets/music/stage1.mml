@@ -1,0 +1,5 @@
+; Stage 1 (space) BGM - byte-identical MML port of the APS-020 table.
+; Scale indices: o1 g=5 a=6, o2 d=9 e=10 g=12 a=13.
+t15 o1
+v17 w0 g  | v15 o2 d | v17 w3 g | v15 w0 d
+v17 o1 a  | v15 o2 e | v17 w3 a | v15 w0 e

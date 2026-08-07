@@ -6,10 +6,17 @@ CL65 := $(TOOLCHAIN_ROOT)/bin/cl65
 CC65_HOME := $(TOOLCHAIN_ROOT)/share/cc65
 export CC65_HOME
 HOST_CC ?= clang
-HOST_CFLAGS := -std=c89 -pedantic -Wall -Wextra -Werror -Iinclude
-ROM_CFLAGS := -t lynx -Oirs --standard cc65 -W error -Iinclude
+GEN_DIR := build/gen
+HOST_CFLAGS := -std=c89 -pedantic -Wall -Wextra -Werror -Iinclude -I$(GEN_DIR)
+ROM_CFLAGS := -t lynx -Oirs --standard cc65 -W error -Iinclude -I$(GEN_DIR)
 ROM := dist/asteroid-patrol.lnx
-ROM_OBJECTS := build/main.o build/game.o build/sound.o
+ROM_OBJECTS := build/main.o build/game.o build/sound.o build/music_data.o
+MUSIC_DATA := $(GEN_DIR)/music_data.c
+MUSIC_SOURCES := assets/music/stage1.mml assets/music/stage2.mml \
+	assets/music/stage3.mml
+MUSIC_TRACKS := stage_one=assets/music/stage1.mml \
+	stage_two=assets/music/stage2.mml \
+	stage_three=assets/music/stage3.mml
 PERF_WORKLOAD_FRAMES := 5000000
 PERF_PAIR_COUNT := 7
 
@@ -34,9 +41,21 @@ build/game.o: src/game.c include/game.h include/sound.h | toolchain
 	mkdir -p build
 	$(CL65) $(ROM_CFLAGS) -c -o $@ src/game.c
 
-build/sound.o: src/sound.c include/sound.h | toolchain
+build/sound.o: src/sound.c include/sound.h $(MUSIC_DATA) | toolchain
 	mkdir -p build
 	$(CL65) $(ROM_CFLAGS) -c -o $@ src/sound.c
+
+build/music_data.o: $(MUSIC_DATA) include/sound.h | toolchain
+	mkdir -p build
+	$(CL65) $(ROM_CFLAGS) -c -o $@ $(MUSIC_DATA)
+
+build/mml2c: tools/mml2c.c
+	mkdir -p build
+	$(HOST_CC) $(HOST_CFLAGS) -o $@ tools/mml2c.c
+
+$(MUSIC_DATA): build/mml2c $(MUSIC_SOURCES) include/sound.h
+	mkdir -p $(GEN_DIR)
+	./build/mml2c $(GEN_DIR)/music_data $(MUSIC_TRACKS)
 
 test: build/test-game build/test-sound
 	./build/test-game
@@ -72,40 +91,46 @@ perf-host: build/perf-bench build/perf-bench-legacy build/test-game-legacy
 smoke-gearlynx: $(ROM)
 	./scripts/smoke-gearlynx.sh $(ROM) build/asteroid-patrol.lbl
 
-build/test-game: tests/test_game.c src/game.c src/sound.c include/game.h \
-		include/sound.h
+build/test-game: tests/test_game.c src/game.c src/sound.c $(MUSIC_DATA) \
+		include/game.h include/sound.h
 	mkdir -p build
-	$(HOST_CC) $(HOST_CFLAGS) -o $@ tests/test_game.c src/game.c src/sound.c
+	$(HOST_CC) $(HOST_CFLAGS) -o $@ tests/test_game.c src/game.c src/sound.c \
+		$(MUSIC_DATA)
 
-build/test-game-legacy: tests/test_game.c src/game.c src/sound.c include/game.h \
-		include/sound.h
+build/test-game-legacy: tests/test_game.c src/game.c src/sound.c $(MUSIC_DATA) \
+		include/game.h include/sound.h
 	mkdir -p build
 	$(HOST_CC) $(HOST_CFLAGS) -DGAME_PERF_INSTRUMENT \
-		-DGAME_PERF_LEGACY_HIT_RESCAN -o $@ tests/test_game.c src/game.c src/sound.c
+		-DGAME_PERF_LEGACY_HIT_RESCAN -o $@ tests/test_game.c src/game.c \
+		src/sound.c $(MUSIC_DATA)
 
-build/test-sound: tests/test_sound.c src/sound.c include/sound.h
+build/test-sound: tests/test_sound.c src/sound.c $(MUSIC_DATA) include/sound.h
 	mkdir -p build
-	$(HOST_CC) $(HOST_CFLAGS) -o $@ tests/test_sound.c src/sound.c
+	$(HOST_CC) $(HOST_CFLAGS) -o $@ tests/test_sound.c src/sound.c $(MUSIC_DATA)
 
-build/test-smoke: tests/test_smoke.c src/game.c src/sound.c include/game.h \
-		include/sound.h
+build/test-smoke: tests/test_smoke.c src/game.c src/sound.c $(MUSIC_DATA) \
+		include/game.h include/sound.h
 	mkdir -p build
-	$(HOST_CC) $(HOST_CFLAGS) -o $@ tests/test_smoke.c src/game.c src/sound.c
+	$(HOST_CC) $(HOST_CFLAGS) -o $@ tests/test_smoke.c src/game.c src/sound.c \
+		$(MUSIC_DATA)
 
-build/perf-bench: tests/perf_bench.c src/game.c src/sound.c include/game.h \
-		include/sound.h
+build/perf-bench: tests/perf_bench.c src/game.c src/sound.c $(MUSIC_DATA) \
+		include/game.h include/sound.h
 	mkdir -p build
-	$(HOST_CC) $(HOST_CFLAGS) -O2 -DGAME_PERF_INSTRUMENT -o $@ tests/perf_bench.c src/game.c src/sound.c
+	$(HOST_CC) $(HOST_CFLAGS) -O2 -DGAME_PERF_INSTRUMENT -o $@ tests/perf_bench.c \
+		src/game.c src/sound.c $(MUSIC_DATA)
 
-build/perf-bench-legacy: tests/perf_bench.c src/game.c src/sound.c include/game.h \
-		include/sound.h
+build/perf-bench-legacy: tests/perf_bench.c src/game.c src/sound.c $(MUSIC_DATA) \
+		include/game.h include/sound.h
 	mkdir -p build
 	$(HOST_CC) $(HOST_CFLAGS) -O2 -DGAME_PERF_INSTRUMENT \
-		-DGAME_PERF_LEGACY_HIT_RESCAN -o $@ tests/perf_bench.c src/game.c src/sound.c
+		-DGAME_PERF_LEGACY_HIT_RESCAN -o $@ tests/perf_bench.c src/game.c \
+		src/sound.c $(MUSIC_DATA)
 
 lint: $(ROM_OBJECTS) | toolchain
 	mkdir -p build
 	$(HOST_CC) $(HOST_CFLAGS) -fsyntax-only src/game.c src/sound.c \
+		$(MUSIC_DATA) tools/mml2c.c \
 		tests/test_game.c tests/test_sound.c tests/test_smoke.c
 	sh -n scripts/*.sh
 

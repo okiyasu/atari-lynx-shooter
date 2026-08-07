@@ -1,0 +1,5 @@
+; Stage 2 (sky) BGM - byte-identical MML port of the APS-020 table.
+; Fast pulse arpeggio up and down: 7 9 11 13 15 13 11 9.
+t5 w3 o1
+v14 b | v15 o2 d | v16 f | v17 a
+v18 w1 o3 c | v16 w3 o2 a | v15 f | v14 d

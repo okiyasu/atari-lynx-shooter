@@ -284,6 +284,64 @@ static void test_freeze_pending_and_stops(void)
         "complete restart returns to stage one song head enabled with no SFX");
 }
 
+/* APS-022: the BGM tables are now compiled from the assets/music MML
+ * sources by mml2c. This regression pins every generated step to the exact
+ * APS-020 hand-written values, proving the MML migration is
+ * byte-identical and audibly unchanged. */
+static void test_bgm_exact_mml_migration(void)
+{
+    static const SoundStep expected_stage_one[8] = {
+        { 5u, 15u, 17u, SOUND_WAVE_TONE },
+        { 9u, 15u, 15u, SOUND_WAVE_TONE },
+        { 12u, 15u, 17u, SOUND_WAVE_PULSE },
+        { 9u, 15u, 15u, SOUND_WAVE_TONE },
+        { 6u, 15u, 17u, SOUND_WAVE_TONE },
+        { 10u, 15u, 15u, SOUND_WAVE_TONE },
+        { 13u, 15u, 17u, SOUND_WAVE_PULSE },
+        { 10u, 15u, 15u, SOUND_WAVE_TONE }
+    };
+    static const SoundStep expected_stage_two[8] = {
+        { 7u, 5u, 14u, SOUND_WAVE_PULSE },
+        { 9u, 5u, 15u, SOUND_WAVE_PULSE },
+        { 11u, 5u, 16u, SOUND_WAVE_PULSE },
+        { 13u, 5u, 17u, SOUND_WAVE_PULSE },
+        { 15u, 5u, 18u, SOUND_WAVE_METALLIC },
+        { 13u, 5u, 16u, SOUND_WAVE_PULSE },
+        { 11u, 5u, 15u, SOUND_WAVE_PULSE },
+        { 9u, 5u, 14u, SOUND_WAVE_PULSE }
+    };
+    static const SoundStep expected_stage_three[6] = {
+        { 3u, 18u, 18u, SOUND_WAVE_METALLIC },
+        { SOUND_NOTE_REST, 9u, 0u, SOUND_WAVE_TONE },
+        { 2u, 18u, 17u, SOUND_WAVE_METALLIC },
+        { SOUND_NOTE_REST, 9u, 0u, SOUND_WAVE_TONE },
+        { 4u, 12u, 16u, SOUND_WAVE_NOISE },
+        { SOUND_NOTE_REST, 12u, 0u, SOUND_WAVE_TONE }
+    };
+    static const SoundStep* const expected[SOUND_BGM_COUNT] = {
+        expected_stage_one, expected_stage_two, expected_stage_three
+    };
+    unsigned char bgm;
+    unsigned char i;
+
+    expect(sound_get_bgm_step_count(SOUND_BGM_STAGE_ONE) == 8u &&
+        sound_get_bgm_step_count(SOUND_BGM_STAGE_TWO) == 8u &&
+        sound_get_bgm_step_count(SOUND_BGM_STAGE_THREE) == 6u,
+        "MML-compiled BGM tracks keep the exact APS-020 step counts");
+    for (bgm = 0u; bgm < SOUND_BGM_COUNT; ++bgm) {
+        for (i = 0u; i < sound_get_bgm_step_count(bgm); ++i) {
+            const SoundStep* step;
+
+            step = sound_get_bgm_step(bgm, i);
+            expect(step->note == expected[bgm][i].note &&
+                step->duration == expected[bgm][i].duration &&
+                step->volume == expected[bgm][i].volume &&
+                step->wave == expected[bgm][i].wave,
+                "every MML-compiled BGM step is byte-identical to APS-020");
+        }
+    }
+}
+
 static void test_bgm_and_sfx_sound_together(void)
 {
     SoundState sound;
@@ -308,6 +366,7 @@ int main(void)
     test_bgm_start_loop_stage_and_rest();
     test_sfx_priority_retrigger_and_bgm_progress();
     test_freeze_pending_and_stops();
+    test_bgm_exact_mml_migration();
     test_bgm_and_sfx_sound_together();
     printf("PASS: %u sound logic checks\n", checks);
     return EXIT_SUCCESS;

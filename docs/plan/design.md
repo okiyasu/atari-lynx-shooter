@@ -171,4 +171,13 @@ APS-018でテンポ調整のため停止していたBGMシーケンサとBGM由�
 - src/main.cの背景スクロールは、3レイヤーで繰り返していた「分周カウンタを進めてピクセルオフセットを周期内でラップする」処理を1つの補助関数へまとめた。水平ラン描画(惑星地表、空/洞窟境界、ボス弾等)の画面クリップも共通のヘルパーへ集約した。
 - src/game.cの敵発射間隔enemy_fire_interval()は9分岐のif連鎖から、GAME_ENEMY_TYPE_*で添字付けした固定テーブル参照へ変更した。ボスステップ数などのマジックナンバーには名前付き定数を与えた。
 - src/sound.cのupdate_bgm_output()/update_sfx_output()も、ステップ値を論理出力へコピーする処理を共有ヘルパーset_step_output()へ統合した(この関数自体はAPS-022のコミットで導入している)。
+## APS-022 MMLサウンドドライバ
+
+BGMのステップテーブルを、テキストのMML風表記から生成する仕組みを追加した。
+
+- 新規ホスト専用ツールtools/mml2c.c(C89、動的確保・浮動小数なし)が、assets/music/*.mmlを読み、const SoundStep配列と対応するカウント定数を持つCソース(build/gen/music_data.{h,c})を生成する。Lynx ROMはランタイムのテキストパーサを持たず、生成済みの固定配列だけをリンクする。
+- MML言語は75Hzロジックtick単位のdurationを持つ簡易記法(t=既定長、v=音量、w=波形、o/>/<=オクターブ、c〜b=音階、n=直接インデックス、r=休符、;=コメント)。include/sound.hの16段階スケール・4波形(tone/metallic/noise/pulse)にそのまま対応する。
+- assets/music/stage1.mml〜stage3.mmlは、APS-020で確定した既存3ステージBGM(音程・duration・volume・波形)をそのままMML表記へ移植したもので、生成されるSoundStep列はAPS-020のハードコード値とバイト単位で一致する(tests/test_sound.cのtest_bgm_exact_mml_migrationで固定回帰する)。したがってこのコミットではBGMの聴感は変化しない。タイトル画面用BGMの新規追加はスコープ外。
+- Makefileはbuild/mml2cのビルドとbuild/gen/music_data.{h,c}の生成をROM/ホストテスト双方のビルド依存へ追加した。生成物はbuild/配下(.gitignore済み)でリポジトリにはコミットしない。
+- 今後新曲を追加する場合はassets/music/*.mmlを書き足すかテキストを差し替えるだけでよく、SoundStep配列を手で書く必要がなくなる。Stage 2/3用のより長い曲やタイトル曲への展開は本コミットのスコープ外。
 
