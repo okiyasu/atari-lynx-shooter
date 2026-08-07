@@ -41,18 +41,18 @@
 #define GAME_COLOR_WIND_ACTIVE 14u
 #define SCORE_DIGITS 5u
 
-#define SOUND_A_VOL (*(volatile unsigned char*)0xfd20u)
-#define SOUND_A_FEEDBACK (*(volatile unsigned char*)0xfd21u)
-#define SOUND_A_SHIFT_LOW (*(volatile unsigned char*)0xfd23u)
-#define SOUND_A_RELOAD (*(volatile unsigned char*)0xfd24u)
-#define SOUND_A_CONTROL_A (*(volatile unsigned char*)0xfd25u)
-#define SOUND_A_CONTROL_B (*(volatile unsigned char*)0xfd27u)
-#define SOUND_B_VOL (*(volatile unsigned char*)0xfd28u)
-#define SOUND_B_FEEDBACK (*(volatile unsigned char*)0xfd29u)
-#define SOUND_B_SHIFT_LOW (*(volatile unsigned char*)0xfd2bu)
-#define SOUND_B_RELOAD (*(volatile unsigned char*)0xfd2cu)
-#define SOUND_B_CONTROL_A (*(volatile unsigned char*)0xfd2du)
-#define SOUND_B_CONTROL_B (*(volatile unsigned char*)0xfd2fu)
+/* MIKEY audio channel register blocks (include/_mikey.h layout): eight
+ * registers per channel starting at 0xFD20 (channel A) and 0xFD28
+ * (channel B). Both channels share the same in-block offsets, so the
+ * backend addresses them as base pointer plus offset (APS-021). */
+#define SOUND_CHANNEL_A ((volatile unsigned char*)0xfd20u)
+#define SOUND_CHANNEL_B ((volatile unsigned char*)0xfd28u)
+#define SOUND_REG_VOL 0u
+#define SOUND_REG_FEEDBACK 1u
+#define SOUND_REG_SHIFT_LOW 3u
+#define SOUND_REG_RELOAD 4u
+#define SOUND_REG_CONTROL_A 5u
+#define SOUND_REG_CONTROL_B 7u
 #define SOUND_MASTER_STEREO (*(volatile unsigned char*)0xfd50u)
 #define SOUND_TIMER_ENABLE 0x18u
 
@@ -446,28 +446,34 @@ static const unsigned char falling_rock_masks[2][8] = {
     { 0x0cu, 0x3eu, 0x7fu, 0xffu, 0xbdu, 0x7eu, 0x38u, 0x10u }
 };
 
+static void sound_backend_silence_channel(volatile unsigned char* channel,
+    SoundHardwareState* hardware, unsigned char write_registers)
+{
+    if (write_registers != 0u) {
+        channel[SOUND_REG_VOL] = 0u;
+        channel[SOUND_REG_CONTROL_A] = 0u;
+    }
+    hardware->active = 0u;
+    hardware->note = SOUND_NOTE_REST;
+    hardware->volume = 0u;
+    hardware->wave = SOUND_WAVE_TONE;
+}
+
 static void sound_backend_init(void)
 {
     SOUND_MASTER_STEREO = 0u;
-    SOUND_A_VOL = 0u;
-    SOUND_A_CONTROL_A = 0u;
-    sound_hardware_bgm.active = 0u;
-    sound_hardware_bgm.note = SOUND_NOTE_REST;
-    sound_hardware_bgm.volume = 0u;
-    sound_hardware_bgm.wave = SOUND_WAVE_TONE;
-    SOUND_B_VOL = 0u;
-    SOUND_B_CONTROL_A = 0u;
-    sound_hardware_sfx.active = 0u;
-    sound_hardware_sfx.note = SOUND_NOTE_REST;
-    sound_hardware_sfx.volume = 0u;
-    sound_hardware_sfx.wave = SOUND_WAVE_TONE;
+    sound_backend_silence_channel(SOUND_CHANNEL_A, &sound_hardware_bgm, 1u);
+    sound_backend_silence_channel(SOUND_CHANNEL_B, &sound_hardware_sfx, 1u);
 }
 
-/* Applies the BGM logical output to MIKEY channel A. Kept as a literal
- * duplicate of sound_backend_apply_sfx (channel B) rather than a shared
- * helper, matching the register offsets and write ordering established for
- * channel A in APS-013. */
-static void sound_backend_apply_bgm(const SoundOutput* output)
+/* Applies one logical channel output to one MIKEY channel. Shared by
+ * BGM (channel A) and SFX (channel B) since APS-021: the previous
+ * per-channel duplicates used the same register offsets and the same
+ * APS-013 write ordering (control=0, shift-low, control-B, feedback,
+ * volume, reload, control=prescaler|enable; volume-only rewrite when
+ * just the volume changes), which this helper preserves verbatim. */
+static void sound_backend_apply(volatile unsigned char* channel,
+    SoundHardwareState* hardware, const SoundOutput* output)
 {
     const SoundPitchRegister* pitch;
     const SoundWaveRegister* wave;
@@ -475,81 +481,30 @@ static void sound_backend_apply_bgm(const SoundOutput* output)
     if (output->active == 0u || output->note == SOUND_NOTE_REST ||
         output->note > SOUND_NOTE_COUNT ||
         output->wave >= SOUND_WAVE_COUNT) {
-        if (sound_hardware_bgm.active != 0u) {
-            SOUND_A_VOL = 0u;
-            SOUND_A_CONTROL_A = 0u;
-        }
-        sound_hardware_bgm.active = 0u;
-        sound_hardware_bgm.note = SOUND_NOTE_REST;
-        sound_hardware_bgm.volume = 0u;
-        sound_hardware_bgm.wave = SOUND_WAVE_TONE;
+        sound_backend_silence_channel(channel, hardware, hardware->active);
         return;
     }
 
     pitch = &sound_pitch_registers[output->note - 1u];
     wave = &sound_wave_registers[output->wave];
-    if (sound_hardware_bgm.active == 0u ||
-        output->note != sound_hardware_bgm.note ||
-        output->wave != sound_hardware_bgm.wave) {
-        SOUND_A_CONTROL_A = 0u;
-        SOUND_A_SHIFT_LOW = wave->shift_low;
-        SOUND_A_CONTROL_B = wave->control_b;
-        SOUND_A_FEEDBACK = wave->feedback;
-        SOUND_A_VOL = output->volume;
-        SOUND_A_RELOAD = pitch->reload;
-        SOUND_A_CONTROL_A =
+    if (hardware->active == 0u ||
+        output->note != hardware->note ||
+        output->wave != hardware->wave) {
+        channel[SOUND_REG_CONTROL_A] = 0u;
+        channel[SOUND_REG_SHIFT_LOW] = wave->shift_low;
+        channel[SOUND_REG_CONTROL_B] = wave->control_b;
+        channel[SOUND_REG_FEEDBACK] = wave->feedback;
+        channel[SOUND_REG_VOL] = output->volume;
+        channel[SOUND_REG_RELOAD] = pitch->reload;
+        channel[SOUND_REG_CONTROL_A] =
             (unsigned char)(pitch->prescaler | SOUND_TIMER_ENABLE);
-    } else if (output->volume != sound_hardware_bgm.volume) {
-        SOUND_A_VOL = output->volume;
+    } else if (output->volume != hardware->volume) {
+        channel[SOUND_REG_VOL] = output->volume;
     }
-    sound_hardware_bgm.active = 1u;
-    sound_hardware_bgm.note = output->note;
-    sound_hardware_bgm.volume = output->volume;
-    sound_hardware_bgm.wave = output->wave;
-}
-
-/* Applies the SFX logical output to MIKEY channel B. Duplicate of
- * sound_backend_apply_bgm (channel A) using the channel B register block
- * (0xFD28-0xFD2F per include/_mikey.h) with the same write convention. */
-static void sound_backend_apply_sfx(const SoundOutput* output)
-{
-    const SoundPitchRegister* pitch;
-    const SoundWaveRegister* wave;
-
-    if (output->active == 0u || output->note == SOUND_NOTE_REST ||
-        output->note > SOUND_NOTE_COUNT ||
-        output->wave >= SOUND_WAVE_COUNT) {
-        if (sound_hardware_sfx.active != 0u) {
-            SOUND_B_VOL = 0u;
-            SOUND_B_CONTROL_A = 0u;
-        }
-        sound_hardware_sfx.active = 0u;
-        sound_hardware_sfx.note = SOUND_NOTE_REST;
-        sound_hardware_sfx.volume = 0u;
-        sound_hardware_sfx.wave = SOUND_WAVE_TONE;
-        return;
-    }
-
-    pitch = &sound_pitch_registers[output->note - 1u];
-    wave = &sound_wave_registers[output->wave];
-    if (sound_hardware_sfx.active == 0u ||
-        output->note != sound_hardware_sfx.note ||
-        output->wave != sound_hardware_sfx.wave) {
-        SOUND_B_CONTROL_A = 0u;
-        SOUND_B_SHIFT_LOW = wave->shift_low;
-        SOUND_B_CONTROL_B = wave->control_b;
-        SOUND_B_FEEDBACK = wave->feedback;
-        SOUND_B_VOL = output->volume;
-        SOUND_B_RELOAD = pitch->reload;
-        SOUND_B_CONTROL_A =
-            (unsigned char)(pitch->prescaler | SOUND_TIMER_ENABLE);
-    } else if (output->volume != sound_hardware_sfx.volume) {
-        SOUND_B_VOL = output->volume;
-    }
-    sound_hardware_sfx.active = 1u;
-    sound_hardware_sfx.note = output->note;
-    sound_hardware_sfx.volume = output->volume;
-    sound_hardware_sfx.wave = output->wave;
+    hardware->active = 1u;
+    hardware->note = output->note;
+    hardware->volume = output->volume;
+    hardware->wave = output->wave;
 }
 
 static unsigned char read_input(void)
@@ -607,14 +562,32 @@ static unsigned char scroll_x(unsigned char x, unsigned char offset)
     return (unsigned char)(GAME_SCREEN_WIDTH - (offset - x));
 }
 
+/* Screen-clipped one-pixel-high horizontal run. Shared clipping core
+ * for planet, sky/cave and boss run drawing (APS-021): those callers
+ * previously repeated the same clamp-and-bar sequence. */
+static void draw_clipped_hline(int x0, int x1, int y, unsigned char color)
+{
+    if (y < 0 || y >= (int)GAME_SCREEN_HEIGHT || x1 < 0 ||
+        x0 >= (int)GAME_SCREEN_WIDTH) {
+        return;
+    }
+    if (x0 < 0) {
+        x0 = 0;
+    }
+    if (x1 >= (int)GAME_SCREEN_WIDTH) {
+        x1 = (int)GAME_SCREEN_WIDTH - 1;
+    }
+    tgi_setcolor(color);
+    tgi_bar((unsigned int)x0, (unsigned int)y,
+        (unsigned int)x1, (unsigned int)y);
+}
+
 static void draw_planet(const GameState* game,
     const BackgroundTheme* theme)
 {
     unsigned char i;
     int draw_x;
     int draw_y;
-    int x0;
-    int x1;
 
     draw_x = (int)GAME_PLANET_BASE_X - (int)game->planet_offset;
     if (draw_x < -(int)GAME_PLANET_WIDTH) {
@@ -622,24 +595,12 @@ static void draw_planet(const GameState* game,
     }
     for (i = 0u; i < 32u; ++i) {
         draw_y = (int)GAME_PLANET_BASE_Y + (int)planet_runs[i].y;
-        if (draw_y < (int)GAME_HUD_HEIGHT ||
-            draw_y >= (int)GAME_SCREEN_HEIGHT) {
+        if (draw_y < (int)GAME_HUD_HEIGHT) {
             continue;
         }
-        x0 = draw_x + (int)planet_runs[i].x0;
-        x1 = draw_x + (int)planet_runs[i].x1;
-        if (x1 < 0 || x0 >= (int)GAME_SCREEN_WIDTH) {
-            continue;
-        }
-        if (x0 < 0) {
-            x0 = 0;
-        }
-        if (x1 >= (int)GAME_SCREEN_WIDTH) {
-            x1 = (int)GAME_SCREEN_WIDTH - 1;
-        }
-        tgi_setcolor(theme->planet_colors[planet_runs[i].palette_index]);
-        tgi_bar((unsigned int)x0, (unsigned int)draw_y,
-            (unsigned int)x1, (unsigned int)draw_y);
+        draw_clipped_hline(draw_x + (int)planet_runs[i].x0,
+            draw_x + (int)planet_runs[i].x1, draw_y,
+            theme->planet_colors[planet_runs[i].palette_index]);
     }
 }
 
@@ -670,26 +631,8 @@ static void draw_background(const GameState* game,
 static void draw_sky_run(int base_x, int base_y, const SkyRun* run,
     unsigned char color)
 {
-    int x0;
-    int x1;
-    int y;
-
-    x0 = base_x + (int)run->x0;
-    x1 = base_x + (int)run->x1;
-    y = base_y + (int)run->y;
-    if (y < 0 || y >= (int)GAME_SCREEN_HEIGHT || x1 < 0 ||
-        x0 >= (int)GAME_SCREEN_WIDTH) {
-        return;
-    }
-    if (x0 < 0) {
-        x0 = 0;
-    }
-    if (x1 >= (int)GAME_SCREEN_WIDTH) {
-        x1 = (int)GAME_SCREEN_WIDTH - 1;
-    }
-    tgi_setcolor(color);
-    tgi_bar((unsigned int)x0, (unsigned int)y,
-        (unsigned int)x1, (unsigned int)y);
+    draw_clipped_hline(base_x + (int)run->x0, base_x + (int)run->x1,
+        base_y + (int)run->y, color);
 }
 
 static void draw_mountains(const GameState* game,
@@ -827,27 +770,11 @@ static void format_score(unsigned long score, char* text)
 static void draw_clipped_boss_run(const GameBoss* boss,
     const BossRun* run)
 {
-    int x0;
-    int x1;
-    int y;
-
-    x0 = (int)boss->rect.x + (int)run->x0;
-    x1 = (int)boss->rect.x + (int)run->x1;
-    y = (int)boss->rect.y + (int)run->y;
-    if (y < 0 || y >= (int)GAME_SCREEN_HEIGHT ||
-        x1 < 0 || x0 >= (int)GAME_SCREEN_WIDTH) {
-        return;
-    }
-    if (x0 < 0) {
-        x0 = 0;
-    }
-    if (x1 >= (int)GAME_SCREEN_WIDTH) {
-        x1 = (int)GAME_SCREEN_WIDTH - 1;
-    }
-    tgi_setcolor(run->palette_index == 0u ?
-        GAME_COLOR_BOSS : GAME_COLOR_BOSS_DETAIL);
-    tgi_bar((unsigned int)x0, (unsigned int)y,
-        (unsigned int)x1, (unsigned int)y);
+    draw_clipped_hline((int)boss->rect.x + (int)run->x0,
+        (int)boss->rect.x + (int)run->x1,
+        (int)boss->rect.y + (int)run->y,
+        run->palette_index == 0u ?
+            GAME_COLOR_BOSS : GAME_COLOR_BOSS_DETAIL);
 }
 
 static void draw_common_boss(const GameBoss* boss)
@@ -871,53 +798,38 @@ static void draw_common_boss(const GameBoss* boss)
     tgi_bar(x1 - 3u, y0 + 2u, x1, y1 - 2u);
 }
 
-static void draw_space_fortress(const GameBoss* boss,
-    unsigned char animation_frame)
-{
-    const BossRun* runs;
-    unsigned char i;
+/* Two-frame run-sprite table for the named boss appearances (APS-021):
+ * replaces one identical draw function per appearance. Index is
+ * appearance_id - 1 (COMMON has no run sprite). */
+typedef struct BossSprite {
+    const BossRun* frames[2];
+    unsigned char run_count;
+} BossSprite;
 
-    runs = space_fortress_runs[animation_frame];
-    for (i = 0u; i < SPACE_FORTRESS_RUN_COUNT; ++i) {
-        draw_clipped_boss_run(boss, &runs[i]);
-    }
-}
-
-static void draw_air_carrier(const GameBoss* boss,
-    unsigned char animation_frame)
-{
-    const BossRun* runs;
-    unsigned char i;
-
-    runs = air_carrier_runs[animation_frame];
-    for (i = 0u; i < AIR_CARRIER_RUN_COUNT; ++i) {
-        draw_clipped_boss_run(boss, &runs[i]);
-    }
-}
-
-static void draw_rock_guardian(const GameBoss* boss,
-    unsigned char animation_frame)
-{
-    const BossRun* runs;
-    unsigned char i;
-
-    runs = rock_guardian_runs[animation_frame];
-    for (i = 0u; i < ROCK_GUARDIAN_RUN_COUNT; ++i) {
-        draw_clipped_boss_run(boss, &runs[i]);
-    }
-}
+static const BossSprite boss_sprites[GAME_BOSS_APPEARANCE_COUNT - 1u] = {
+    { { space_fortress_runs[0], space_fortress_runs[1] },
+        SPACE_FORTRESS_RUN_COUNT },
+    { { air_carrier_runs[0], air_carrier_runs[1] },
+        AIR_CARRIER_RUN_COUNT },
+    { { rock_guardian_runs[0], rock_guardian_runs[1] },
+        ROCK_GUARDIAN_RUN_COUNT }
+};
 
 static void draw_boss(const GameBoss* boss, unsigned char animation_frame)
 {
-    if (boss->appearance_id == GAME_BOSS_APPEARANCE_SPACE_FORTRESS) {
-        draw_space_fortress(boss, animation_frame);
-    } else if (boss->appearance_id == GAME_BOSS_APPEARANCE_AIR_CARRIER) {
-        draw_air_carrier(boss, animation_frame);
-    } else if (boss->appearance_id ==
-        GAME_BOSS_APPEARANCE_ROCK_GUARDIAN) {
-        draw_rock_guardian(boss, animation_frame);
-    } else {
+    const BossSprite* sprite;
+    const BossRun* runs;
+    unsigned char i;
+
+    if (boss->appearance_id == GAME_BOSS_APPEARANCE_COMMON ||
+        boss->appearance_id >= GAME_BOSS_APPEARANCE_COUNT) {
         draw_common_boss(boss);
+        return;
+    }
+    sprite = &boss_sprites[boss->appearance_id - 1u];
+    runs = sprite->frames[animation_frame];
+    for (i = 0u; i < sprite->run_count; ++i) {
+        draw_clipped_boss_run(boss, &runs[i]);
     }
 }
 
@@ -1291,8 +1203,10 @@ void main(void)
             game_update_logic(&game, input);
         }
         game_sound_tick(&game);
-        sound_backend_apply_bgm(&game.sound.output_bgm);
-        sound_backend_apply_sfx(&game.sound.output_sfx);
+        sound_backend_apply(SOUND_CHANNEL_A, &sound_hardware_bgm,
+            &game.sound.output_bgm);
+        sound_backend_apply(SOUND_CHANNEL_B, &sound_hardware_sfx,
+            &game.sound.output_sfx);
         draw_game(&game);
     }
 }

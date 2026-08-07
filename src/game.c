@@ -116,7 +116,9 @@ static const GameEnemyFormationConfig enemy_formation_configs[
         GAME_ENEMY_TYPE_MINING_DRONE, 16u }
 };
 
-static const GameBossStep boss_steps[7] = {
+#define BOSS_STEP_COUNT 7u
+
+static const GameBossStep boss_steps[BOSS_STEP_COUNT] = {
     { GAME_BOSS_SHOT_STRAIGHT, 120u, 20u, GAME_BOSS_MOVE_STILL },
     { GAME_BOSS_SHOT_FAN, 120u, 60u, GAME_BOSS_MOVE_STILL },
     { GAME_BOSS_SHOT_CANNON_CYCLE, 120u, 20u, GAME_BOSS_MOVE_VERTICAL },
@@ -233,7 +235,7 @@ const GameBossConfig* game_get_boss_config(unsigned char stage)
 
 const GameBossStep* game_get_boss_step(unsigned char index)
 {
-    if (index >= 7u) {
+    if (index >= BOSS_STEP_COUNT) {
         return (const GameBossStep*)0;
     }
     return &boss_steps[index];
@@ -316,33 +318,23 @@ static void clear_combat_objects(GameState* game)
     game->fire_cooldown = 0u;
 }
 
+/* Fire interval per enemy type (APS-021): replaces a nine-branch if
+ * chain with a table indexed by the contiguous GAME_ENEMY_TYPE_* ids.
+ * Out-of-range types keep the previous fall-through value. */
+static const unsigned char enemy_fire_intervals[GAME_ENEMY_TYPE_COUNT] = {
+    ENEMY_SCOUT_FIRE_INTERVAL, ENEMY_SAUCER_FIRE_INTERVAL,
+    ENEMY_DROPPER_FIRE_INTERVAL, ENEMY_FIGHTER_FIRE_INTERVAL,
+    ENEMY_BOMBER_FIRE_INTERVAL, ENEMY_SUPPLY_FIRE_INTERVAL,
+    ENEMY_CAVE_BAT_FIRE_INTERVAL, ENEMY_ROCK_WORM_FIRE_INTERVAL,
+    ENEMY_MINING_DRONE_FIRE_INTERVAL
+};
+
 static unsigned char enemy_fire_interval(unsigned char type)
 {
-    if (type == GAME_ENEMY_TYPE_SCOUT) {
-        return ENEMY_SCOUT_FIRE_INTERVAL;
+    if (type >= GAME_ENEMY_TYPE_COUNT) {
+        return ENEMY_MINING_DRONE_FIRE_INTERVAL;
     }
-    if (type == GAME_ENEMY_TYPE_SAUCER) {
-        return ENEMY_SAUCER_FIRE_INTERVAL;
-    }
-    if (type == GAME_ENEMY_TYPE_DROPPER) {
-        return ENEMY_DROPPER_FIRE_INTERVAL;
-    }
-    if (type == GAME_ENEMY_TYPE_FIGHTER) {
-        return ENEMY_FIGHTER_FIRE_INTERVAL;
-    }
-    if (type == GAME_ENEMY_TYPE_BOMBER) {
-        return ENEMY_BOMBER_FIRE_INTERVAL;
-    }
-    if (type == GAME_ENEMY_TYPE_SUPPLY) {
-        return ENEMY_SUPPLY_FIRE_INTERVAL;
-    }
-    if (type == GAME_ENEMY_TYPE_CAVE_BAT) {
-        return ENEMY_CAVE_BAT_FIRE_INTERVAL;
-    }
-    if (type == GAME_ENEMY_TYPE_ROCK_WORM) {
-        return ENEMY_ROCK_WORM_FIRE_INTERVAL;
-    }
-    return ENEMY_MINING_DRONE_FIRE_INTERVAL;
+    return enemy_fire_intervals[type];
 }
 
 static unsigned char enemy_drops_power(unsigned char type)
@@ -448,37 +440,32 @@ static void reset_background_scroll(GameState* game)
     game->near_star_counter = 0u;
 }
 
+/* One background scroll layer: advance its divider counter and wrap
+ * the pixel offset inside its period (APS-021): update_scrolling
+ * previously repeated this block for all three layers. */
+static void advance_scroll_layer(unsigned char* counter,
+    unsigned char interval, unsigned char* offset, unsigned char period)
+{
+    ++*counter;
+    if (*counter == interval) {
+        *counter = 0u;
+        if (*offset == (unsigned char)(period - 1u)) {
+            *offset = 0u;
+        } else {
+            ++*offset;
+        }
+    }
+}
+
 static void update_scrolling(GameState* game)
 {
-    ++game->planet_counter;
-    if (game->planet_counter == GAME_PLANET_SCROLL_INTERVAL) {
-        game->planet_counter = 0u;
-        if (game->planet_offset == GAME_PLANET_SCROLL_PERIOD - 1u) {
-            game->planet_offset = 0u;
-        } else {
-            ++game->planet_offset;
-        }
-    }
-
-    ++game->far_star_counter;
-    if (game->far_star_counter == FAR_STAR_INTERVAL) {
-        game->far_star_counter = 0u;
-        if (game->far_star_offset == GAME_SCREEN_WIDTH - 1u) {
-            game->far_star_offset = 0u;
-        } else {
-            ++game->far_star_offset;
-        }
-    }
-
-    ++game->near_star_counter;
-    if (game->near_star_counter == NEAR_STAR_INTERVAL) {
-        game->near_star_counter = 0u;
-        if (game->near_star_offset == GAME_SCREEN_WIDTH - 1u) {
-            game->near_star_offset = 0u;
-        } else {
-            ++game->near_star_offset;
-        }
-    }
+    advance_scroll_layer(&game->planet_counter,
+        GAME_PLANET_SCROLL_INTERVAL, &game->planet_offset,
+        GAME_PLANET_SCROLL_PERIOD);
+    advance_scroll_layer(&game->far_star_counter, FAR_STAR_INTERVAL,
+        &game->far_star_offset, GAME_SCREEN_WIDTH);
+    advance_scroll_layer(&game->near_star_counter, NEAR_STAR_INTERVAL,
+        &game->near_star_offset, GAME_SCREEN_WIDTH);
 
     ++game->animation_counter;
     if (game->animation_counter == ANIMATION_INTERVAL) {
@@ -1038,6 +1025,21 @@ unsigned char game_player_is_visible(const GameState* game)
     return (unsigned char)(((elapsed / 4u) % 2u) == 0u);
 }
 
+/* Moves one active player bullet one step to the right, deactivating it
+ * at the screen edge (APS-021): shared by the normal and boss bullet
+ * updates, which previously repeated this advance verbatim. Returns 0
+ * when the bullet left the screen. */
+static unsigned char advance_player_bullet(GameBullet* bullet)
+{
+    if (bullet->rect.x >
+        GAME_SCREEN_WIDTH - GAME_PLAYER_BULLET_WIDTH - BULLET_SPEED) {
+        bullet->active = 0u;
+        return 0u;
+    }
+    bullet->rect.x = (unsigned char)(bullet->rect.x + BULLET_SPEED);
+    return 1u;
+}
+
 static unsigned char update_player_bullets_normal(GameState* game,
     unsigned char* hit_enemies)
 {
@@ -1059,13 +1061,9 @@ static unsigned char update_player_bullets_normal(GameState* game,
         if (game->bullets[i].active == 0u) {
             continue;
         }
-        if (game->bullets[i].rect.x >
-            GAME_SCREEN_WIDTH - GAME_PLAYER_BULLET_WIDTH - BULLET_SPEED) {
-            game->bullets[i].active = 0u;
+        if (advance_player_bullet(&game->bullets[i]) == 0u) {
             continue;
         }
-        game->bullets[i].rect.x =
-            (unsigned char)(game->bullets[i].rect.x + BULLET_SPEED);
         for (j = 0u; j < GAME_MAX_ENEMIES; ++j) {
             GAME_PERF_COUNT(enemy_collision_slots);
             if (game->enemies[j].active != 0u &&
@@ -1456,13 +1454,9 @@ static unsigned char update_player_bullets_boss(GameState* game)
         if (game->bullets[i].active == 0u) {
             continue;
         }
-        if (game->bullets[i].rect.x >
-            GAME_SCREEN_WIDTH - GAME_PLAYER_BULLET_WIDTH - BULLET_SPEED) {
-            game->bullets[i].active = 0u;
+        if (advance_player_bullet(&game->bullets[i]) == 0u) {
             continue;
         }
-        game->bullets[i].rect.x =
-            (unsigned char)(game->bullets[i].rect.x + BULLET_SPEED);
         if (game->boss.active != 0u &&
             game_aabb_intersects(&game->bullets[i].rect,
                 &game->boss.rect) != 0u) {

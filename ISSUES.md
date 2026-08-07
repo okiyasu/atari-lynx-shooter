@@ -1,8 +1,18 @@
 # ISSUES
 
-最終更新: 2026-08-06
+最終更新: 2026-08-07
 
 ## 課題台帳
+
+### APS-021: コード整理(重複排除)
+
+- 状態: 実装・全自動検証合格・コミット待ち(Fable、2026-08-07。ISSUES.md/design.md/.briefsはRyokoが検収時に追記)
+- 優先度: 低
+- 基点: APS-020完了時点(477d924)
+- 目的: 外部から観測できる挙動(75Hz同期、5/4ロジックスケジューラ、ゲームプレイ、HUD、音)を変えずに、既知の重複コードを整理する。
+- 実装: src/main.cのsound_backend_apply_bgm()/sound_backend_apply_sfx()(APS-020で意図的に複製)をsound_backend_apply(channel, hardware, output)へ統合。背景スクロール3レイヤーの分周・ラップ処理と水平ラン描画のクリップ処理を共通ヘルパーへ集約。src/game.cのenemy_fire_interval()を9分岐if連鎖から固定テーブル参照へ変更。src/sound.cのBGM/SFX出力コピー処理をset_step_output()へ統合(この関数自体はAPS-022コミットで導入)。
+- 検証: make clean && ./scripts/verify.shで、ゲーム523件・サウンド152件PASS、cc65/LNXビルド成功、shell lint成功を確認(Ryoko独立実施)。
+- 残課題: なし。純粋な内部整理のため追加の実機確認は不要と判断。
 
 ### APS-020: BGM曲化・2ch復帰
 
