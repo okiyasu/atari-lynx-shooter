@@ -57,6 +57,11 @@
 #define SOUND_REG_CONTROL_B 7u
 #define SOUND_MASTER_STEREO (*(volatile unsigned char*)0xfd50u)
 #define SOUND_TIMER_ENABLE 0x18u
+/* APS-026: bit 5 of the control register switches the LFSR output from
+ * an instant +/-volume flip (sharp square wave, the "BEEP" timbre) to
+ * an accumulated ramp (acc += delta, clamped) that softens the
+ * waveform. Applied to every channel -- see sound_backend_apply. */
+#define SOUND_INTEGRATE_MODE 0x20u
 
 typedef struct Star {
     unsigned char x;
@@ -523,8 +528,8 @@ static void sound_backend_apply(volatile unsigned char* channel,
         channel[SOUND_REG_FEEDBACK] = wave->feedback;
         channel[SOUND_REG_VOL] = output->volume;
         channel[SOUND_REG_RELOAD] = pitch->reload;
-        channel[SOUND_REG_CONTROL_A] =
-            (unsigned char)(pitch->prescaler | SOUND_TIMER_ENABLE);
+        channel[SOUND_REG_CONTROL_A] = (unsigned char)(pitch->prescaler |
+            SOUND_TIMER_ENABLE | SOUND_INTEGRATE_MODE);
     } else if (output->volume != hardware->volume) {
         channel[SOUND_REG_VOL] = output->volume;
     }

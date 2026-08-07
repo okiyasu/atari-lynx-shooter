@@ -135,15 +135,69 @@ static void set_silent_output(SoundOutput* output)
     output->wave = SOUND_WAVE_TONE;
 }
 
+/* APS-026: derives this tick's volume from the step's base volume plus
+ * how far the step has progressed, so a held note attacks up to its
+ * base volume over its first ~20% of ticks, then decays to ~70% of
+ * base over the rest -- instead of holding one flat volume for the
+ * whole duration. `remaining` is ticks-left-inclusive-of-this-tick (as
+ * tracked by the step cursor), so elapsed = duration - remaining is
+ * 0 on the step's first tick. Pitch, wave and duration are untouched;
+ * only the volume written to hardware changes per tick. */
+static unsigned char envelope_volume(unsigned char base,
+    unsigned char remaining, unsigned char duration)
+{
+    unsigned char elapsed;
+    unsigned char attack_len;
+    unsigned char decay_len;
+    unsigned char decay_pos;
+    unsigned int floor_vol;
+    unsigned int vol;
+
+    if (duration <= 1u || base == 0u) {
+        return base;
+    }
+    elapsed = (unsigned char)(duration - remaining);
+    attack_len = (unsigned char)(duration / 5u);
+    if (attack_len == 0u) {
+        attack_len = 1u;
+    }
+    if (attack_len >= duration) {
+        attack_len = (unsigned char)(duration - 1u);
+    }
+    if (elapsed < attack_len) {
+        vol = ((unsigned int)base * (unsigned int)(elapsed + 1u)) /
+            attack_len;
+    } else {
+        decay_len = (unsigned char)(duration - attack_len);
+        decay_pos = (unsigned char)(elapsed - attack_len);
+        floor_vol = ((unsigned int)base * 7u) / 10u;
+        if (decay_len <= 1u) {
+            vol = base;
+        } else {
+            vol = (unsigned int)base - ((((unsigned int)base - floor_vol) *
+                decay_pos) / (unsigned int)(decay_len - 1u));
+        }
+    }
+    if (vol == 0u) {
+        vol = 1u;
+    }
+    if (vol > base) {
+        vol = base;
+    }
+    return (unsigned char)vol;
+}
+
 /* Shared logical-output projection used by both channels (APS-021):
  * the previous update_bgm_output/update_sfx_output pair duplicated
  * this step-to-output copy verbatim. */
-static void set_step_output(SoundOutput* output, const SoundStep* step)
+static void set_step_output(SoundOutput* output, const SoundStep* step,
+    unsigned char remaining)
 {
     output->active = (unsigned char)(step->note != SOUND_NOTE_REST &&
         step->volume != 0u);
     output->note = step->note;
-    output->volume = step->volume;
+    output->volume = envelope_volume(step->volume, remaining,
+        step->duration);
     output->wave = step->wave;
 }
 
@@ -190,7 +244,8 @@ static void update_music_outputs(SoundState* sound)
         if (sound->bgm_active == 0u) {
             set_silent_output(ref.output);
         } else {
-            set_step_output(ref.output, &ref.sequence->steps[*ref.step]);
+            set_step_output(ref.output, &ref.sequence->steps[*ref.step],
+                *ref.remaining);
         }
     }
 }
@@ -202,7 +257,8 @@ static void update_sfx_output(SoundState* sound)
         return;
     }
     set_step_output(&sound->output_sfx,
-        &sfx_sequences[sound->sfx_id].steps[sound->sfx_step]);
+        &sfx_sequences[sound->sfx_id].steps[sound->sfx_step],
+        sound->sfx_remaining);
 }
 
 /* APS-023: advances every music voice cursor on the shared bgm_active

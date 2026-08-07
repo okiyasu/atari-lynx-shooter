@@ -1,8 +1,30 @@
 # ISSUES
 
-最終更新: 2026-08-07(APS-024)
+最終更新: 2026-08-07(APS-026)
 
 ## 課題台帳
+
+### APS-026: MIKEY integrateモード+音量エンベロープによる音色改善
+
+- 状態: 実装完了・レビュー待ち(Dev、2026-08-07)
+- 優先度: 中
+- 起票日: 2026-08-07
+- 基点: `69ce256`(APS-024完了時点のHEAD)。worktree `aps-026-timbre`(branch `feature/aps-026-timbre`)で作業。着手前`git status --short`はクリーン。
+- 目的: APS-024の「きらきら星」差し替え後もユーザーから「BEEP音のまま」とフィードバック。APS-025の`scripts/verify-audio-gearlynx.py`でピッチ進行自体は正しいと確認済みで、RyokoがGearlynxソース(`mikey_inline.h`)を調査した結果、原因は(1)MIKEY制御レジスタのintegrateビット(0x20)未使用による鋭い矩形波、(2)音符にアタック/ディケイが無く音量が固定、の2点と判明した。
+- スコープ: MIKEY integrateモードの有効化と簡易音量エンベロープの追加のみ。SFXの優先度・上書き規則、75Hz同期、5/4ロジックスケジューラ、既存BGM/SFXデータ(音程・duration)は変更しない。
+
+#### APS-026実装実績(Dev、2026-08-07)
+
+- 変更ファイル: `src/main.c`(`SOUND_INTEGRATE_MODE`定義追加、`sound_backend_apply()`の制御レジスタ書込みへOR)、`src/sound.c`(`envelope_volume()`新規、`set_step_output()`のシグネチャ変更と2箇所の呼び出し更新)、`ISSUES.md`(本項)、`.briefs/APS-026/v001.md`(新規、実施記録)。`include/sound.h`・音楽データ(`assets/music/*.mml`、`music_data`生成物)・テストデータテーブルは無変更。
+- integrateモード: `sound_backend_apply()`の制御レジスタ完全書込み分岐で`pitch->prescaler | SOUND_TIMER_ENABLE | SOUND_INTEGRATE_MODE`を書き込むよう変更。**全チャンネル(BGM melody=A、BGM bass=C、SFX=B)で一律有効化**した。3チャンネル共通の1関数(APS-021で汎用化済み)であり、音色の要不要を分ける仕組みが元々無いため。
+- 音量エンベロープ: `SoundStep`構造体は変更せず、`sound_tick()`側(`set_step_output()`経由)でステップ経過tick数から動的に`output->volume`を計算する方式を採用(既存データ構造・テーブルへの影響を避けるため)。最初の`duration/5`tick(最低1tick)で0→base、残りで base→70%baseへ線形減衰。`duration<=1`または`base==0`はenvelope無効(既存挙動のまま)。
+- 検証結果(すべて終了コード0):
+  - `make clean && ./scripts/verify.sh`: ゲーム524件PASS(無変更)、サウンド279件PASS(無変更、`step->volume`の生データを検査するテストはenvelope適用前のテーブル値をそのまま検査しているため期待値更新は不要だった)。cc65 2.19 `-W error`コンパイル・リンク、LNX検査すべて成功。
+  - `scripts/verify-audio-gearlynx.py`(および同スクリプトのヘルパーを使った直接ポーリング)で`get_mikey_audio`のレジスタ生値を確認: 制御レジスタ(channel A `FD25`/channel C `FD35`)が`0x3B`(`=0x20|0x18|0x03`、integrateビット確認)、音量レジスタ(`FD20`/`FD30`)が0.15秒間隔ポーリングで固定値ではなく音符ごとに立ち上がり・減衰していることを確認(例: channel A `0F→0E→0D→0C→05→0B→11→...`)。ピッチ変化(`backup`レジスタ)も複数観測でき演奏継続を確認。
+- ROM成果物: `dist/asteroid-patrol.lnx`、SHA-256 `293dcb08a0550549bfd174151214eb5eb30a1a6e0e74a4246987fe011196e4e3`。
+- 設計との差分: なし。ブリーフ通り全チャンネル一律のintegrateモードと、`sound_tick()`側の動的volume計算方式(SoundStep非拡張)を選択した。
+- 未確認事項: 実際の聴感評価(「BEEP感が軽減されたか」)はユーザーが行う。今回の検証はレジスタ値の機械的確認まで。
+- コミット・push・他ブランチへの操作は実施していない(作業ツリーに変更を残している)。
 
 ### APS-025: Gearlynx MCPサーバーを使った自動音声検証ツール
 
