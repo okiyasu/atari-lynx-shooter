@@ -37,7 +37,7 @@ $(ROM): $(ROM_OBJECTS) | toolchain
 	mkdir -p dist build
 	$(CL65) -t lynx -m build/asteroid-patrol.map -Ln build/asteroid-patrol.lbl -o $@ $(ROM_OBJECTS)
 
-build/main.o: src/main.c include/game.h include/sound.h | toolchain
+build/main.o: src/main.c include/game.h include/sound.h include/version.h | toolchain
 	mkdir -p build
 	$(CL65) $(ROM_CFLAGS) -c -o $@ src/main.c
 

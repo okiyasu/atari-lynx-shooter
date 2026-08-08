@@ -1,8 +1,62 @@
 # ISSUES
 
-最終更新: 2026-08-07(APS-026)
+最終更新: 2026-08-08(APS-027)
 
 ## 課題台帳
+
+### APS-027: 「ブー」音の根本修正(DC平衡LFSRタップ再選定)+タイトル画面バージョン表示
+
+- 状態: 実装完了・レビュー待ち(2026-08-08)
+- 優先度: 高
+- 起票日: 2026-08-08
+- 基点: `f655b78`(APS-026完了時点のHEAD)。worktree `atari-lynx-shooter-aps027-wt`(detached)で作業。
+- 目的: APS-026(integrateビット全チャンネル一律有効化+音量エンベロープ)に対しユーザーから「和らいでいない。ブー、という音」とフィードバック。レジスタレベルでは意図通り(control=0x3B、volume減衰)だったため、Gearlynxの`AdvanceLFSR()`実装を基に原理から原因を調査した。
+
+#### 「ブー」音の技術的原因(調査で確定)
+
+MIKEYのintegrateモード(control bit5)は、タイマーunderflowごとに出力レジスタへ`±volume`を**累積**する(`acc += data_in ? +vol : -vol`、-128〜+127へクランプ。Gearlynx `mikey_inline.h` `AdvanceLFSR()`)。累積が発散しないためには、LFSRが出力するビット列の1周期内の1と0の個数が**等しい(DC平衡)**必要がある。ところがAPS-013由来の`sound_wave_registers`は非integrate前提で選ばれており、全波形が不平衡だった(`scripts/sim-mikey-lfsr.py`によるGearlynx互換シミュレーションで確認):
+
+| 波形 | feedback/shift_low | 周期 | 1の数-0の数 | integrate時のクランプ張り付き率 |
+|---|---|---|---|---|
+| TONE | 0x3f/0xac | 7 tick | -1 | 42.7% |
+| METALLIC | 0x36/0x5a | 63 tick | -1 | 17.4% |
+| NOISE | 0x1f/0x7f | 6 tick | +4 | 83.2% |
+| PULSE | 0x24/0xb4 | 9 tick | +1 | 33.2% |
+
+不平衡が1でも、underflowごとに`±volume`ずつ一方向へドリフトするため、音符開始から数十tick(数ms〜数十ms)で累積器が-128/+127のレールに到達して張り付く。以後の出力は「レール上の小さなリップル+周期ごとの大きな段差」に退化し、聴感上は低く歪んだ唸り(=「ブー」)になる。音量エンベロープ(0x11→0x05)はレール付近のリップル幅を変えるだけでほぼ聞こえない。GearlynxのMCP経由で旧ROMのoutputレジスタを直接読み、実機挙動でも張り付きを裏付けた(下記検証)。
+
+#### 採用した対策
+
+1. **integrateを波形ごとの属性に変更**(`SoundWaveRegister.integrate`)。全チャンネル一律のOR(APS-026)を廃止。
+2. **TONE/PULSEをDC平衡パターンへ再選定**。単一タップk+下位k+1ビット均一シードのLFSRはtwisted ring counterに退化し、「1がk+1個→0がk+1個」の完全平衡列を恒久的に出力する。integrateと組み合わせると振幅`(k+1)*volume`のクリーンな**三角波**になる(NESの三角波チャンネルに相当する柔らかい音色。ドリフトゼロ、クランプ率0%をシミュレーションで確認):
+   - TONE: `feedback=0x04`(tap2)/`shift_low=0x07` → 周期6三角波(旧矩形周期7 → 一律約+2.7半音の移調。旋律の音程関係は不変)
+   - PULSE: `feedback=0x08`(tap3)/`shift_low=0x0f` → 周期8三角波(旧周期9 → 一律約+2半音)
+3. **METALLIC/NOISEはintegrate非適用のままAPS-013値を維持**。両者の不平衡な擬似ランダム列をintegrateすると上記ドローンが再現する上、硬い音色はSFX・アクセントとして意図的なため。
+4. **outputレジスタ(offset 2)を音符セットアップ時とサイレンス時に0へリセット**(`SOUND_REG_OUTPUT`新設)。integrate累積器が前の音符/SFXの残留値から開始してクランプへ押し出されるのを防ぎ、チャンネル無効時に残留値がDCとしてミックスされ続けるのも解消。
+5. 音量エンベロープ(APS-026)は維持。三角波では振幅が`(k+1)*volume`でvolumeに線形比例するため、エンベロープが初めて聴感に反映される。
+6. 最大音量でもクランプ非到達を確認: TONE最大vol27→振幅81、PULSE最大vol30→振幅120(<127)。
+
+#### タイトル画面バージョン表示(同スコープの追加要件)
+
+- `include/version.h`を新規作成し`#define GAME_VERSION_STRING "0.27.0"`を単一定義とした。
+- `src/main.c`がincludeし、タイトル画面のみ`tgi_outtextxy(52u, 90u, "V" GAME_VERSION_STRING)`で操作説明の下に表示(160x102内、Gearlynxスクリーンショットで目視確認)。ゲームロジック・入力・HUD・表示タイミングは不変。
+- `Makefile`の`build/main.o`依存へ`include/version.h`を追加。
+
+#### 検証(2026-08-08)
+
+- `make clean && ./scripts/verify.sh`: `PASS: 524 game logic checks` / `PASS: 279 sound logic checks`、clang C89構文検査・cc65ビルド・リンク・`LNX header OK`(38,198 bytes)すべて成功。
+- `scripts/verify-audio-gearlynx.py --seconds 8 --channel 0`: 3回のピッチ変化(`0xFA→0xB8→0xAC`)、`--seconds 30 --channel 2`: 2ピッチ(`0xFA→0xC6`)でAPS-025/026と同一の演奏進行を確認(headless実行はポーリングにより実時間より大幅に遅い既知挙動)。
+- `scripts/verify-audio-output-acc.py`(新規、outputレジスタ=integrate累積器を直接サンプリング):
+  - 新ROM channel 0: feedback=0x04/control=0x3B、output範囲-45〜+35、**レール(-128/127)到達0%**、レベルがエンベロープに追従して多段変化。
+  - 新ROM channel 2: feedback=0x04/control=0x3B、範囲-25〜+23、レール到達0%。
+  - (比較)main側distの旧ROM(APS-026以前のビルド): control=0x1B(integrate無し)、output=±17の2値のみ=「BEEP」時代の生矩形波を実測。
+- ROM: `dist/asteroid-patrol.lnx` SHA-256 `9f24edf18bb9df6590eba8618fcdc5eddb5cbe6e583a4e6c8a5af99119f7a3d7`
+
+#### 残課題
+
+- **最終的な聴感評価はユーザーが行う**(三角波化で「ブー」が消え「BEEP」より柔らかくなる原理的根拠はあるが、音の良し悪しの判定は人間の領分)。
+- TONE/PULSEの一律移調(+2.7/+2半音)により、Stage 3でw0ベース(移調)とw1メロディ(非移調)の相対チューニングが約2.7半音ずれる。w1は非調和的なmetallic音色のため実害は小さい見込みだが、聴感確認対象。
+- 詳細な調査過程(試して捨てた案を含む)は`.briefs/APS-027/v001.md`参照。
 
 ### APS-026: MIKEY integrateモード+音量エンベロープによる音色改善
 

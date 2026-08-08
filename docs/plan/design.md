@@ -204,3 +204,21 @@ BGMのステップテーブルを、テキストのMML風表記から生成す�
 - 3声目(channel D)の追加は「`SoundState`へカーソル/出力フィールド追加+`music_voice()`に1分岐+`music_sequence_tables`/`sound_channel_map`に1行+カウント2箇所の更新」で済む構造になった(channel D自体の実装は引き続きスコープ外)。
 - `tools/mml2c.c`は元よりトラック数非依存(`MAX_TRACKS=8`)で多声化による重複が生じていないため変更していない。
 - このリファクタによるROMサイズ増は+175 bytes(37,276 → 37,451 bytes)。ヘルパー抽出とループ化に伴うコード生成の差分で、データ(曲テーブル)は不変。
+
+## APS-026/027 音色設計(integrateモードとDC平衡LFSR)
+
+APS-024の「きらきら星」差し替え後も「BEEP音のまま」、APS-026(integrateビット全チャンネル一律有効化+音量エンベロープ)後は「ブー、という唸り音」とユーザー評価が続いた。APS-027でGearlynx(`mikey_inline.h`の`AdvanceLFSR()`)を基に原理を確定し、音色設計を次のとおり改めた。
+
+MIKEYのintegrateモード(controlレジスタbit5)は波形を滑らかにするフィルタではなく、タイマーunderflowごとに出力レジスタへ`±volume`を累積する(±127/-128でクランプ)累積器である。したがってintegrateが成立する必要十分条件は、LFSR出力ビット列の1周期内の1と0の個数が等しいこと(DC平衡)。APS-013由来の4波形はすべて不平衡(TONE -1/7、METALLIC -1/63、NOISE +4/6、PULSE +1/9)で、integrate下では累積器が数十tickでクランプ端に張り付き、低く歪んだドローン(=「ブー」)へ退化していた(`scripts/sim-mikey-lfsr.py`によるシミュレーションと、`scripts/verify-audio-output-acc.py`によるGearlynx実測の両方で確認)。
+
+APS-027の設計:
+
+- integrateは波形ごとの属性(`SoundWaveRegister.integrate`)とし、DC平衡な波形だけが立てる。
+- TONEは`feedback=0x04`(tap2のみ)+`shift_low=0x07`、PULSEは`feedback=0x08`(tap3のみ)+`shift_low=0x0f`。単一タップkと下位k+1ビット均一シードの組はtwisted ring counter(1がk+1個→0がk+1個の完全平衡列)へ退化し、integrateと合わせて振幅`(k+1)*volume`のクリーンな三角波になる。旧矩形波の周期(7/9)から周期6/8への変更に伴い、一律+2.7/+2半音の移調が生じる(旋律内の音程関係は不変。曲データ・音程表は無変更)。タップはfeedback bits0-5のみを使う(bits6-7のtap10/11とcontrol bit7のtap7は、本作が初期化しないLFSR上位ビットを読むため使用しない)。
+- METALLIC/NOISEはAPS-013の擬似ランダムパターンのまま非integrate。不平衡列のintegrateはドローンを再現するため。硬い音色はSFXアクセントとして意図的に残す。
+- フル再設定時とサイレンス時に出力レジスタ(offset 2、`SOUND_REG_OUTPUT`)を0へ書く。integrate累積器の残留レベルの持ち越しと、無効チャンネルの残留出力がDCとしてミックスされ続けることを防ぐ。APS-013の「OUT/DACへ触れない」制約はこの目的に限り明示的に緩和する(任意波形PCM再生には引き続き使わない)。
+- 音量エンベロープ(APS-026、`duration/5`tickで立ち上がり→70%へ減衰)は維持。三角波では振幅がvolumeに線形比例するため、エンベロープが初めて聴感へ反映される。
+
+タイトル画面には`include/version.h`の`GAME_VERSION_STRING`(単一定義)を`"V" GAME_VERSION_STRING`として操作説明の下(x=52, y=90)に常時表示する。表示はタイトルフェーズのみで、ゲームロジック・入力・HUD・表示タイミングへは影響しない。
+
+聴感の最終評価はユーザーの領分として残す(機械検証は「クランプ張り付きゼロの三角波が出ている」ことまで)。

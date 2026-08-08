@@ -4,6 +4,7 @@
 #include <tgi.h>
 
 #include "game.h"
+#include "version.h"
 
 #define GAME_COLOR_BLACK 0u
 #define GAME_COLOR_WHITE 15u
@@ -51,16 +52,25 @@
 #define SOUND_CHANNEL_C ((volatile unsigned char*)0xfd30u)
 #define SOUND_REG_VOL 0u
 #define SOUND_REG_FEEDBACK 1u
+#define SOUND_REG_OUTPUT 2u
 #define SOUND_REG_SHIFT_LOW 3u
 #define SOUND_REG_RELOAD 4u
 #define SOUND_REG_CONTROL_A 5u
 #define SOUND_REG_CONTROL_B 7u
 #define SOUND_MASTER_STEREO (*(volatile unsigned char*)0xfd50u)
 #define SOUND_TIMER_ENABLE 0x18u
-/* APS-026: bit 5 of the control register switches the LFSR output from
- * an instant +/-volume flip (sharp square wave, the "BEEP" timbre) to
- * an accumulated ramp (acc += delta, clamped) that softens the
- * waveform. Applied to every channel -- see sound_backend_apply. */
+/* Bit 5 of the control register switches the LFSR output from an
+ * instant +/-volume flip (sharp square wave, the "BEEP" timbre) to an
+ * accumulator (acc += +/-volume per underflow, clamped to -128..127).
+ * APS-026 applied it to every channel while keeping the APS-013 LFSR
+ * patterns; those patterns emit unequal counts of 1s and 0s per cycle
+ * (e.g. tone: 3 ones vs 4 zeros every 7 ticks), so the accumulator
+ * drifted to the -128/+127 rail within milliseconds and pinned there,
+ * degenerating the output into a low clipped drone (the reported
+ * "buzz"). APS-027 therefore makes integrate a per-wave property
+ * (SoundWaveRegister.integrate): only waves whose LFSR cycle is
+ * DC-balanced (equal 1s and 0s -- see the table below) may set it,
+ * which turns them into clean triangle waves instead. */
 #define SOUND_INTEGRATE_MODE 0x20u
 
 typedef struct Star {
@@ -109,6 +119,10 @@ typedef struct SoundWaveRegister {
     unsigned char feedback;
     unsigned char shift_low;
     unsigned char control_b;
+    /* 0 or SOUND_INTEGRATE_MODE, ORed into control A (APS-027). Only
+     * safe on waves whose LFSR cycle is DC-balanced; see the table
+     * comment below. */
+    unsigned char integrate;
 } SoundWaveRegister;
 
 typedef struct SoundHardwareState {
@@ -125,11 +139,29 @@ static const SoundPitchRegister sound_pitch_registers[SOUND_NOTE_COUNT] = {
     { 0xdeu, 2u }, { 0xd2u, 2u }, { 0xc7u, 2u }, { 0xbcu, 2u }
 };
 
+/* APS-027 retune. MIKEY's LFSR inserts XNOR(selected taps) each timer
+ * underflow; a single tap k with the low k+1 shift bits seeded uniform
+ * degenerates into a twisted ring counter emitting k+1 ones then k+1
+ * zeros forever (verified against Gearlynx AdvanceLFSR by
+ * scripts/sim-mikey-lfsr.py). Such a cycle is DC-balanced, so with the
+ * integrate bit set the channel outputs a clean triangle wave of
+ * amplitude (k+1)*volume with zero net drift -- the volume envelope
+ * (APS-026) then audibly scales the triangle instead of vanishing into
+ * the clamp rail.
+ *   TONE:  tap 2, seed 0b111  -> 111000 cycle, triangle period 6
+ *          (previous square cycle period was 7: uniform ~+2.7
+ *          semitone transposition, melody intervals unchanged)
+ *   PULSE: tap 3, seed 0b1111 -> 11110000 cycle, triangle period 8
+ *          (previous cycle period was 9: uniform ~+2 semitones)
+ * METALLIC and NOISE keep their APS-013 pseudo-random patterns and
+ * stay in non-integrate mode: their cycles are imbalanced (-1/63 and
+ * +4/6 per period), so integrating them recreates the rail-pinned
+ * drone, and their harsh character is intentional for SFX accents. */
 static const SoundWaveRegister sound_wave_registers[SOUND_WAVE_COUNT] = {
-    { 0x3fu, 0xacu, 0u },
-    { 0x36u, 0x5au, 0u },
-    { 0x1fu, 0x7fu, 0u },
-    { 0x24u, 0xb4u, 0u }
+    { 0x04u, 0x07u, 0u, SOUND_INTEGRATE_MODE },
+    { 0x36u, 0x5au, 0u, 0u },
+    { 0x1fu, 0x7fu, 0u, 0u },
+    { 0x08u, 0x0fu, 0u, SOUND_INTEGRATE_MODE }
 };
 
 static SoundHardwareState sound_hardware_bgm;
@@ -480,6 +512,10 @@ static void sound_backend_silence_channel(volatile unsigned char* channel,
     if (write_registers != 0u) {
         channel[SOUND_REG_VOL] = 0u;
         channel[SOUND_REG_CONTROL_A] = 0u;
+        /* APS-027: also clear the output accumulator. In integrate
+         * mode it holds the last accumulated level, and a disabled
+         * channel keeps mixing its output register as a DC offset. */
+        channel[SOUND_REG_OUTPUT] = 0u;
     }
     hardware->active = 0u;
     hardware->note = SOUND_NOTE_REST;
@@ -526,10 +562,14 @@ static void sound_backend_apply(volatile unsigned char* channel,
         channel[SOUND_REG_SHIFT_LOW] = wave->shift_low;
         channel[SOUND_REG_CONTROL_B] = wave->control_b;
         channel[SOUND_REG_FEEDBACK] = wave->feedback;
+        /* APS-027: restart the integrate accumulator from zero so a
+         * level carried over from the previous note/SFX cannot push
+         * the new note's triangle into the +/-128 clamp. */
+        channel[SOUND_REG_OUTPUT] = 0u;
         channel[SOUND_REG_VOL] = output->volume;
         channel[SOUND_REG_RELOAD] = pitch->reload;
         channel[SOUND_REG_CONTROL_A] = (unsigned char)(pitch->prescaler |
-            SOUND_TIMER_ENABLE | SOUND_INTEGRATE_MODE);
+            SOUND_TIMER_ENABLE | wave->integrate);
     } else if (output->volume != hardware->volume) {
         channel[SOUND_REG_VOL] = output->volume;
     }
@@ -1130,6 +1170,7 @@ static void draw_game(const GameState* game)
         tgi_outtextxy(32u, 42u, "A/B TO START");
         tgi_outtextxy(28u, 62u, "ARROWS: MOVE");
         tgi_outtextxy(36u, 74u, "A/B: FIRE");
+        tgi_outtextxy(52u, 90u, "V" GAME_VERSION_STRING);
         tgi_updatedisplay();
         return;
     }
