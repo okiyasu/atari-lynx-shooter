@@ -57,8 +57,11 @@ typedef struct SoundState {
 
 void sound_init(SoundState* sound);
 void sound_set_stage(SoundState* sound, unsigned char stage);
+void sound_stop_bgm(SoundState* sound);
 void sound_stop_all(SoundState* sound);
 void sound_request_sfx(SoundState* sound, unsigned char sfx_id);
+unsigned char sound_sfx_is_active(const SoundState* sound,
+    unsigned char sfx_id);
 void sound_tick(SoundState* sound, unsigned char freeze_bgm);
 const SoundStep* sound_get_bgm_step(unsigned char bgm_id,
     unsigned char step);

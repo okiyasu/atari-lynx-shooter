@@ -145,10 +145,89 @@ static void test_sequence_tables(void)
         sound_get_sfx_priority(SOUND_SFX_COUNT) == 0u,
         "SFX metadata rejects none and out-of-range IDs");
     expect(sound_get_sfx_length(SOUND_SFX_PLAYER_EXPLOSION) <= 32u,
-        "player explosion fits inside all 32 death updates");
+        "player explosion remains a bounded short SFX");
+    expect(sound_get_sfx_length(SOUND_SFX_PLAYER_EXPLOSION) == 17u &&
+        sound_get_sfx_step_count(SOUND_SFX_PLAYER_EXPLOSION) == 4u &&
+        sound_get_sfx_step(SOUND_SFX_PLAYER_EXPLOSION, 0u)->wave ==
+            SOUND_WAVE_METALLIC &&
+        sound_get_sfx_step(SOUND_SFX_PLAYER_EXPLOSION, 1u)->wave ==
+            SOUND_WAVE_NOISE &&
+        sound_get_sfx_step(SOUND_SFX_PLAYER_EXPLOSION, 2u)->wave ==
+            SOUND_WAVE_NOISE &&
+        sound_get_sfx_step(SOUND_SFX_PLAYER_EXPLOSION, 3u)->wave ==
+            SOUND_WAVE_NOISE &&
+        sound_get_sfx_step(SOUND_SFX_PLAYER_EXPLOSION, 0u)->volume >
+            sound_get_sfx_step(SOUND_SFX_PLAYER_EXPLOSION, 1u)->volume &&
+        sound_get_sfx_step(SOUND_SFX_PLAYER_EXPLOSION, 1u)->volume >
+            sound_get_sfx_step(SOUND_SFX_PLAYER_EXPLOSION, 2u)->volume &&
+        sound_get_sfx_step(SOUND_SFX_PLAYER_EXPLOSION, 2u)->volume >
+            sound_get_sfx_step(SOUND_SFX_PLAYER_EXPLOSION, 3u)->volume,
+        "player explosion is a short noise-dominant descending contour");
     expect(sound_get_sfx_length(SOUND_SFX_BOSS_DEFEAT) +
             sound_get_sfx_length(SOUND_SFX_STAGE_CLEAR) < 120u,
         "boss defeat and deferred clear chain completes inside clear phase");
+}
+
+static void test_non_player_sfx_remain_byte_exact(void)
+{
+    static const SoundStep shot[2] = {
+        { 15u, 4u, 28u, SOUND_WAVE_PULSE },
+        { 12u, 4u, 22u, SOUND_WAVE_PULSE }
+    };
+    static const SoundStep enemy_defeat[3] = {
+        { 12u, 4u, 28u, SOUND_WAVE_METALLIC },
+        { 8u, 4u, 24u, SOUND_WAVE_NOISE },
+        { 4u, 4u, 18u, SOUND_WAVE_NOISE }
+    };
+    static const SoundStep power_up[3] = {
+        { 8u, 5u, 22u, SOUND_WAVE_TONE },
+        { 12u, 5u, 25u, SOUND_WAVE_TONE },
+        { 16u, 5u, 28u, SOUND_WAVE_PULSE }
+    };
+    static const SoundStep warning[4] = {
+        { 7u, 8u, 26u, SOUND_WAVE_METALLIC },
+        { 10u, 8u, 28u, SOUND_WAVE_METALLIC },
+        { 7u, 8u, 26u, SOUND_WAVE_METALLIC },
+        { 10u, 8u, 28u, SOUND_WAVE_METALLIC }
+    };
+    static const SoundStep stage_clear[3] = {
+        { 8u, 12u, 24u, SOUND_WAVE_TONE },
+        { 12u, 12u, 27u, SOUND_WAVE_TONE },
+        { 16u, 12u, 30u, SOUND_WAVE_PULSE }
+    };
+    static const SoundStep boss_defeat[4] = {
+        { 16u, 12u, 31u, SOUND_WAVE_METALLIC },
+        { 12u, 12u, 29u, SOUND_WAVE_NOISE },
+        { 8u, 12u, 26u, SOUND_WAVE_NOISE },
+        { 4u, 12u, 22u, SOUND_WAVE_NOISE }
+    };
+    static const SoundStep* const expected[6] = {
+        shot, enemy_defeat, power_up, warning, stage_clear, boss_defeat
+    };
+    static const unsigned char ids[6] = {
+        SOUND_SFX_SHOT, SOUND_SFX_ENEMY_DEFEAT, SOUND_SFX_POWER_UP,
+        SOUND_SFX_WARNING, SOUND_SFX_STAGE_CLEAR, SOUND_SFX_BOSS_DEFEAT
+    };
+    static const unsigned char counts[6] = { 2u, 3u, 3u, 4u, 3u, 4u };
+    unsigned char sequence;
+    unsigned char step_index;
+
+    for (sequence = 0u; sequence < 6u; ++sequence) {
+        expect(sound_get_sfx_step_count(ids[sequence]) == counts[sequence],
+            "every non-player SFX retains its exact fixed step count");
+        for (step_index = 0u; step_index < counts[sequence]; ++step_index) {
+            const SoundStep* actual;
+            const SoundStep* pinned;
+
+            actual = sound_get_sfx_step(ids[sequence], step_index);
+            pinned = &expected[sequence][step_index];
+            expect(actual->note == pinned->note &&
+                actual->duration == pinned->duration &&
+                actual->volume == pinned->volume &&
+                actual->wave == pinned->wave,
+                "every non-player SFX step remains byte-identical");
+        }
+    }
 }
 
 static void test_bgm_start_loop_stage_and_rest(void)
@@ -239,24 +318,41 @@ static void test_freeze_pending_and_stops(void)
     unsigned char frozen_remaining;
 
     sound_init(&sound);
-    advance_sound(&sound, 7u, 0u);
+    advance_sound(&sound, 2u, 0u);
     frozen_step = sound.bgm_step;
     frozen_remaining = sound.bgm_remaining;
     sound_request_sfx(&sound, SOUND_SFX_PLAYER_EXPLOSION);
-    advance_sound(&sound, 31u, 1u);
+    expect(sound_sfx_is_active(&sound,
+        SOUND_SFX_PLAYER_EXPLOSION) != 0u &&
+        sound_sfx_is_active(&sound, SOUND_SFX_SHOT) == 0u,
+        "SFX state query identifies only the active explosion");
+    advance_sound(&sound,
+        sound_get_sfx_length(SOUND_SFX_PLAYER_EXPLOSION) - 1u, 1u);
     expect(sound.bgm_active != 0u && sound.bgm_step == frozen_step &&
         sound.bgm_remaining == frozen_remaining &&
         sound.sfx_id == SOUND_SFX_PLAYER_EXPLOSION,
-        "first 31 death updates freeze the BGM cursor while explosion SFX progresses");
+        "BGM cursor stays frozen until the explosion's final sound tick");
     sound_tick(&sound, 1u);
-    expect(sound.sfx_id == SOUND_SFX_NONE &&
+    expect(sound_sfx_is_active(&sound,
+            SOUND_SFX_PLAYER_EXPLOSION) == 0u &&
         sound.bgm_step == frozen_step &&
         sound.bgm_remaining == frozen_remaining,
-        "death update 32 finishes the explosion SFX with the BGM cursor still frozen");
+        "explosion completion is observable while the BGM cursor remains frozen");
     sound_tick(&sound, 0u);
     expect(sound.output_bgm.active != 0u &&
-        sound.bgm_remaining == (unsigned char)(frozen_remaining - 1u),
-        "post-respawn update thaws the BGM cursor and resumes its progress");
+        sound.bgm_remaining == (unsigned char)(frozen_remaining - 4u),
+        "post-respawn update thaws the BGM cursor at four duration ticks per sound tick");
+
+    sound_init(&sound);
+    sound_request_sfx(&sound, SOUND_SFX_SHOT);
+    sound_stop_bgm(&sound);
+    expect(sound.bgm_active == 0u && sound.output_bgm.active == 0u &&
+        sound.output_bgm_bass.active == 0u &&
+        sound_sfx_is_active(&sound, SOUND_SFX_SHOT) != 0u,
+        "BGM-only stop silences both music voices without clearing SFX");
+    sound_tick(&sound, 1u);
+    expect(sound.sfx_remaining == 3u,
+        "BGM-only stop still allows the active SFX cursor to advance once");
 
     sound_init(&sound);
     sound_request_sfx(&sound, SOUND_SFX_BOSS_DEFEAT);
@@ -407,16 +503,48 @@ static void test_bgm_and_sfx_sound_together(void)
     unsigned char bgm_remaining_before;
 
     sound_init(&sound);
-    advance_sound(&sound, 3u, 0u);
+    advance_sound(&sound, 2u, 0u);
     bgm_remaining_before = sound.bgm_remaining;
     sound_request_sfx(&sound, SOUND_SFX_SHOT);
     expect(sound.output_bgm.active != 0u && sound.output_sfx.active != 0u,
         "requesting an SFX no longer overwrites the independently active BGM output");
     advance_sound(&sound, 1u, 0u);
     expect(sound.bgm_remaining ==
-            (unsigned char)(bgm_remaining_before - 1u) &&
+            (unsigned char)(bgm_remaining_before - 4u) &&
         sound.sfx_step == 0u && sound.sfx_remaining == 3u,
-        "BGM keeps advancing on its own 75Hz schedule while SFX plays concurrently");
+        "one 75Hz sound tick advances BGM four times but concurrent SFX only once");
+}
+
+static void test_bgm_quadruple_speed_freeze_and_loop_phase(void)
+{
+    SoundState sound;
+    unsigned char bgm;
+
+    sound_set_stage(&sound, 2u);
+    sound_request_sfx(&sound, SOUND_SFX_SHOT);
+    sound_tick(&sound, 0u);
+    expect(sound.bgm_step == 0u && sound.bgm_remaining == 1u &&
+        sound.bass_step == 0u && sound.bass_remaining == 16u &&
+        sound.sfx_step == 0u && sound.sfx_remaining == 3u,
+        "one sound tick consumes four melody and bass duration ticks but one SFX duration tick");
+
+    sound_tick(&sound, 1u);
+    expect(sound.bgm_step == 0u && sound.bgm_remaining == 1u &&
+        sound.bass_step == 0u && sound.bass_remaining == 16u &&
+        sound.sfx_step == 0u && sound.sfx_remaining == 2u,
+        "freeze holds both BGM voices while the SFX still consumes one duration tick");
+
+    for (bgm = 0u; bgm < SOUND_BGM_COUNT; ++bgm) {
+        sound_set_stage(&sound, (unsigned char)(bgm + 1u));
+        expect((bgm_length(bgm) % 2u) == 0u,
+            "every BGM supports an integral two-loop phase check at quadruple speed");
+        advance_sound(&sound, bgm_length(bgm) / 2u, 0u);
+        expect(sound.bgm_step == 0u &&
+            sound.bgm_remaining == sound_get_bgm_step(bgm, 0u)->duration &&
+            sound.bass_step == 0u && sound.bass_remaining ==
+                sound_get_bgm_bass_step(bgm, 0u)->duration,
+            "quadruple-speed melody and bass return to step zero together after two phase-locked loops");
+    }
 }
 
 /* APS-023: MIKEY channel C carries a second bassline voice, compiled
@@ -518,17 +646,18 @@ static void test_bass_syncs_with_bgm_start_freeze_stage_and_stop(void)
         "sound init enables the stage one bassline at its head alongside the melody");
 
     stage_one_length = bgm_length(SOUND_BGM_STAGE_ONE);
-    advance_sound(&sound, stage_one_length, 0u);
+    advance_sound(&sound, stage_one_length / 2u, 0u);
     expect(sound.bgm_step == 0u && sound.bass_step == 0u,
-        "melody and bass both wrap back to step zero after one full phase-locked loop");
+        "melody and bass both wrap after two quadruple-speed phase-locked loops");
 
-    advance_sound(&sound, 7u, 0u);
+    advance_sound(&sound, 2u, 0u);
     frozen_bgm_step = sound.bgm_step;
     frozen_bgm_remaining = sound.bgm_remaining;
     frozen_bass_step = sound.bass_step;
     frozen_bass_remaining = sound.bass_remaining;
     sound_request_sfx(&sound, SOUND_SFX_PLAYER_EXPLOSION);
-    advance_sound(&sound, 31u, 1u);
+    advance_sound(&sound,
+        sound_get_sfx_length(SOUND_SFX_PLAYER_EXPLOSION) - 1u, 1u);
     expect(sound.bgm_step == frozen_bgm_step &&
         sound.bgm_remaining == frozen_bgm_remaining &&
         sound.bass_step == frozen_bass_step &&
@@ -537,11 +666,15 @@ static void test_bass_syncs_with_bgm_start_freeze_stage_and_stop(void)
     sound_tick(&sound, 1u);
     expect(sound.bass_step == frozen_bass_step &&
         sound.bass_remaining == frozen_bass_remaining,
-        "death update 32 still holds the bass cursor while the explosion SFX finishes");
+        "the explosion's final sound tick still holds the bass cursor");
     sound_tick(&sound, 0u);
-    expect(sound.bass_remaining ==
-            (unsigned char)(frozen_bass_remaining - 1u),
-        "post-respawn update thaws the bass cursor and resumes its progress");
+    expect(sound.bgm_step == frozen_bgm_step &&
+        sound.bgm_remaining ==
+            (unsigned char)(frozen_bgm_remaining - 4u) &&
+        sound.bass_step == frozen_bass_step &&
+        sound.bass_remaining ==
+            (unsigned char)(frozen_bass_remaining - 4u),
+        "post-respawn update thaws both BGM voices at four duration ticks per sound tick");
 
     sound_set_stage(&sound, 2u);
     expect(sound.bass_step == 0u &&
@@ -562,11 +695,13 @@ static void test_bass_syncs_with_bgm_start_freeze_stage_and_stop(void)
 int main(void)
 {
     test_sequence_tables();
+    test_non_player_sfx_remain_byte_exact();
     test_bgm_start_loop_stage_and_rest();
     test_sfx_priority_retrigger_and_bgm_progress();
     test_freeze_pending_and_stops();
     test_bgm_exact_mml_migration();
     test_bgm_and_sfx_sound_together();
+    test_bgm_quadruple_speed_freeze_and_loop_phase();
     test_bass_tables_bounds_and_phase_lock();
     test_bass_exact_mml_compile();
     test_bass_syncs_with_bgm_start_freeze_stage_and_stop();

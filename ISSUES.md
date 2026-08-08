@@ -1,8 +1,70 @@
 # ISSUES
 
-最終更新: 2026-08-08(APS-027)
+最終更新: 2026-08-08(APS-030最終要件実装・検証完了)
 
 ## 課題台帳
+
+### APS-030: 全体4倍速化・自機爆発SE完了同期
+
+- 状態: 最終要件実装・検証完了（Dev、2026-08-08。コミット・pushなし）
+- 優先度: 高
+- 基点: APS-029の未コミット`0.29.0`作業ツリー。APS-029の変更(75Hz描画・入力1回/描画・ロジック2回/描画=150Hz)をそのまま保全する。
+- 目的: ユーザーの「音楽テンポも倍」「敵を含む全体を約2倍速」要望のうち、APS-029で未対応だったBGMメロディ/ベースの演奏進行だけを75Hz実時間比2.00倍へ変更する。敵を含むゲームロジックはAPS-029で既に150Hz化済みであり、本課題では再変更しない。
+- 設計判断: `sound_tick()`は描画フレームごと1回のまま、BGMの共有`advance_music()`だけを非freeze時に1 tickあたり2回進める。出力投影は従来どおりフレームごと1回、SFXの`advance_sfx()`は従来どおり1回に固定する。これによりMMLの`SoundStep.duration`・ベースデータ・SFX長を変更せず、メロディとベースを同じBGM専用2倍進行に載せ、BGM loopの実時間だけを半分にする。
+- 保全条件: `game_sound_tick()`/`sound_tick()`の呼出回数、75Hz描画/入力、APS-029の150Hzロジック、SFX duration・優先度・保留CLEAR、死亡中`freeze_bgm`、stage切替、`sound_stop_all()`を維持する。ユーザー確認済みの低音ベース無音化によるプー音対策は別問題であり、`assets/music/*_bass.mml`、ベース音色、音量、休符、durationを一切変更しない。
+- 完了条件: BGM専用2倍進行を最小差分で実装し、メロディ/ベースのphase lock、freeze中は両方不進行でSFXだけ1 tick進行、stage切替/stop_allの既存規則、SFX長不変を回帰テストで保証する。`include/version.h`を`0.30.0`へ更新し、`make clean && ./scripts/verify.sh`、ASan/UBSan、`git diff --check`、LNX検査、ROM SHA-256、Gearlynxの既存機械確認を実行・記録する。コミット・push・stash操作は禁止。
+
+#### APS-030 最終要件(v002)
+
+- ユーザー確認済みの`0.30.0`に対し、ゲームロジックをさらに2倍、すなわち75Hz描画ごとに4回・300Hz（基準75Hz比4.00倍）へ変更する。描画75Hz、入力1回/描画、`game_sound_tick()`/SFX tick 1回/描画は維持する。
+- BGMメロディ/ベースは基準テンポ比4.00倍とする。MMLデータは変更せず、`sound_tick()`1回の非freeze時にBGM共有カーソルだけ4回進める。SFXカーソルは1回だけ進め、全SFXの長さ・優先度・保留規則を維持する。
+- 自機撃墜SFXだけを短いnoise主体・減衰する爆発音へ変更する。他SFX、低音ベースのnote/wave/volume/rest/duration、プー音対策は変更しない。
+- 自機死亡開始時にBGMを停止し、死亡中は爆発SFXだけを進める。非最終ライフのプレイヤー復帰・敵/弾更新再開は固定32ロジック更新ではなく、実際の`SOUND_SFX_PLAYER_EXPLOSION`完了を条件にする。完了後に現StageのBGMを曲頭から再開する。最終ライフは爆発SFX完了後にGAME OVERへ遷移し、BGMを再開しない。
+- 300Hzの性能は`make perf-host`（75描画/300ロジック/75音tickの実測）とGearlynxヘッドレス/MCPの起動・BGM継続確認で検査する。実機CPU負荷・GUI実プレイのFPS/難易度は測定不能なら未確認として明記する。
+
+#### APS-030 v001暫定実装・検証結果
+
+- 実装: `src/sound.c`に`MUSIC_ADVANCES_PER_SOUND_TICK=2`を追加し、`sound_tick()`の論理出力投影は1回、非freeze時の共有`advance_music()`は2回、`advance_sfx()`は1回の構成へ変更。メロディとベースは同じ共有進行ループに維持。`sound_tick()`/`game_sound_tick()`呼出回数、MML/SFXテーブル、ゲームロジック、MIKEYバックエンドは無変更。
+- 回帰: `tests/test_sound.c`で1 sound tickあたりメロディ/ベース各2 duration tick・SFX 1 tick、freeze中のBGM両voice停止とSFX 1 tick進行、全3曲が元loop長の半分の描画フレームで同時にstep 0へ復帰、stage切替/stop_allを検証。`tests/test_game.c`で75描画フレーム=150ロジック更新・75 sound tick・150 BGM duration進行を統合確認。`include/version.h`は`0.30.0`、README/designはBGM専用2倍・SFX 75Hzへ整合。
+- 自動検証: 最終状態の`make clean && ./scripts/verify.sh`は終了コード0（ゲーム521件、サウンド287件、clang厳格C89/warnings-as-errors、cc65 2.19 `-W error`、shell lint、LNX検査）。ASan/UBSan付きゲーム521件・サウンド287件・スモーク7件、`make smoke-host`（7件）、`git diff --check`も終了コード0。
+- ROM: `make rom`成功。`./scripts/inspect-lnx.sh dist/asteroid-patrol.lnx`: `LNX header OK: magic=LYNX version=1 bank0_page=1024 bank1_page=0 size=38340 bytes`。SHA-256: `078e0851c8bc158e1b598c107bf3ea5d1bb781cbe46310780069234c482c01f0`。
+- Gearlynx: `python3 scripts/verify-audio-gearlynx.py --seconds 8 --channel 0`は4音程変化でPASS。指定どおりの`--seconds 8 --channel 2`は先頭ベース音だけを観測して閾値未達（既知のheadless実時間遅延とStage 1ベース先頭duration 135のため）。補完の`--seconds 20 --channel 2`では8.45秒時点に2音目へ変化してPASSし、channel Cが無音・固着していないことを確認。テンポの聴感・Atari Lynx実機音質は未確認。
+- 保全確認: APS-029由来の`include/game.h`・README/design/test_game差分を保全。APS-030では変更禁止の`include/game.h`、`src/game.c`、`src/main.c`、`tests/perf_bench.c`、`assets/music/*.mml`、生成音楽データ、SFXテーブルを変更していない。コミット・push・stash操作なし。
+
+#### APS-030 v002最終実装・検証結果
+
+- 速度・BGM: `include/game.h`を`4/1`へ更新し、75Hz描画ごとに4ロジック更新（300Hz、基準75Hz比4.00倍）へ変更。`src/sound.c`の`MUSIC_ADVANCES_PER_SOUND_TICK=4`により、出力投影とSFXカーソルは1回/描画のまま、非死亡時の共有BGMカーソル（メロディ/ベース）だけ4回進める。MML・生成音楽データ・低音ベースのnote/wave/volume/rest/durationは無変更。
+- 爆発・同期: 自機爆発SFXだけをmetallic 2 tick + noise 4/5/6 tick、音量31→27→21→13の短いnoise主体減衰コンター（合計17 sound tick）へ変更。`sound_stop_bgm()`で死亡開始時にメロディ/ベースだけを即時停止し、`sound_sfx_is_active()`で爆発SFXの実完了を判定する。活動中は300Hzロジックでも死亡状態を維持し、`explosion_timer`は描画配列保護のため31で飽和するが復帰条件には使わない。非最終ライフは完了後に現Stage BGMを曲頭から再開、最終ライフはBGMを再開せずGAME OVERへ遷移する。
+- 回帰: `tests/test_game.c`で75描画=300ロジック/75 sound tick/300 BGM duration、4/1実行中の爆発未完了時の復帰禁止、完了後の非最終再出撃・現Stage BGM曲頭復帰、最終GAME OVER・BGM非復帰、戦闘/環境凍結、爆発表示index飽和を検証。`tests/test_sound.c`でBGM4進行/SFX1進行、メロディ/ベースphase lock、BGM単独停止、SFX状態API、爆発17 tickのnoise主体減衰、他6種SFX全ステップのバイト同値を固定回帰。`include/version.h`は`0.31.0`。
+- 自動検証: 最終コード状態の`make clean && ./scripts/verify.sh`は終了コード0（ゲーム534件、サウンド316件、clang厳格C89/warnings-as-errors、cc65 2.19 `-W error`、shell lint、LNX検査）。ASan/UBSan付きゲーム534件・サウンド316件・スモーク7件、`make smoke-host`（7件）、`git diff --check`も終了コード0。
+- 性能計測: `make perf-host`終了コード0。`--sync`: `elapsed_us=1002247`、75描画/300ロジック/75音tick、`logic_hz=299.33`、`game_speed_x=1.00`。`--unthrottled`: 3,121,032描画/12,484,128ロジック/3,121,032音tick。固定5,000,000描画は20,000,000ロジック/5,000,000音tick（最終通常経路`elapsed_us=1509948`）。ホスト計測でありLynx実機FPS/CPU負荷の根拠にはしない。
+- ROM: `make rom`成功。`./scripts/inspect-lnx.sh dist/asteroid-patrol.lnx`: `LNX header OK: magic=LYNX version=1 bank0_page=1024 bank1_page=0 size=38553 bytes`。SHA-256: `54d1b06d2ccdc3920264e858d265763c8eeb68328501e1c66ac1ed317f666022`。
+- Gearlynx: `make smoke-gearlynx`はヘッドレスROM起動とdebug monitor待受を確認し、入力/stateプロトコル不在のため仕様どおり終了コード3 `UNVERIFIED`（make終了コード2）。`python3 scripts/verify-audio-gearlynx.py --seconds 8 --channel 0`は6音程変化、`--seconds 20 --channel 2`は3音程変化でPASSし、メロディ/ベースの継続演奏を確認。headless計測は実時間進行が通常プレイと異なるため、BGM4倍・爆発音の聴感を保証しない。
+- 保全確認: 差分は`ISSUES.md`、`README.md`、`docs/plan/design.md`、`include/game.h`、`include/sound.h`、`include/version.h`、`src/game.c`、`src/sound.c`、`tests/test_game.c`、`tests/test_sound.c`。`src/main.c`、`tests/perf_bench.c`、`assets/music/*.mml`、`tools/mml2c.c`、生成音楽データ、他6種SFX、MIKEYバックエンドは無変更。コミット・push・stash・reset・checkout、BIOS/外部ROM/素材操作なし。
+- 未確認: Atari Lynx実機のCPU負荷・FPS・入力追従・音質、Gearlynx GUIでの実プレイ難易度、BGM4倍と爆発音の聴感。
+
+### APS-029: 75Hz表示を維持したゲームロジックの2倍速化
+
+- 状態: 検証完了（Dev、2026-08-08。コミット・pushなし）
+- 優先度: 高
+- 基点: `b1236ad`(APS-028完了時点のmain)。起票時の作業ツリーはクリーン。
+- 目的: ユーザーの「BGMが遅い」「ゲーム全体の動きを2倍くらいの速さにして」というフィードバックに対し、BGM/SFXのテンポと75Hz描画・入力サンプリングを変えず、ゲーム内ロジック(移動、当たり判定、AI、進行、クールダウン等)だけを基準75Hz比で2.00倍へ変更する。BGMの曲データ・duration値は本課題の変更対象外。
+- 設計判断: 現行`5/4`(4描画フレームで`1,1,1,2`更新、93.75Hz)から、`2/1`(各描画フレームで必ず`2`更新、150Hz)へ変更する。これは基準75Hz比で厳密に2.00倍、現行比で1.60倍であり、剰余の変動が無く入力を同一フレーム内の2更新にだけ再利用する決定的な方式である。`5/2`(187.5Hz、基準比2.50倍・現行比2倍)は「約2倍」を超え難易度変化が大きすぎるため不採用。`7/4`/`9/4`等の分数は約1.75/2.25倍で余剰更新のフレーム偏りを持ち、2.00倍を正確に満たさないため不採用。`8/4`は2.00倍だが`2/1`と等価で不要に複雑なため不採用。
+- 保全条件: `tgi_setframerate(75u)`、`tgi_busy()`待機、描画/`tgi_updatedisplay()`、入力取得、`game_sound_tick()`、MIKEY反映を各描画フレームで1回だけに保つ。追加ロジック更新へ音tickを載せず、BGM/SFXのduration・テンポ・優先度・停止/凍結規則を変えない。浮動小数、動的確保、外部ライブラリ、BIOS/ROM/素材、stashへの操作を禁止する。
+- バランス上の注意: ロジック更新回数に結び付く自機/敵/弾の移動、敵射撃、弾発射クールダウン、Stage/phaseタイマ、死亡/無敵時間はすべて基準比2.00倍(現行比1.60倍)となる。相対比率は保たれる一方、プレイヤーの反応時間は短縮されるため、実プレイで難易度が過大なら敵弾速・発射間隔・敵移動などの再調整を別課題で判断する。本課題では個別バランス値を変更しない。
+- 完了条件: `include/game.h`の更新比定数、`tests/test_game.c`の各描画フレーム2更新・150Hzロジック/75Hz音tickを検証する回帰、必要な`tests/perf_bench.c`/README/design.md/ISSUES.mdの倍率記載、`include/version.h`の`GAME_VERSION_STRING`を`0.29.0`へ更新を行う。`make clean && ./scripts/verify.sh`、ASan/UBSan付きホストテスト、`git diff --check`、LNX検査、ROM SHA-256を実行・記録する。Gearlynxは可能な範囲で起動・目視/操作または既存MCP検証を行い、未達なら理由を記録する。コミット・pushは行わない。
+
+#### APS-029 実装・検証結果
+
+- 変更ファイル: `include/game.h`（ロジックスケジューラを`2/1`へ変更）、`tests/test_game.c`（各75Hz描画フレーム2更新、75描画フレームで150ロジック更新・75音tickを回帰）、`include/version.h`（`GAME_VERSION_STRING`を`0.29.0`へ更新）、`README.md`/`docs/plan/design.md`（150Hz・基準75Hz比2.00倍・BGM/SFX tick 75Hzの記述整合）、`ISSUES.md`（本項）。`src/main.c`/`src/game.c`/`src/sound.c`/音楽データはAPS-029のため変更していない。
+- スケジューラ実装: 既存`game_logic_updates_for_draw_frame()`の定数参照を維持し、剰余0から各描画フレームに必ず2回を返す`2/1`方式へ変更。Lynx main loopの`tgi_busy()`待機、75Hz設定、入力1回、ロジック更新、`game_sound_tick()`1回、MIKEY反映、描画順序は無変更。
+- 自動検証: 最終ツリーで`make clean && ./scripts/verify.sh`を終了コード0（ゲーム521件、サウンド279件、clang厳格C89/warnings-as-errors、cc65 2.19 `-W error`、shell lint、LNX検査）で再実行済み。
+- ASan/UBSan: `clang -std=c89 -pedantic -Wall -Wextra -Werror -fsanitize=address,undefined -fno-omit-frame-pointer`でゲーム521件、サウンド279件、スモーク7件を全て終了コード0。`make smoke-host`（7件）、`make perf-host`、`sh -n scripts/*.sh`、`git diff --check`も終了コード0。
+- 性能計測: `make perf-host`終了コード0。`--sync`: 75描画/150ロジック/75音tick、`logic_hz=149.54`、`game_speed_x=1.00`。固定500万描画では1000万ロジック・500万音tick。`legacy median=793083us`、`optimized median=791960us`、paired delta median=`4829us`。
+- ROM: `make rom`成功。`./scripts/inspect-lnx.sh dist/asteroid-patrol.lnx`: `LNX header OK: magic=LYNX version=1 bank0_page=1024 bank1_page=0 size=38322 bytes`。SHA-256: `55af2918f2950246e6f92c2c867f08a7246a9496229ab0abc25a925fb926fe7f`。
+- Gearlynx: `make smoke-gearlynx`でヘッドレスROM起動とdebug monitor待受を確認したが、リポジトリに入力/stateプロトコルがなく終了コード3の`UNVERIFIED`（make経由の終了コード2）。GUI目視・速度の主観評価・実機での難易度/CPU負荷は未確認。
+- 設計との差分: なし。個別の敵/自機/弾速度、発射間隔、クールダウン、HP、進行タイマ、BGM/SFXデータ・duration・テンポ、75Hz描画/入力/音tickを変更していない。
+- 懸念: ロジック更新は基準75Hz比2.00倍（APS-028完了時点の1.25倍比では1.60倍）となるため、実プレイ上の反応時間短縮・難易度上昇はユーザーのGearlynx操作で確認し、必要なら別課題でバランス調整する。
 
 ### APS-028: 音程レジスタのLFSR周期未補正を修正(真の根本原因)
 

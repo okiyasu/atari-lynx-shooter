@@ -24,6 +24,29 @@ static void advance_frames(GameState* game, unsigned int frames)
     }
 }
 
+static void finish_player_explosion(GameState* game)
+{
+    unsigned int remaining;
+
+    remaining = sound_get_sfx_length(SOUND_SFX_PLAYER_EXPLOSION) + 1u;
+    while (sound_sfx_is_active(&game->sound,
+        SOUND_SFX_PLAYER_EXPLOSION) != 0u && remaining != 0u) {
+        game_update(game, 0u);
+        --remaining;
+    }
+    expect(remaining != 0u,
+        "player explosion SFX completes within its reported fixed length");
+    game_update(game, 0u);
+}
+
+static void start_manual_player_explosion(GameState* game)
+{
+    game->dying = 1u;
+    game->explosion_timer = 0u;
+    sound_stop_bgm(&game->sound);
+    sound_request_sfx(&game->sound, SOUND_SFX_PLAYER_EXPLOSION);
+}
+
 static void init_normal(GameState* game)
 {
     unsigned char i;
@@ -247,7 +270,7 @@ static void test_stage_three_background_scroll(void)
         game.far_star_offset == 0u && game.far_star_counter == 0u &&
         game.near_star_offset == 0u && game.near_star_counter == 0u,
         "CAVE layers wrap at exact 192 160 and 160 periods");
-    game.dying = 1u;
+    start_manual_player_explosion(&game);
     frozen = game;
     game_update(&game, 0u);
     expect(game.planet_offset == frozen.planet_offset &&
@@ -345,8 +368,7 @@ static void test_stage_two_background_scroll(void)
         game.near_star_offset == 0u && game.near_star_counter == 0u,
         "SKY layers wrap at 192 160 and 160 without underflow");
 
-    game.dying = 1u;
-    game.explosion_timer = 0u;
+    start_manual_player_explosion(&game);
     frozen = game;
     game_update(&game, 0u);
     expect(game.planet_offset == frozen.planet_offset &&
@@ -370,7 +392,7 @@ static void test_stage_two_background_scroll(void)
     game.enemies[0].base_y = game.player.y;
     game_update(&game, 0u);
     frozen = game;
-    advance_frames(&game, GAME_EXPLOSION_FRAMES);
+    finish_player_explosion(&game);
     expect(game.dying == 0u && game.invincibility_timer == 60u,
         "stage two non-final death completes the normal respawn");
     expect(game.planet_offset == frozen.planet_offset &&
@@ -1367,6 +1389,7 @@ static void test_explosion_respawn_and_invincibility(void)
 {
     GameState game;
     GameState frozen;
+    unsigned int explosion_length;
     unsigned int i;
     unsigned char lives;
     int all_frozen;
@@ -1400,7 +1423,8 @@ static void test_explosion_respawn_and_invincibility(void)
     frozen = game;
     all_frozen = 1;
     stages_correct = 1;
-    for (i = 1u; i < GAME_EXPLOSION_FRAMES; ++i) {
+    explosion_length = sound_get_sfx_length(SOUND_SFX_PLAYER_EXPLOSION);
+    for (i = 1u; i < explosion_length; ++i) {
         game_update(&game, GAME_INPUT_RIGHT | GAME_INPUT_FIRE);
         if (!frozen_state_matches(&game, &frozen)) {
             all_frozen = 0;
@@ -1412,12 +1436,16 @@ static void test_explosion_respawn_and_invincibility(void)
     }
     expect(all_frozen,
         "explosion freezes enemies bullets counters input and background");
-    expect(stages_correct && game.explosion_timer == 31u,
-        "four explosion stages use exact eight update boundaries");
+    expect(stages_correct && game.explosion_timer ==
+            (unsigned char)(explosion_length - 1u) &&
+        game.dying != 0u &&
+        sound_sfx_is_active(&game.sound,
+            SOUND_SFX_PLAYER_EXPLOSION) == 0u,
+        "death remains frozen until logic observes actual explosion completion");
     game_update(&game, GAME_INPUT_FIRE);
     expect(game.dying == 0u && game.player.x == 10u &&
         game.player.y == 48u && game.invincibility_timer == 60u,
-        "update 32 respawns player with sixty protected updates");
+        "the first logic update after explosion completion respawns the player");
     expect(game.score == 700ul && game.planet_offset == 43u &&
         game.planet_counter == 0u && game.far_star_offset == 23u &&
         game.near_star_offset == 51u,
@@ -1513,13 +1541,16 @@ static void test_game_over_and_restart(void)
     expect(game.planet_offset == 91u && game.planet_counter == 0u,
         "final damage update advances planet before freezing it");
     frozen = game;
-    advance_frames(&game, 31u);
-    expect(game.dying != 0u && game.explosion_timer == 31u &&
+    advance_frames(&game,
+        sound_get_sfx_length(SOUND_SFX_PLAYER_EXPLOSION) - 1u);
+    expect(game.dying != 0u &&
+        sound_sfx_is_active(&game.sound,
+            SOUND_SFX_PLAYER_EXPLOSION) == 0u &&
         frozen_state_matches(&game, &frozen),
-        "final explosion freezes complete normal state for 31 updates");
+        "final death stays frozen through the explosion's final sound tick");
     game_update(&game, GAME_INPUT_FIRE);
     expect(game.dying == 0u && game.game_over != 0u,
-        "game over begins after death update 32");
+        "game over begins only after actual explosion SFX completion");
     frozen = game;
     for (i = 0u; i < 4u; ++i) {
         game_update(&game, GAME_INPUT_RIGHT | GAME_INPUT_FIRE);
@@ -1699,8 +1730,7 @@ static void test_stage_phase_machine(void)
     expect(game.dying != 0u && game.phase == GAME_PHASE_NORMAL &&
         game.phase_timer == GAME_NORMAL_FRAMES,
         "damage on the normal boundary counts once and defers transition");
-    advance_frames(&game, GAME_EXPLOSION_FRAMES - 1u);
-    game_update(&game, 0u);
+    finish_player_explosion(&game);
     expect(game.dying == 0u && game.phase == GAME_PHASE_WARNING &&
         game.phase_timer == 0u,
         "boundary death enters warning only after the frozen explosion");
@@ -2132,12 +2162,15 @@ static void test_boss_hits_death_and_priority(void)
         game.phase_timer == held_timer + 1u,
         "boss contact counts once then retains HP phase and elapsed time");
     frozen = game;
-    advance_frames(&game, GAME_EXPLOSION_FRAMES - 1u);
-    expect(game.dying != 0u && game.explosion_timer == 31u &&
+    advance_frames(&game,
+        sound_get_sfx_length(SOUND_SFX_PLAYER_EXPLOSION) - 1u);
+    expect(game.dying != 0u &&
+        sound_sfx_is_active(&game.sound,
+            SOUND_SFX_PLAYER_EXPLOSION) == 0u &&
         game.phase == frozen.phase && game.phase_timer == frozen.phase_timer &&
         game.boss.hp == frozen.boss.hp &&
         game.planet_offset == frozen.planet_offset,
-        "all first 31 explosion updates freeze boss phase and background");
+        "boss phase and background stay frozen through explosion completion");
     game_update(&game, 0u);
     expect(game.dying == 0u && game.invincibility_timer == 60u &&
         game.boss.hp == 33u && game.boss.script_step == 0u &&
@@ -2187,8 +2220,7 @@ static void test_boss_hits_death_and_priority(void)
     game_update(&game, 0u);
     expect(game.dying != 0u && game.boss.hp == 33u,
         "rock guardian contact begins death while preserving HP");
-    advance_frames(&game, GAME_EXPLOSION_FRAMES - 1u);
-    game_update(&game, 0u);
+    finish_player_explosion(&game);
     expect(game.dying == 0u && game.boss.hp == 33u &&
         game.boss.rect.x == 132u && game.boss.rect.y == 39u &&
         game.boss.direction == 1u && game.boss.move_phase == 0u &&
@@ -2222,11 +2254,10 @@ static void test_boss_hits_death_and_priority(void)
     game_update(&game, 0u);
     expect(game.lives == 0u && game.dying != 0u && game.game_over == 0u,
         "final boss damage starts an explosion before game over");
-    advance_frames(&game, GAME_EXPLOSION_FRAMES - 1u);
-    game_update(&game, GAME_INPUT_FIRE);
+    finish_player_explosion(&game);
     expect(game.dying == 0u && game.game_over != 0u &&
         game.phase == GAME_PHASE_BOSS && game.restart_armed == 0u,
-        "final boss explosion enters game over after update 32");
+        "final boss explosion enters game over only after SFX completion");
 }
 
 static void test_stage_one_asteroids(void)
@@ -2429,13 +2460,12 @@ static void test_stage_two_wind(void)
 
     game.wind.timer = 20u;
     game.wind.push_counter = 1u;
-    game.dying = 1u;
-    game.explosion_timer = 0u;
+    start_manual_player_explosion(&game);
     game.lives = 2u;
-    advance_frames(&game, GAME_EXPLOSION_FRAMES);
+    finish_player_explosion(&game);
     expect(game.wind.state == GAME_WIND_STATE_WARNING &&
         game.wind.timer == 20u && game.wind.push_counter == 1u,
-        "all 32 death updates freeze wind schedule timer and push phase");
+        "the complete explosion SFX freezes wind schedule timer and push phase");
     disable_enemies_except(&game, GAME_MAX_ENEMIES);
     game_update(&game, 0u);
     expect(game.wind.timer == 19u,
@@ -2529,7 +2559,7 @@ static void test_stage_three_rockfall(void)
         game.falling_rocks[0].timer == GAME_ROCK_IMPACT_FRAMES &&
         game.lives == GAME_INITIAL_LIVES - 1u && game.dying != 0u,
         "landing position checks player AABB before entering impact display");
-    advance_frames(&game, GAME_EXPLOSION_FRAMES);
+    finish_player_explosion(&game);
     expect(game.falling_rocks[0].state == GAME_ROCK_STATE_IMPACT &&
         game.falling_rocks[0].timer == GAME_ROCK_IMPACT_FRAMES,
         "death explosion freezes rock impact state and timer");
@@ -2621,7 +2651,7 @@ static void test_environment_phase_boundaries_and_restart(void)
     game.asteroids[0].rect.x = (unsigned char)(game.player.x + 1u);
     game.asteroids[0].rect.y = game.player.y;
     game_update(&game, 0u);
-    advance_frames(&game, GAME_EXPLOSION_FRAMES);
+    finish_player_explosion(&game);
     expect(game.game_over != 0u &&
         game.asteroids[0].active == 0u &&
         game.environment_event_cursor == 0u,
@@ -2689,29 +2719,33 @@ static void test_draw_frame_logic_scheduler(void)
     total_updates = 0u;
     for (frame = 0u; frame < GAME_LOGIC_UPDATES_DENOMINATOR; ++frame) {
         updates = game_logic_updates_for_draw_frame(&remainder);
-        expect(updates == (frame == GAME_LOGIC_UPDATES_DENOMINATOR - 1u ?
-            2u : 1u),
-            "5/4 scheduler performs its extra deterministic update on frame four");
+        expect(updates == 4u,
+            "4/1 scheduler performs four deterministic updates on every draw frame");
         total_updates += updates;
     }
-    expect(total_updates == GAME_LOGIC_UPDATES_NUMERATOR && remainder == 0u,
-        "four 75Hz draw frames always contain exactly five logic updates");
+    expect(total_updates == 4u && remainder == 0u,
+        "one 75Hz draw frame always contains exactly four logic updates");
 
     game_start(&game);
+    game.phase = GAME_PHASE_NORMAL;
+    game.phase_timer = 0u;
+    disable_enemies_except(&game, GAME_MAX_ENEMIES);
+    game.environment_event_cursor = GAME_ASTEROID_EVENT_COUNT;
     remainder = 0u;
-    for (frame = 0u; frame < GAME_LOGIC_UPDATES_DENOMINATOR; ++frame) {
+    for (frame = 0u; frame < 75u; ++frame) {
         updates = game_logic_updates_for_draw_frame(&remainder);
         for (update = 0u; update < updates; ++update) {
             game_update_logic(&game, 0u);
         }
         game_sound_tick(&game);
     }
-    expect(game.phase_timer == GAME_LOGIC_UPDATES_NUMERATOR &&
-        game.sound.bgm_step == 0u &&
-        game.sound.bgm_remaining ==
-            (unsigned char)(15u - GAME_LOGIC_UPDATES_DENOMINATOR) &&
+    expect(game.phase_timer == 300u &&
+        game.sound.bgm_step == 18u &&
+        game.sound.bgm_remaining == 15u &&
+        game.sound.bass_step == 2u &&
+        game.sound.bass_remaining == 105u &&
         game.sound.output_bgm.active != 0u,
-        "5/4 advances stage progression while the BGM/SFX tick stays at 75Hz, advancing once per draw frame rather than once per logic update");
+        "75 draw frames run 300 logic updates, 75 sound ticks, and 300 BGM duration advances");
 }
 
 static void test_sound_initial_phase_and_fire_integration(void)
@@ -2860,13 +2894,16 @@ static void test_sound_damage_freeze_and_warning_integration(void)
     game_update(&game, 0u);
     expect(game.dying != 0u &&
         game.sound.sfx_id == SOUND_SFX_PLAYER_EXPLOSION &&
-        game.sound.sfx_remaining == 7u,
-        "real damage begins one player-explosion SFX");
-    advance_frames(&game, GAME_EXPLOSION_FRAMES);
+        game.sound.sfx_remaining == 1u &&
+        game.sound.bgm_active == 0u &&
+        game.sound.output_bgm.active == 0u &&
+        game.sound.output_bgm_bass.active == 0u,
+        "real damage stops both BGM voices and begins only the player-explosion SFX");
+    finish_player_explosion(&game);
     expect(game.dying == 0u && game.sound.bgm_active != 0u &&
         game.sound.sfx_id == SOUND_SFX_NONE &&
         game.sound.output_bgm.active != 0u,
-        "all 32 death updates freeze the BGM cursor while explosion SFX plays, and BGM keeps running once it completes");
+        "explosion completion alone releases death and restarts current-stage BGM from its head");
     disable_enemies_except(&game, GAME_MAX_ENEMIES);
     game_update(&game, 0u);
     expect(game.sound.output_bgm.active != 0u,
@@ -2904,10 +2941,62 @@ static void test_sound_damage_freeze_and_warning_integration(void)
         game.phase_timer == GAME_NORMAL_FRAMES &&
         game.sound.sfx_id == SOUND_SFX_PLAYER_EXPLOSION,
         "boundary damage defers warning and starts only explosion SFX");
-    advance_frames(&game, GAME_EXPLOSION_FRAMES);
+    finish_player_explosion(&game);
     expect(game.dying == 0u && game.phase == GAME_PHASE_WARNING &&
         game.sound.sfx_id == SOUND_SFX_WARNING,
         "death completion reaches the same warning SFX trigger point once");
+}
+
+static void test_draw_frame_death_waits_for_explosion_sfx(void)
+{
+    GameState game;
+    GameState frozen;
+    unsigned char remainder;
+    unsigned char frame;
+    unsigned char update;
+    unsigned char updates;
+    unsigned int explosion_length;
+
+    init_normal(&game);
+    disable_enemies_except(&game, 0u);
+    game.enemies[0].rect.x = game.player.x;
+    game.enemies[0].rect.y = game.player.y;
+    remainder = 0u;
+    updates = game_logic_updates_for_draw_frame(&remainder);
+    game_update_logic(&game, 0u);
+    for (update = 1u; update < updates; ++update) {
+        game_update_logic(&game, 0u);
+    }
+    game_sound_tick(&game);
+    expect(updates == 4u && game.dying != 0u &&
+        game.sound.bgm_active == 0u &&
+        sound_sfx_is_active(&game.sound,
+            SOUND_SFX_PLAYER_EXPLOSION) != 0u,
+        "a 4/1 draw frame stops BGM and keeps death active while explosion plays");
+
+    frozen = game;
+    explosion_length = sound_get_sfx_length(SOUND_SFX_PLAYER_EXPLOSION);
+    for (frame = 1u; frame < explosion_length; ++frame) {
+        updates = game_logic_updates_for_draw_frame(&remainder);
+        for (update = 0u; update < updates; ++update) {
+            game_update_logic(&game, GAME_INPUT_RIGHT | GAME_INPUT_FIRE);
+        }
+        game_sound_tick(&game);
+    }
+    expect(game.dying != 0u &&
+        sound_sfx_is_active(&game.sound,
+            SOUND_SFX_PLAYER_EXPLOSION) == 0u &&
+        game.explosion_timer == GAME_EXPLOSION_FRAMES - 1u &&
+        frozen_state_matches(&game, &frozen) != 0,
+        "300Hz logic cannot respawn early and the visual explosion index saturates safely");
+
+    game_update_logic(&game, 0u);
+    expect(game.dying == 0u && game.invincibility_timer ==
+            GAME_INVINCIBILITY_FRAMES &&
+        game.sound.bgm_active != 0u && game.sound.bgm_step == 0u &&
+        game.sound.bgm_remaining ==
+            sound_get_bgm_step(SOUND_BGM_STAGE_ONE, 0u)->duration,
+        "first logic update after SFX completion respawns and restarts current-stage BGM at its head");
 }
 
 static void test_sound_boss_chain_stage_terminal_and_restart(void)
@@ -2982,7 +3071,7 @@ static void test_sound_boss_chain_stage_terminal_and_restart(void)
     game.enemies[0].rect.x = game.player.x;
     game.enemies[0].rect.y = game.player.y;
     game_update(&game, 0u);
-    advance_frames(&game, GAME_EXPLOSION_FRAMES);
+    finish_player_explosion(&game);
     expect(game.game_over != 0u && game.sound.bgm_active == 0u &&
         game.sound.sfx_id == SOUND_SFX_NONE &&
         game.sound.output_bgm.active == 0u &&
@@ -3075,6 +3164,7 @@ int main(void)
     test_sound_initial_phase_and_fire_integration();
     test_sound_enemy_asteroid_and_power_integration();
     test_sound_damage_freeze_and_warning_integration();
+    test_draw_frame_death_waits_for_explosion_sfx();
     test_sound_boss_chain_stage_terminal_and_restart();
     test_sound_simultaneous_priority_integration();
     printf("PASS: %u game logic checks\n", checks);

@@ -35,10 +35,10 @@ static const SoundStep warning_sfx[] = {
 };
 
 static const SoundStep player_explosion_sfx[] = {
-    { 12u, 8u, 31u, SOUND_WAVE_NOISE },
-    { 8u, 8u, 27u, SOUND_WAVE_NOISE },
-    { 5u, 8u, 22u, SOUND_WAVE_NOISE },
-    { 2u, 8u, 15u, SOUND_WAVE_NOISE }
+    { 16u, 2u, 31u, SOUND_WAVE_METALLIC },
+    { 12u, 4u, 27u, SOUND_WAVE_NOISE },
+    { 8u, 5u, 21u, SOUND_WAVE_NOISE },
+    { 4u, 6u, 13u, SOUND_WAVE_NOISE }
 };
 
 static const SoundStep stage_clear_sfx[] = {
@@ -84,6 +84,7 @@ static const SoundSequence bass_sequences[SOUND_BGM_COUNT] = {
 #define MUSIC_VOICE_MELODY 0u
 #define MUSIC_VOICE_BASS 1u
 #define MUSIC_VOICE_COUNT 2u
+#define MUSIC_ADVANCES_PER_SOUND_TICK 4u
 
 static const SoundSequence* const music_sequence_tables[
     MUSIC_VOICE_COUNT] = {
@@ -345,6 +346,18 @@ void sound_set_stage(SoundState* sound, unsigned char stage)
     restart_bgm(sound, (unsigned char)(stage - 1u));
 }
 
+void sound_stop_bgm(SoundState* sound)
+{
+    MusicVoiceRef ref;
+    unsigned char voice;
+
+    sound->bgm_active = 0u;
+    for (voice = 0u; voice < MUSIC_VOICE_COUNT; ++voice) {
+        music_voice(sound, voice, &ref);
+        set_silent_output(ref.output);
+    }
+}
+
 void sound_stop_all(SoundState* sound)
 {
     MusicVoiceRef ref;
@@ -381,12 +394,24 @@ void sound_request_sfx(SoundState* sound, unsigned char sfx_id)
     update_sfx_output(sound);
 }
 
+unsigned char sound_sfx_is_active(const SoundState* sound,
+    unsigned char sfx_id)
+{
+    return (unsigned char)(sfx_id != SOUND_SFX_NONE &&
+        sfx_id < SOUND_SFX_COUNT && sound->sfx_id == sfx_id);
+}
+
 void sound_tick(SoundState* sound, unsigned char freeze_bgm)
 {
+    unsigned char advance;
+
     update_music_outputs(sound);
     update_sfx_output(sound);
     if (freeze_bgm == 0u) {
-        advance_music(sound);
+        for (advance = 0u; advance < MUSIC_ADVANCES_PER_SOUND_TICK;
+            ++advance) {
+            advance_music(sound);
+        }
     }
     advance_sfx(sound);
 }

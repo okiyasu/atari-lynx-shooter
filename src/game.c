@@ -856,13 +856,17 @@ static void begin_player_death(GameState* game)
     game->dying = 1u;
     game->explosion_timer = 0u;
     game->invincibility_timer = 0u;
+    sound_stop_bgm(&game->sound);
     sound_request_sfx(&game->sound, SOUND_SFX_PLAYER_EXPLOSION);
 }
 
 static void update_player_death(GameState* game)
 {
-    ++game->explosion_timer;
-    if (game->explosion_timer != GAME_EXPLOSION_FRAMES) {
+    if (sound_sfx_is_active(&game->sound,
+        SOUND_SFX_PLAYER_EXPLOSION) != 0u) {
+        if (game->explosion_timer < GAME_EXPLOSION_FRAMES - 1u) {
+            ++game->explosion_timer;
+        }
         return;
     }
 
@@ -890,6 +894,7 @@ static void update_player_death(GameState* game)
         clear_boss(game);
     }
     game->invincibility_timer = GAME_INVINCIBILITY_FRAMES;
+    sound_set_stage(&game->sound, game->stage);
     if (game->phase == GAME_PHASE_NORMAL &&
         game->phase_timer == GAME_NORMAL_FRAMES) {
         enter_phase(game, GAME_PHASE_WARNING);
