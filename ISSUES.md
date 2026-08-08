@@ -4,6 +4,18 @@
 
 ## 課題台帳
 
+### APS-028: 音程レジスタのLFSR周期未補正を修正(真の根本原因)
+
+- 状態: 実装・全自動検証合格・コミット待ち(Fable、2026-08-08。ISSUES.md/.briefsはRyokoが検収時に追記)
+- 優先度: 高
+- 基点: APS-027完了時点(991c8d5)
+- 目的: APS-024(きらきら星差し替え)以降、APS-026(integrate+envelope)・APS-027(DC平衡LFSRタップ再選定)と2回対策しても解消しなかった「常時鳴り続けるブー音」の真因を、OSSチップチューントラッカーFurnace(tildearrow/furnace、`src/engine/platform/lynx.cpp`)の実装と比較して特定する。
+- 発見(確定的): MIKEYの1チャンネルは、タイマーunderflow1回につき1エッジを出力するのではなく、**LFSRを1ビット進めるだけ**で、可聴波形はLFSRが1周期を完了して初めて繰り返す。つまり体感周波数は`f_underflow / LFSR周期長`(TONE/NOISE=6、METALLIC=63、PULSE=8)。APS-013由来の`sound_pitch_registers`は、この周期長で割る補正を一度も行っていなかった。結果、全チャンネルの音程は意図の3〜31倍低い周波数(62〜220Hz帯)で鳴っており、これが一貫して聞こえていた「低い唸り・ブー音」の正体だった。APS-026/027はintegrateモードやDCバイアスというレジスタレベルの副次的な問題には正しく対処していたが、この音程計算自体の誤りには触れていなかったため、根本解決に至っていなかった。加えて、旧テーブルは音階も均一な約1.075倍刻みで、mml2cのnote id(1〜16、(octave-1)*7+degreeでハ長調の音階度数を符号化)が期待する平均律ハ長調とズレていたため、旋律の音程間隔も圧縮されていた。
+- 実装: `sound_pitch_registers`を波形ごと(TONE/METALLIC/NOISE/PULSE)× 16音のテーブルへ拡張し、各波形のLFSR周期長で正しく割った上でreload/prescalerを再計算した(note id 1=C4〜16=D6、A4=440Hzの平均律ハ長調、TONE/NOISE最大誤差0.21%、METALLIC最大誤差3.60%、PULSE最大誤差0.39%)。生成スクリプト`scripts/gen-pitch-tables.py`を追加し、以後はこのスクリプトで再生成する(手書き禁止のコメントをテーブル冒頭に明記)。`sound_backend_apply()`の参照を`sound_pitch_registers[note-1]`から`sound_pitch_registers[wave][note-1]`へ変更。
+- Ryoko独立検証: `verify.sh`実行、ゲーム524件・サウンド279件PASS、cc65/LNXビルド成功。TONE note1(id=1)の実測値(reload=0x9e, prescaler=2)を手計算で検算: period=(158+1)×2^2=636µs→underflow周波数1572.3Hz→LFSR周期6で除算→262.05Hz(C4理論値261.63Hzと誤差0.16%、Fableの申告値と整合)。ROM: `dist/asteroid-patrol.lnx` 38,328 bytes、SHA-256 `1b4bba04956b6e5cf4de9b0cd550a3e6b92fe42b36746013d5e6408f70548a11`。
+- 過去3回との違い: APS-026/027はレジスタの「意図通りの設定」を検証していたが、その意図(音程計算式)自体が誤っていたため、機械検証では捕捉できなかった。今回はFurnaceという実際に動作実績のある独立実装とfrequency計算式を突き合わせたことで、この構造的な誤りを発見できた。
+- 残課題: 最終的な聴感評価はユーザーが行う。バージョン番号は`0.28.0`(ROM作成のたびに必ず更新する運用ルールに準拠)。
+
 ### APS-027: 「ブー」音の根本修正(DC平衡LFSRタップ再選定)+タイトル画面バージョン表示
 
 - 状態: 実装完了・レビュー待ち(2026-08-08)
