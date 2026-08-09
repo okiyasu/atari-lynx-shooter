@@ -1,0 +1,191 @@
+{
+  "format_version": 1,
+  "themes": [
+    {"id": "space", "colors": ["000", "113", "225", "346", "467", "579"]},
+    {"id": "sky", "colors": ["102", "246", "578", "9AC", "BCD", "EED"]},
+    {"id": "cave", "colors": ["101", "223", "345", "456", "678", "89A"]}
+  ],
+  "sprites": [
+    {
+      "id": "player", "kind": "player", "width": 8, "height": 6,
+      "frames": [
+        ["...7....", "..888...", ".999....", "99999977", ".8888...", "...7...."],
+        ["..7.....", "...88...", ".9999...", "99999997", "..8888..", "....7..."]
+      ]
+    },
+    {
+      "id": "scout", "kind": "enemy", "width": 8, "height": 8,
+      "frames": [
+        ["...C....", "..BBB...", ".AAAA...", "BBAAAC..", ".AAAA...", "..BBB...", "...B....", "...C...."],
+        ["....C...", "...BBB..", "..AAAA..", ".BBAAAC.", "..AAAA..", "...BBB..", "..B.....", "..C....."]
+      ]
+    },
+    {
+      "id": "saucer", "kind": "enemy", "width": 8, "height": 8,
+      "frames": [
+        ["...C....", "..AAA...", ".BBBBB..", "BAAAAAB.", ".BBBBB..", "..CCCC..", "..BBB...", "........"],
+        ["....C...", "..AAA...", ".BBBBB..", "BAAAAAB.", ".BBBBB..", "...CC...", "..BBB...", "........"]
+      ]
+    },
+    {
+      "id": "dropper", "kind": "enemy", "width": 8, "height": 8,
+      "frames": [
+        ["..CCCC..", "..BBBB..", ".AAAAAA.", "BAAAAAAB", "..CCCC..", ".B....B.", "B......B", "...C...."],
+        ["...CC...", "..BBBB..", ".AAAAAA.", "BAAAAAAB", "...CC...", "B......B", ".B....B.", "..CCCC.."]
+      ]
+    },
+    {
+      "id": "fighter", "kind": "enemy", "width": 8, "height": 8,
+      "frames": [
+        ["B.......", "BB......", ".AAA....", "AAAAAC..", "AAAAAAA.", "..AAA...", "...BBB..", "....C..."],
+        ["..B.....", ".BB.....", "..AAA...", ".AAAAAC.", "AAAAAAAA", ".AAA....", "..BBB...", "..C....."]
+      ]
+    },
+    {
+      "id": "bomber", "kind": "enemy", "width": 8, "height": 8,
+      "frames": [
+        ["..C..C..", ".BBBBBB.", ".AAAAAA.", ".BBBBBB.", "..CCCC..", ".AAAAAA.", ".B....B.", "..BBBB.."],
+        [".C....C.", ".BBBBBB.", ".AAAAAA.", ".BBBBBB.", "...CC...", ".AAAAAA.", "..B..B..", "..BBBB.."]
+      ]
+    },
+    {
+      "id": "supply", "kind": "enemy", "width": 8, "height": 8,
+      "frames": [
+        ["...C....", "...B....", "..BBB...", ".AAAAA..", "BAAAAAB.", ".AAAAA..", "..BBB...", "..CCC..."],
+        ["..CCC...", "...B....", "..BBB...", ".AAAAA..", "BAAAAAB.", ".AAAAA..", "..BBB...", "...C...."]
+      ]
+    },
+    {
+      "id": "cave_bat", "kind": "mineral", "width": 8, "height": 8,
+      "frames": [
+        ["B......B", "..DDDD..", "..DDDD..", "...EE...", "..BBBB..", "..DDDD..", "B......B", "........"],
+        ["........", "..B..B..", ".D....D.", "..EEEE..", ".BBBBBB.", "..DDDD..", "...E....", "...B...."]
+      ]
+    },
+    {
+      "id": "rock_worm", "kind": "mineral", "width": 8, "height": 8,
+      "frames": [
+        ["...DDD..", "..DDDD..", ".EEEEE..", "EEEE....", ".BBBB...", "..EEEE..", "...DDDDD", "....BBBB"],
+        ["....DDD.", "...DDDD.", "..EEEEE.", ".EEEE...", "BBBB....", ".EEEE...", "..DDDDD.", "...BBBB."]
+      ]
+    },
+    {
+      "id": "mining_drone", "kind": "mineral", "width": 8, "height": 8,
+      "frames": [
+        ["...D....", "..BBBB..", ".DDDDDD.", "..EEEE..", ".DDDDDD.", "..BBBB..", "...B....", "..BBB..."],
+        ["....D...", "...BBBB.", "..DDDDDD", "...EEEE.", "..DDDDDD", "...BBBB.", "....B...", "...BBB.."]
+      ]
+    },
+    {
+      "id": "coral_bastion", "kind": "boss", "width": 24, "height": 16,
+      "frames": [
+        ["...........F............", "........BBBBBBBB........", "......BBBBBBBBBBBB......", "....AAAAAAAAAAAAAAAA....", "..AAAAAAAAAAAAAAAAAAAA..", ".CCCCCCCCCCCCCCCCCCCCCC.", "AAAAAAAAAAAAAAAAAAAAAAAA", ".BBBBBBBBBBBBBBBBBBBBBB.", "...FFFFFFFFFFFFFFFFFF...", ".AAAAAAAAAAAAAAAAAAAAAA.", "..CCCCCCCCCCCCCCCCCCCC..", "...AAAAAAAAAAAAAAAAAA...", ".....BBBBBBBBBBBBBB.....", ".......AAAAAAAAAA.......", ".........BBBBBB.........", "........................"],
+        ["..........FFF...........", ".......BBBBBBBBBB.......", ".....BBBBBBBBBBBBBB.....", "...AAAAAAAAAAAAAAAAAA...", ".AAAAAAAAAAAAAAAAAAAAAA.", "..CCCCCCCCCCCCCCCCCCCC..", "AAAAAAAAAAAAAAAAAAAAAAAA", ".BBBBBBBBBBBBBBBBBBBBBB.", "....FFFFFFFFFFFFFFFF....", ".AAAAAAAAAAAAAAAAAAAAAA.", "...CCCCCCCCCCCCCCCCCC...", "....AAAAAAAAAAAAAAAA....", "......BBBBBBBBBBBB......", "........AAAAAAAA........", "..........BBBB..........", "........................"]
+      ]
+    },
+    {
+      "id": "amber_carrier", "kind": "boss", "width": 28, "height": 14,
+      "frames": [
+        ["............................", ".........FFFFFFFFFF.........", ".......BBBBBBBBBBBBBB.......", "....AAAAAAAAAAAAAAAAAAAA....", "..AAAAAAAAAAAAAAAAAAAAAAAA..", ".BBBBBBBBBBBBBBBBBBBBBBBBBB.", "CCCCCCCCCCCCCCCCCCCCCCCCCCCC", "AAAAAAAAAAAAAAAAAAAAAAAAAAAA", "...FFFFFFFFFFFFFFFFFFFFFF...", "AAAAAAAAAAAAAAAAAAAAAAAAAAAA", "..CCCCCCCCCCCCCCCCCCCCCCCC..", "....AAAAAAAAAAAAAAAAAAAA....", "......BBBBBBBBBBBBBBBB......", "....C..................C...."],
+        ["............................", "...........FFFFFF...........", "........BBBBBBBBBBBB........", ".....AAAAAAAAAAAAAAAAAA.....", "...AAAAAAAAAAAAAAAAAAAAAA...", ".BBBBBBBBBBBBBBBBBBBBBBBBBB.", "CCCCCCCCCCCCCCCCCCCCCCCCCCCC", "AAAAAAAAAAAAAAAAAAAAAAAAAAAA", "....FFFFFFFFFFFFFFFFFFFF....", "AAAAAAAAAAAAAAAAAAAAAAAAAAAA", "...CCCCCCCCCCCCCCCCCCCCCC...", ".....AAAAAAAAAAAAAAAAAA.....", ".......BBBBBBBBBBBBBB.......", ".....C................C....."]
+      ]
+    },
+    {
+      "id": "violet_geode", "kind": "mineral_boss", "width": 24, "height": 24,
+      "frames": [
+        ["........................", "........................", ".........BBBB...........", ".......BBBBBBBB.........", ".....DDDDDDDDDDDD.......", "....DDDDDDDDDDDDDD......", "...EEEEEEEEEEEEEEEE.....", "..EEEEEEEEEEEEEEEEEEE...", ".DDDDDDDFFFFFDDDDDDDD...", "DDDDDDFFFFFFFFDDDDDDDDD.", "EEEEEEEEEEEEEEEEEEEEEEEE", ".EEEEEEEEEEEEEEEEEEEEEE.", "..DDDDDDDDDDDDDDDDDDDD..", "...EEEEEEEEEEEEEEEEEE...", "....BBBBBBBBBBBBBBBB....", "......DDDDDDDDDDDD......", ".......EEEEEEEEEEEE.....", ".........BBBBBBBB.......", "........................", "........................", "........................", "........................", "........................", "........................"],
+        ["........................", "........................", "...........BBBB.........", ".........BBBBBBBB.......", "......DDDDDDDDDDDD......", ".....DDDDDDDDDDDDDD.....", "...EEEEEEEEEEEEEEEEEE...", "..EEEEEEEEEEEEEEEEEEEE..", ".DDDDDFFFFFFDDDDDDDDD...", "DDDDFFFFFFFFFFDDDDDDDDD.", ".EEEEEEEEEEEEEEEEEEEEEEE", "..EEEEEEEEEEEEEEEEEEEE..", "...DDDDDDDDDDDDDDDDDD...", "....EEEEEEEEEEEEEEEE....", ".....BBBBBBBBBBBBBB.....", ".......DDDDDDDDDD.......", ".........EEEEEEEEEE.....", "..........BBBBBBBB......", "........................", "........................", "........................", "........................", "........................", "........................"]
+      ]
+    }
+  ],
+  "enemy_types": [
+    {"id": "scout", "engine_type": "SCOUT", "sprite": "scout"},
+    {"id": "saucer", "engine_type": "SAUCER", "sprite": "saucer"},
+    {"id": "dropper", "engine_type": "DROPPER", "sprite": "dropper"},
+    {"id": "fighter", "engine_type": "FIGHTER", "sprite": "fighter"},
+    {"id": "bomber", "engine_type": "BOMBER", "sprite": "bomber"},
+    {"id": "supply", "engine_type": "SUPPLY", "sprite": "supply"},
+    {"id": "cave_bat", "engine_type": "CAVE_BAT", "sprite": "cave_bat"},
+    {"id": "rock_worm", "engine_type": "ROCK_WORM", "sprite": "rock_worm"},
+    {"id": "mining_drone", "engine_type": "MINING_DRONE", "sprite": "mining_drone"}
+  ],
+  "formations": [
+    {
+      "id": "space",
+      "slots": [
+        {"x": 140, "y": 47, "enemy": "scout", "movement": "straight", "fire_interval": 90, "fire_phase": 0},
+        {"x": 170, "y": 23, "enemy": "saucer", "movement": "wave", "fire_interval": 60, "fire_phase": 15},
+        {"x": 200, "y": 70, "enemy": "scout", "movement": "dive", "fire_interval": 90, "fire_phase": 30},
+        {"x": 230, "y": 38, "enemy": "dropper", "movement": "straight", "fire_interval": 75, "fire_phase": 45}
+      ],
+      "respawn": {"x": 180, "spacing": 16, "min_y": 13, "y_range": 78, "y_multiplier": 17, "type_a": "scout", "type_b": "saucer", "fixed_type": "dropper", "fire_phase_spacing": 15}
+    },
+    {
+      "id": "air",
+      "slots": [
+        {"x": 144, "y": 24, "enemy": "fighter", "movement": "straight", "fire_interval": 72, "fire_phase": 0},
+        {"x": 180, "y": 64, "enemy": "bomber", "movement": "wave", "fire_interval": 96, "fire_phase": 18},
+        {"x": 212, "y": 42, "enemy": "fighter", "movement": "dive", "fire_interval": 72, "fire_phase": 36},
+        {"x": 244, "y": 78, "enemy": "supply", "movement": "wave", "fire_interval": 84, "fire_phase": 54}
+      ],
+      "respawn": {"x": 184, "spacing": 18, "min_y": 14, "y_range": 76, "y_multiplier": 19, "type_a": "fighter", "type_b": "bomber", "fixed_type": "supply", "fire_phase_spacing": 18}
+    },
+    {
+      "id": "cave",
+      "slots": [
+        {"x": 148, "y": 22, "enemy": "cave_bat", "movement": "wave", "fire_interval": 66, "fire_phase": 0},
+        {"x": 184, "y": 72, "enemy": "rock_worm", "movement": "dive", "fire_interval": 84, "fire_phase": 16},
+        {"x": 216, "y": 44, "enemy": "cave_bat", "movement": "straight", "fire_interval": 66, "fire_phase": 32},
+        {"x": 248, "y": 82, "enemy": "mining_drone", "movement": "wave", "fire_interval": 78, "fire_phase": 48}
+      ],
+      "respawn": {"x": 188, "spacing": 18, "min_y": 16, "y_range": 74, "y_multiplier": 23, "type_a": "cave_bat", "type_b": "rock_worm", "fixed_type": "mining_drone", "fire_phase_spacing": 16}
+    }
+  ],
+  "boss_appearances": [
+    {"id": "coral_bastion", "sprite": "coral_bastion"},
+    {"id": "amber_carrier", "sprite": "amber_carrier"},
+    {"id": "violet_geode", "sprite": "violet_geode"}
+  ],
+  "boss_scripts": [
+    {"id": "coral_script", "steps": [
+      {"shot": "straight", "duration": 120, "fire_interval": 20, "movement": "still"},
+      {"shot": "fan", "duration": 120, "fire_interval": 60, "movement": "still"}
+    ]},
+    {"id": "carrier_script", "steps": [
+      {"shot": "cannon_cycle", "duration": 120, "fire_interval": 20, "movement": "vertical"},
+      {"shot": "cannon_cycle", "duration": 120, "fire_interval": 15, "movement": "vertical"}
+    ]},
+    {"id": "geode_script", "steps": [
+      {"shot": "burst", "duration": 90, "fire_interval": 10, "movement": "still"},
+      {"shot": "pincer", "duration": 120, "fire_interval": 40, "movement": "still"},
+      {"shot": "pincer", "duration": 120, "fire_interval": 60, "movement": "wide"}
+    ]}
+  ],
+  "bosses": [
+    {"id": "stage1_boss", "width": 24, "height": 16, "stop_x": 132, "start_y": 43, "max_hp": 60, "defeat_score": 2000, "movement": "still", "appearance": "coral_bastion", "script": "coral_script"},
+    {"id": "stage2_boss", "width": 28, "height": 14, "stop_x": 128, "start_y": 44, "max_hp": 90, "defeat_score": 3000, "movement": "vertical", "appearance": "amber_carrier", "script": "carrier_script"},
+    {"id": "stage3_boss", "width": 24, "height": 24, "stop_x": 132, "start_y": 39, "max_hp": 120, "defeat_score": 5000, "movement": "wide", "appearance": "violet_geode", "script": "geode_script"}
+  ],
+  "environments": [
+    {"id": "asteroids", "kind": "asteroids", "events": [
+      {"frame": 60, "position": 22, "direction": null}, {"frame": 240, "position": 70, "direction": null},
+      {"frame": 420, "position": 44, "direction": null}, {"frame": 600, "position": 84, "direction": null},
+      {"frame": 780, "position": 30, "direction": null}, {"frame": 960, "position": 60, "direction": null}
+    ]},
+    {"id": "wind", "kind": "wind", "events": [
+      {"frame": 150, "position": 18, "direction": "up"}, {"frame": 510, "position": 58, "direction": "down"},
+      {"frame": 870, "position": 36, "direction": "up"}
+    ]},
+    {"id": "rockfall", "kind": "rockfall", "events": [
+      {"frame": 90, "position": 24, "direction": null}, {"frame": 240, "position": 72, "direction": null},
+      {"frame": 390, "position": 120, "direction": null}, {"frame": 540, "position": 48, "direction": null},
+      {"frame": 690, "position": 136, "direction": null}, {"frame": 840, "position": 96, "direction": null},
+      {"frame": 990, "position": 16, "direction": null}
+    ]}
+  ],
+  "stages": [
+    {"id": 1, "theme": "space", "formation": "space", "environment": "asteroids", "boss": "stage1_boss"},
+    {"id": 2, "theme": "sky", "formation": "air", "environment": "wind", "boss": "stage2_boss"},
+    {"id": 3, "theme": "cave", "formation": "cave", "environment": "rockfall", "boss": "stage3_boss"}
+  ]
+}

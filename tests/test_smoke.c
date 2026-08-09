@@ -45,9 +45,14 @@ int main(void)
         "releasing fire arms the title start");
 
     game_update(&game, GAME_INPUT_FIRE);
-    expect(game.phase == GAME_PHASE_STAGE_INTRO && game.phase_timer == 0u &&
+    expect(game.phase == GAME_PHASE_TITLE &&
+        game.title_voice_pending != 0u && game.phase_timer == 0u &&
         game.game_over == 0u,
-        "fresh title fire starts Stage 1 INTRO without GAME OVER");
+        "fresh title fire queues voice without GAME OVER");
+    game_title_voice_complete(&game);
+    expect(game.phase == GAME_PHASE_STAGE_INTRO && game.phase_timer == 0u &&
+        game.title_voice_pending == 0u && game.game_over == 0u,
+        "voice completion starts Stage 1 INTRO without GAME OVER");
 
     advance_intro(&game);
     expect(game.phase == GAME_PHASE_NORMAL && game.game_over == 0u,

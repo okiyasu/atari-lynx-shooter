@@ -1,0 +1,89 @@
+{
+  "adpcm_bytes": 8704,
+  "adpcm_sha256": "99eb68abe7da548a7285510c86dec9417e94766d00ac30638de302a2cd6a1eb2",
+  "credit": "VOICEVOX:Nemo（男性2）",
+  "cv": "かちょゴリラ",
+  "editor_installer": {
+    "architecture": "arm64",
+    "downloaded_at": "2026-08-09T10:28:51+09:00",
+    "name": "VOICEVOX.0.25.2-arm64.dmg",
+    "sha256": "4d532a84470c6d0cf713d2c5c6e6e5f8d2c36b18821055fd2c73386fcdfd6b91",
+    "url": "https://github.com/VOICEVOX/voicevox/releases/download/0.25.2/VOICEVOX.0.25.2-arm64.dmg"
+  },
+  "engine_command": "/Users/mammycloud-m4/Library/Application Support/voicevox/vvpp-engines/208cf94d-43d2-4cf5-abc0-9783cac36d29/0.24.0/run --host 127.0.0.1 --port 50121 --disable_mutable_api",
+  "format": "IMA ADPCM 4-bit mono, low nibble first",
+  "generated_at": "2026-08-09T02:07:15.782011+00:00",
+  "generator_command": "python3 scripts/generate-title-voice.py generate --asset title --engine-url http://127.0.0.1:50121",
+  "hash_policy": {
+    "cross_run_reproducibility_required": [
+      "query_sha256",
+      "adpcm_sha256"
+    ],
+    "generation_run_provenance_only": [
+      "wav_sha256",
+      "pcm_sha256"
+    ]
+  },
+  "initial_predictor": 0,
+  "initial_step_index": 0,
+  "input": "わしは宇宙の帝王ザカリテ",
+  "installer": {
+    "architecture": "arm64",
+    "downloaded_at": "2026-08-09T10:31:21+09:00",
+    "name": "voicevox_engine-macos-arm64-0.24.0.vvpp",
+    "sha256": "d67cbe5c8e23c0ee41a398e12e20b98de039a0eada944a3938bc6c3e39fc8f4f",
+    "url": "https://github.com/VOICEVOX/voicevox_nemo_engine/releases/download/0.24.0/voicevox_engine-macos-arm64-0.24.0.vvpp"
+  },
+  "license": {
+    "checked_at": "2026-08-09",
+    "credit": "VOICEVOX:Nemo（男性2）",
+    "nemo_terms_url": "https://voicevox.hiroshiba.jp/nemo/term/",
+    "software_terms_url": "https://voicevox.hiroshiba.jp/term/",
+    "summary": "Nemo-generated audio is permitted for commercial and non-commercial use when credited; the fixed project credit is stricter than the minimum VOICEVOX Nemo credit.",
+    "restrictions": [
+      "credit required",
+      "no seriously offensive use",
+      "no rights infringement or false authorship",
+      "no criminal facilitation",
+      "no machine-learning use",
+      "no unauthorized software redistribution or reverse engineering"
+    ]
+  },
+  "macos_architecture": "arm64",
+  "pcm_postprocess": {
+    "operation": "replace existing post-phoneme tail with exact zero",
+    "trailing_silence_samples": 800
+  },
+  "pcm_sha256": "58a6265bf42b93603eb90e898dcba94eec6bea698a03623fdfa307a41cdb228d",
+  "python": "3.9.6",
+  "query_sha256": "3092920fa47b189f5aa1b1577b859eb8bf7c07b080a067cfd4b05cff72f1fb7f",
+  "rosetta_used": false,
+  "sample_count": 17408,
+  "sample_rate_hz": 8000,
+  "speaker": "男性2",
+  "speaker_engine_name": "男声2",
+  "speaker_uuid": "7ecc7a17-1465-4b22-a3b5-842a110ff55e",
+  "style": "ノーマル",
+  "style_id": 10000,
+  "synthesis_settings": {
+    "speedScale": 0.9,
+    "pitchScale": -0.08,
+    "intonationScale": 0.9,
+    "volumeScale": 1.0,
+    "prePhonemeLength": 0.1,
+    "postPhonemeLength": 0.1,
+    "outputSamplingRate": 8000,
+    "outputStereo": false
+  },
+  "voice_provider": "VOICEVOX Nemo",
+  "voicevox_editor_version": "0.25.2",
+  "voicevox_nemo_engine_uuid": "208cf94d-43d2-4cf5-abc0-9783cac36d29",
+  "voicevox_nemo_engine_version": "0.24.0",
+  "wav_format": {
+    "channels": 1,
+    "compression": "NONE",
+    "sample_rate_hz": 8000,
+    "sample_width_bits": 16
+  },
+  "wav_sha256": "a92b34da96447a8b76bfa9a6f945343fb6fefff80e27cae0c81d3d6f569ef84f"
+}

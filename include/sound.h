@@ -63,6 +63,7 @@ void sound_request_sfx(SoundState* sound, unsigned char sfx_id);
 unsigned char sound_sfx_is_active(const SoundState* sound,
     unsigned char sfx_id);
 void sound_tick(SoundState* sound, unsigned char freeze_bgm);
+unsigned char sound_hardware_volume(unsigned char logical_volume);
 const SoundStep* sound_get_bgm_step(unsigned char bgm_id,
     unsigned char step);
 const SoundStep* sound_get_bgm_bass_step(unsigned char bgm_id,

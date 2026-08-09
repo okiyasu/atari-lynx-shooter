@@ -48,131 +48,10 @@ typedef struct EnemyMovementConfig {
     unsigned char behavior;
 } EnemyMovementConfig;
 
-typedef struct GameEnemyFormationConfig {
-    const GameEnemyFormationSlot* slots;
-    unsigned char respawn_x;
-    unsigned char respawn_spacing;
-    unsigned char respawn_min_y;
-    unsigned char respawn_y_range;
-    unsigned char respawn_y_multiplier;
-    unsigned char respawn_type_a;
-    unsigned char respawn_type_b;
-    unsigned char fixed_type;
-    unsigned char fire_phase_spacing;
-} GameEnemyFormationConfig;
-
 static const EnemyMovementConfig enemy_movements[3] = {
     { 1u, 0u, 0u, GAME_ENEMY_PATTERN_STRAIGHT },
     { 1u, 3u, 6u, GAME_ENEMY_PATTERN_WAVE },
     { 1u, 2u, 12u, GAME_ENEMY_PATTERN_DIVE }
-};
-
-static const GameEnemyFormationSlot space_formation_slots[
-    GAME_MAX_ENEMIES] = {
-    { 140u, 47u, GAME_ENEMY_TYPE_SCOUT, GAME_ENEMY_PATTERN_STRAIGHT,
-        ENEMY_SCOUT_FIRE_INTERVAL, 0u },
-    { 170u, 23u, GAME_ENEMY_TYPE_SAUCER, GAME_ENEMY_PATTERN_WAVE,
-        ENEMY_SAUCER_FIRE_INTERVAL, 15u },
-    { 200u, 70u, GAME_ENEMY_TYPE_SCOUT, GAME_ENEMY_PATTERN_DIVE,
-        ENEMY_SCOUT_FIRE_INTERVAL, 30u },
-    { 230u, 38u, GAME_ENEMY_TYPE_DROPPER, GAME_ENEMY_PATTERN_STRAIGHT,
-        ENEMY_DROPPER_FIRE_INTERVAL, 45u }
-};
-
-static const GameEnemyFormationSlot air_formation_slots[
-    GAME_MAX_ENEMIES] = {
-    { 144u, 24u, GAME_ENEMY_TYPE_FIGHTER, GAME_ENEMY_PATTERN_STRAIGHT,
-        ENEMY_FIGHTER_FIRE_INTERVAL, 0u },
-    { 180u, 64u, GAME_ENEMY_TYPE_BOMBER, GAME_ENEMY_PATTERN_WAVE,
-        ENEMY_BOMBER_FIRE_INTERVAL, 18u },
-    { 212u, 42u, GAME_ENEMY_TYPE_FIGHTER, GAME_ENEMY_PATTERN_DIVE,
-        ENEMY_FIGHTER_FIRE_INTERVAL, 36u },
-    { 244u, 78u, GAME_ENEMY_TYPE_SUPPLY, GAME_ENEMY_PATTERN_WAVE,
-        ENEMY_SUPPLY_FIRE_INTERVAL, 54u }
-};
-
-static const GameEnemyFormationSlot cave_formation_slots[
-    GAME_MAX_ENEMIES] = {
-    { 148u, 22u, GAME_ENEMY_TYPE_CAVE_BAT, GAME_ENEMY_PATTERN_WAVE,
-        ENEMY_CAVE_BAT_FIRE_INTERVAL, 0u },
-    { 184u, 72u, GAME_ENEMY_TYPE_ROCK_WORM, GAME_ENEMY_PATTERN_DIVE,
-        ENEMY_ROCK_WORM_FIRE_INTERVAL, 16u },
-    { 216u, 44u, GAME_ENEMY_TYPE_CAVE_BAT, GAME_ENEMY_PATTERN_STRAIGHT,
-        ENEMY_CAVE_BAT_FIRE_INTERVAL, 32u },
-    { 248u, 82u, GAME_ENEMY_TYPE_MINING_DRONE, GAME_ENEMY_PATTERN_WAVE,
-        ENEMY_MINING_DRONE_FIRE_INTERVAL, 48u }
-};
-
-static const GameEnemyFormationConfig enemy_formation_configs[
-    GAME_ENEMY_FORMATION_COUNT] = {
-    { space_formation_slots, 180u, 16u, ENEMY_MIN_Y, ENEMY_Y_RANGE,
-        17u, GAME_ENEMY_TYPE_SCOUT, GAME_ENEMY_TYPE_SAUCER,
-        GAME_ENEMY_TYPE_DROPPER, 15u },
-    { air_formation_slots, 184u, 18u, 14u, 76u,
-        19u, GAME_ENEMY_TYPE_FIGHTER, GAME_ENEMY_TYPE_BOMBER,
-        GAME_ENEMY_TYPE_SUPPLY, 18u },
-    { cave_formation_slots, 188u, 18u, 16u, 74u,
-        23u, GAME_ENEMY_TYPE_CAVE_BAT, GAME_ENEMY_TYPE_ROCK_WORM,
-        GAME_ENEMY_TYPE_MINING_DRONE, 16u }
-};
-
-#define BOSS_STEP_COUNT 7u
-
-static const GameBossStep boss_steps[BOSS_STEP_COUNT] = {
-    { GAME_BOSS_SHOT_STRAIGHT, 120u, 20u, GAME_BOSS_MOVE_STILL },
-    { GAME_BOSS_SHOT_FAN, 120u, 60u, GAME_BOSS_MOVE_STILL },
-    { GAME_BOSS_SHOT_CANNON_CYCLE, 120u, 20u, GAME_BOSS_MOVE_VERTICAL },
-    { GAME_BOSS_SHOT_CANNON_CYCLE, 120u, 15u, GAME_BOSS_MOVE_VERTICAL },
-    { GAME_BOSS_SHOT_BURST, 90u, 10u, GAME_BOSS_MOVE_STILL },
-    { GAME_BOSS_SHOT_PINCER, 120u, 40u, GAME_BOSS_MOVE_STILL },
-    { GAME_BOSS_SHOT_PINCER, 120u, 60u, GAME_BOSS_MOVE_WIDE }
-};
-
-static const GameBossConfig boss_configs[GAME_STAGE_COUNT] = {
-    { 24u, 16u, 132u, 43u, 60u, 2000u,
-        GAME_BOSS_MOVE_STILL, 0u, 2u },
-    { 28u, 14u, 128u, 44u, 90u, 3000u,
-        GAME_BOSS_MOVE_VERTICAL, 2u, 2u },
-    { 24u, 24u, 132u, 39u, 120u, 5000u,
-        GAME_BOSS_MOVE_WIDE, 4u, 3u }
-};
-
-static const GameStageConfig stage_configs[GAME_STAGE_COUNT] = {
-    { GAME_BACKGROUND_THEME_SPACE, GAME_ENEMY_FORMATION_SPACE, 0u,
-        GAME_BOSS_APPEARANCE_SPACE_FORTRESS, GAME_ENVIRONMENT_ASTEROIDS },
-    { GAME_BACKGROUND_THEME_SKY, GAME_ENEMY_FORMATION_AIR, 1u,
-        GAME_BOSS_APPEARANCE_AIR_CARRIER, GAME_ENVIRONMENT_WIND },
-    { GAME_BACKGROUND_THEME_CAVE, GAME_ENEMY_FORMATION_CAVE, 2u,
-        GAME_BOSS_APPEARANCE_ROCK_GUARDIAN, GAME_ENVIRONMENT_ROCKFALL }
-};
-
-static const unsigned int asteroid_event_frames[GAME_ASTEROID_EVENT_COUNT] = {
-    60u, 240u, 420u, 600u, 780u, 960u
-};
-
-static const unsigned char asteroid_event_y[GAME_ASTEROID_EVENT_COUNT] = {
-    22u, 70u, 44u, 84u, 30u, 60u
-};
-
-static const unsigned int wind_event_frames[GAME_WIND_EVENT_COUNT] = {
-    150u, 510u, 870u
-};
-
-static const unsigned char wind_event_y[GAME_WIND_EVENT_COUNT] = {
-    18u, 58u, 36u
-};
-
-static const unsigned char wind_event_direction[GAME_WIND_EVENT_COUNT] = {
-    GAME_WIND_DIRECTION_UP, GAME_WIND_DIRECTION_DOWN,
-    GAME_WIND_DIRECTION_UP
-};
-
-static const unsigned int rock_event_frames[GAME_ROCKFALL_EVENT_COUNT] = {
-    90u, 240u, 390u, 540u, 690u, 840u, 990u
-};
-
-static const unsigned char rock_event_x[GAME_ROCKFALL_EVENT_COUNT] = {
-    24u, 72u, 120u, 48u, 136u, 96u, 16u
 };
 
 #ifdef GAME_PERF_INSTRUMENT
@@ -212,7 +91,7 @@ const GameStageConfig* game_get_stage_config(unsigned char stage)
     if (stage < 1u || stage > GAME_STAGE_COUNT) {
         return (const GameStageConfig*)0;
     }
-    return &stage_configs[stage - 1u];
+    return &game_stage_configs[stage - 1u];
 }
 
 const GameEnemyFormationSlot* game_get_enemy_formation_slot(
@@ -222,7 +101,7 @@ const GameEnemyFormationSlot* game_get_enemy_formation_slot(
         slot >= GAME_MAX_ENEMIES) {
         return (const GameEnemyFormationSlot*)0;
     }
-    return &enemy_formation_configs[formation_id].slots[slot];
+    return &game_enemy_formation_configs[formation_id].slots[slot];
 }
 
 const GameBossConfig* game_get_boss_config(unsigned char stage)
@@ -230,15 +109,15 @@ const GameBossConfig* game_get_boss_config(unsigned char stage)
     if (stage < 1u || stage > GAME_STAGE_COUNT) {
         return (const GameBossConfig*)0;
     }
-    return &boss_configs[stage_configs[stage - 1u].boss_config_id];
+    return &game_boss_configs[game_stage_configs[stage - 1u].boss_config_id];
 }
 
 const GameBossStep* game_get_boss_step(unsigned char index)
 {
-    if (index >= BOSS_STEP_COUNT) {
+    if (index >= GAME_BOSS_STEP_COUNT) {
         return (const GameBossStep*)0;
     }
-    return &boss_steps[index];
+    return &game_boss_steps[index];
 }
 
 static void clear_player_bullets(GameState* game)
@@ -388,8 +267,8 @@ static void reset_enemy_formation(GameState* game)
     const GameEnemyFormationConfig* formation;
     unsigned char i;
 
-    stage_config = &stage_configs[game->stage - 1u];
-    formation = &enemy_formation_configs[stage_config->enemy_formation_id];
+    stage_config = &game_stage_configs[game->stage - 1u];
+    formation = &game_enemy_formation_configs[stage_config->enemy_formation_id];
     game->respawn_sequence = 0u;
     for (i = 0u; i < GAME_MAX_ENEMIES; ++i) {
         const GameEnemyFormationSlot* slot_config;
@@ -410,8 +289,8 @@ static void respawn_enemy(GameState* game, unsigned char slot)
     GameEnemy* enemy;
     unsigned char type;
 
-    stage_config = &stage_configs[game->stage - 1u];
-    formation = &enemy_formation_configs[stage_config->enemy_formation_id];
+    stage_config = &game_stage_configs[game->stage - 1u];
+    formation = &game_enemy_formation_configs[stage_config->enemy_formation_id];
     game->respawn_sequence = (unsigned char)(game->respawn_sequence + 1u);
     seed = (unsigned int)game->respawn_sequence + slot;
     enemy = &game->enemies[slot];
@@ -709,7 +588,7 @@ static void reset_boss_runtime(GameState* game, unsigned char preserve_hp)
     const GameBossConfig* config;
     unsigned char hp;
 
-    config = &boss_configs[game->boss.config_id];
+    config = &game_boss_configs[game->boss.config_id];
     hp = game->boss.hp;
     game->boss.active = 1u;
     game->boss.rect.x = config->stop_x;
@@ -727,9 +606,9 @@ static void reset_boss_runtime(GameState* game, unsigned char preserve_hp)
 
 static void initialize_boss(GameState* game)
 {
-    game->boss.config_id = stage_configs[game->stage - 1u].boss_config_id;
+    game->boss.config_id = game_stage_configs[game->stage - 1u].boss_config_id;
     game->boss.appearance_id =
-        stage_configs[game->stage - 1u].boss_appearance_id;
+        game_stage_configs[game->stage - 1u].boss_appearance_id;
     reset_boss_runtime(game, 0u);
 }
 
@@ -748,7 +627,7 @@ static void move_boss(GameState* game, unsigned char movement)
         return;
     }
     game->boss.move_phase = 0u;
-    config = &boss_configs[game->boss.config_id];
+    config = &game_boss_configs[game->boss.config_id];
     amplitude = movement == GAME_BOSS_MOVE_WIDE ? 18u : 12u;
     minimum_y = (unsigned char)(config->start_y - amplitude);
     maximum_y = (unsigned char)(config->start_y + amplitude);
@@ -829,10 +708,10 @@ static void update_boss_attack(GameState* game)
     const GameBossStep* step;
     unsigned char step_index;
 
-    config = &boss_configs[game->boss.config_id];
+    config = &game_boss_configs[game->boss.config_id];
     step_index = (unsigned char)(config->script_offset +
         game->boss.script_step);
-    step = &boss_steps[step_index];
+    step = &game_boss_steps[step_index];
     ++game->boss.attack_timer;
     if ((unsigned char)(game->boss.attack_timer % step->fire_interval) == 0u) {
         fire_boss_shot(game, step->shot_type);
@@ -875,6 +754,8 @@ static void update_player_death(GameState* game)
     if (game->lives == 0u) {
         game->game_over = 1u;
         game->restart_armed = 0u;
+        game->game_over_voice_pending = 1u;
+        game->game_over_voice_complete = 0u;
         reset_environment(game);
         sound_stop_all(&game->sound);
         return;
@@ -939,6 +820,9 @@ void game_init(GameState* game)
     game->game_over = 0u;
     game->restart_armed = 0u;
     game->title_start_armed = 0u;
+    game->title_voice_pending = 0u;
+    game->game_over_voice_pending = 0u;
+    game->game_over_voice_complete = 0u;
     game->dying = 0u;
     game->explosion_timer = 0u;
     game->invincibility_timer = 0u;
@@ -1002,6 +886,24 @@ void game_start(GameState* game)
     game_init(game);
     game->phase = GAME_PHASE_STAGE_INTRO;
     sound_init(&game->sound);
+}
+
+void game_title_voice_complete(GameState* game)
+{
+    if (game->phase == GAME_PHASE_TITLE &&
+        game->title_voice_pending != 0u) {
+        game_start(game);
+    }
+}
+
+void game_game_over_voice_complete(GameState* game)
+{
+    if (game->game_over != 0u &&
+        game->game_over_voice_pending != 0u) {
+        game->game_over_voice_pending = 0u;
+        game->game_over_voice_complete = 1u;
+        game->restart_armed = 0u;
+    }
 }
 
 static void return_to_title(GameState* game)
@@ -1151,43 +1053,47 @@ static unsigned char find_free_rock(const GameState* game)
 
 static unsigned char start_environment_event(GameState* game)
 {
-    const GameStageConfig* config;
+    const GameStageConfig* stage_config;
+    const GameEnvironmentConfig* environment;
+    const GameEnvironmentEvent* event;
     unsigned int elapsed;
     unsigned char cursor;
     unsigned char slot;
 
-    config = &stage_configs[game->stage - 1u];
+    stage_config = &game_stage_configs[game->stage - 1u];
+    environment = &game_environment_configs[stage_config->environment_id];
     elapsed = game->phase_timer + 1u;
     cursor = game->environment_event_cursor;
     slot = ENVIRONMENT_NO_NEW_SLOT;
-    if (config->environment_id == GAME_ENVIRONMENT_ASTEROIDS &&
-        cursor < GAME_ASTEROID_EVENT_COUNT &&
-        elapsed == asteroid_event_frames[cursor]) {
+    if (cursor >= environment->event_count) {
+        return slot;
+    }
+    event = &game_environment_events[environment->event_offset + cursor];
+    if (elapsed != event->frame) {
+        return slot;
+    }
+    if (environment->kind == GAME_ENVIRONMENT_ASTEROIDS) {
         slot = find_free_asteroid(game);
         if (slot != ENVIRONMENT_NO_NEW_SLOT) {
             game->asteroids[slot].active = 1u;
             game->asteroids[slot].rect.x = ASTEROID_START_X;
-            game->asteroids[slot].rect.y = asteroid_event_y[cursor];
+            game->asteroids[slot].rect.y = event->position;
         }
         ++game->environment_event_cursor;
-    } else if (config->environment_id == GAME_ENVIRONMENT_WIND &&
-        cursor < GAME_WIND_EVENT_COUNT &&
-        elapsed == wind_event_frames[cursor]) {
+    } else if (environment->kind == GAME_ENVIRONMENT_WIND) {
         game->wind.state = GAME_WIND_STATE_WARNING;
-        game->wind.y = wind_event_y[cursor];
-        game->wind.direction = wind_event_direction[cursor];
+        game->wind.y = event->position;
+        game->wind.direction = event->direction;
         game->wind.timer = GAME_WIND_WARNING_FRAMES;
         game->wind.push_counter = 0u;
         ++game->environment_event_cursor;
         slot = 0u;
-    } else if (config->environment_id == GAME_ENVIRONMENT_ROCKFALL &&
-        cursor < GAME_ROCKFALL_EVENT_COUNT &&
-        elapsed == rock_event_frames[cursor]) {
+    } else {
         slot = find_free_rock(game);
         if (slot != ENVIRONMENT_NO_NEW_SLOT) {
             game->falling_rocks[slot].state = GAME_ROCK_STATE_WARNING;
             game->falling_rocks[slot].timer = GAME_ROCK_WARNING_FRAMES;
-            game->falling_rocks[slot].rect.x = rock_event_x[cursor];
+            game->falling_rocks[slot].rect.x = event->position;
             game->falling_rocks[slot].rect.y = ROCK_LANDING_Y;
         }
         ++game->environment_event_cursor;
@@ -1346,7 +1252,7 @@ static void update_normal(GameState* game, unsigned char input,
 
     GAME_PERF_COUNT(normal_updates);
     move_player(game, input);
-    stage_config = &stage_configs[game->stage - 1u];
+    stage_config = &game_stage_configs[game->stage - 1u];
     new_environment_slot = start_environment_event(game);
     if (stage_config->environment_id == GAME_ENVIRONMENT_WIND) {
         update_wind(game,
@@ -1478,7 +1384,7 @@ static void defeat_boss(GameState* game)
 {
     const GameBossConfig* config;
 
-    config = &boss_configs[game->boss.config_id];
+    config = &game_boss_configs[game->boss.config_id];
     game->score += config->defeat_score;
     sound_request_sfx(&game->sound, SOUND_SFX_BOSS_DEFEAT);
     enter_phase(game, GAME_PHASE_STAGE_CLEAR);
@@ -1537,14 +1443,22 @@ void game_update_logic(GameState* game, unsigned char input)
 
     GAME_PERF_COUNT(logic_updates);
     if (game->phase == GAME_PHASE_TITLE) {
+        if (game->title_voice_pending != 0u) {
+            return;
+        }
         if ((input & GAME_INPUT_FIRE) == 0u) {
             game->title_start_armed = 1u;
         } else if (game->title_start_armed != 0u) {
-            game_start(game);
+            game->title_start_armed = 0u;
+            game->title_voice_pending = 1u;
         }
         return;
     }
     if (game->game_over != 0u) {
+        if (game->game_over_voice_complete == 0u) {
+            game->restart_armed = 0u;
+            return;
+        }
         if ((input & GAME_INPUT_FIRE) == 0u) {
             game->restart_armed = 1u;
         } else if (game->restart_armed != 0u) {

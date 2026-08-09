@@ -692,6 +692,42 @@ static void test_bass_syncs_with_bgm_start_freeze_stage_and_stop(void)
         "stopped bass output remains silent across later ticks");
 }
 
+static void test_hardware_output_gain(void)
+{
+    SoundState sound;
+    unsigned char volume;
+
+    expect(sound_hardware_volume(0u) == 0u &&
+        sound_hardware_volume(1u) == 1u &&
+        sound_hardware_volume(2u) == 1u &&
+        sound_hardware_volume(3u) == 2u &&
+        sound_hardware_volume(4u) == 3u &&
+        sound_hardware_volume(31u) == 23u,
+        "hardware gain fixes the required zero low-end and full-scale boundaries");
+    for (volume = 0u; volume <= 31u; ++volume) {
+        unsigned char expected;
+
+        expected = (unsigned char)(((unsigned int)volume * 3u) / 4u);
+        if (volume != 0u && expected == 0u) {
+            expected = 1u;
+        }
+        expect(sound_hardware_volume(volume) == expected,
+            "every logical volume maps to floor 75 percent with nonzero floor one");
+    }
+
+    sound_init(&sound);
+    sound_set_stage(&sound, 2u);
+    expect(sound_hardware_volume(sound.output_bgm.volume) <
+            sound.output_bgm.volume &&
+        sound_hardware_volume(sound.output_bgm_bass.volume) <
+            sound.output_bgm_bass.volume,
+        "melody and bass logical outputs both enter the shared hardware gain path");
+    sound_request_sfx(&sound, SOUND_SFX_PLAYER_EXPLOSION);
+    expect(sound_hardware_volume(sound.output_sfx.volume) == 23u &&
+        sound.output_sfx.volume == 31u,
+        "SFX hardware gain scales full-scale output without changing logical envelope");
+}
+
 int main(void)
 {
     test_sequence_tables();
@@ -705,6 +741,7 @@ int main(void)
     test_bass_tables_bounds_and_phase_lock();
     test_bass_exact_mml_compile();
     test_bass_syncs_with_bgm_start_freeze_stage_and_stop();
+    test_hardware_output_gain();
     printf("PASS: %u sound logic checks\n", checks);
     return EXIT_SUCCESS;
 }

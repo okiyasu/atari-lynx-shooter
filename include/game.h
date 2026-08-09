@@ -34,7 +34,6 @@
 #define GAME_PLANET_SCROLL_INTERVAL 8u
 #define GAME_PLANET_SCROLL_PERIOD 192u
 
-#define GAME_STAGE_COUNT 3u
 #define GAME_STAGE_INTRO_FRAMES 90u
 #define GAME_NORMAL_FRAMES 1125u
 #define GAME_WARNING_FRAMES 120u
@@ -50,22 +49,9 @@
 #define GAME_PHASE_ALL_CLEAR 5u
 #define GAME_PHASE_TITLE 6u
 
-#define GAME_BACKGROUND_THEME_SPACE 0u
-#define GAME_BACKGROUND_THEME_SKY 1u
-#define GAME_BACKGROUND_THEME_CAVE 2u
-#define GAME_BACKGROUND_THEME_COUNT 3u
-
-#define GAME_ENVIRONMENT_ASTEROIDS 0u
-#define GAME_ENVIRONMENT_WIND 1u
-#define GAME_ENVIRONMENT_ROCKFALL 2u
-#define GAME_ENVIRONMENT_COUNT 3u
-
 #define GAME_MAX_ENVIRONMENT_OBJECTS 2u
 #define GAME_ENVIRONMENT_OBJECT_WIDTH 8u
 #define GAME_ENVIRONMENT_OBJECT_HEIGHT 8u
-#define GAME_ASTEROID_EVENT_COUNT 6u
-#define GAME_ROCKFALL_EVENT_COUNT 7u
-#define GAME_WIND_EVENT_COUNT 3u
 #define GAME_WIND_WARNING_FRAMES 45u
 #define GAME_WIND_ACTIVE_FRAMES 150u
 #define GAME_WIND_BAND_HEIGHT 24u
@@ -80,17 +66,6 @@
 #define GAME_WIND_STATE_INACTIVE 0u
 #define GAME_WIND_STATE_WARNING 1u
 #define GAME_WIND_STATE_ACTIVE 2u
-
-#define GAME_ENEMY_FORMATION_SPACE 0u
-#define GAME_ENEMY_FORMATION_AIR 1u
-#define GAME_ENEMY_FORMATION_CAVE 2u
-#define GAME_ENEMY_FORMATION_COUNT 3u
-
-#define GAME_BOSS_APPEARANCE_COMMON 0u
-#define GAME_BOSS_APPEARANCE_SPACE_FORTRESS 1u
-#define GAME_BOSS_APPEARANCE_AIR_CARRIER 2u
-#define GAME_BOSS_APPEARANCE_ROCK_GUARDIAN 3u
-#define GAME_BOSS_APPEARANCE_COUNT 4u
 
 #define GAME_BOSS_SHOT_STRAIGHT 0u
 #define GAME_BOSS_SHOT_FAN 1u
@@ -213,6 +188,19 @@ typedef struct GameEnemyFormationSlot {
     unsigned char fire_phase;
 } GameEnemyFormationSlot;
 
+typedef struct GameEnemyFormationConfig {
+    const GameEnemyFormationSlot* slots;
+    unsigned char respawn_x;
+    unsigned char respawn_spacing;
+    unsigned char respawn_min_y;
+    unsigned char respawn_y_range;
+    unsigned char respawn_y_multiplier;
+    unsigned char respawn_type_a;
+    unsigned char respawn_type_b;
+    unsigned char fixed_type;
+    unsigned char fire_phase_spacing;
+} GameEnemyFormationConfig;
+
 typedef struct GameBossConfig {
     unsigned char width;
     unsigned char height;
@@ -232,6 +220,20 @@ typedef struct GameBossStep {
     unsigned char movement;
 } GameBossStep;
 
+typedef struct GameEnvironmentEvent {
+    unsigned int frame;
+    unsigned char position;
+    unsigned char direction;
+} GameEnvironmentEvent;
+
+typedef struct GameEnvironmentConfig {
+    unsigned char kind;
+    unsigned char event_offset;
+    unsigned char event_count;
+} GameEnvironmentConfig;
+
+#include "stage_data.h"
+
 typedef struct GameState {
     GameRect player;
     GameEnemy enemies[GAME_MAX_ENEMIES];
@@ -250,6 +252,9 @@ typedef struct GameState {
     unsigned char game_over;
     unsigned char restart_armed;
     unsigned char title_start_armed;
+    unsigned char title_voice_pending;
+    unsigned char game_over_voice_pending;
+    unsigned char game_over_voice_complete;
     unsigned char dying;
     unsigned char explosion_timer;
     unsigned char invincibility_timer;
@@ -285,6 +290,8 @@ const GamePerfCounters* game_perf_get(void);
 
 void game_init(GameState* game);
 void game_start(GameState* game);
+void game_title_voice_complete(GameState* game);
+void game_game_over_voice_complete(GameState* game);
 unsigned char game_logic_updates_for_draw_frame(unsigned char* remainder);
 void game_update_logic(GameState* game, unsigned char input);
 void game_sound_tick(GameState* game);

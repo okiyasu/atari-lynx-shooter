@@ -136,6 +136,20 @@ static void set_silent_output(SoundOutput* output)
     output->wave = SOUND_WAVE_TONE;
 }
 
+/* APS-036 output-stage gain. Logical table and envelope values stay at
+ * full scale; only the value written to MIKEY channels A/C/B is reduced.
+ * Preserve a nonzero signal at the low end so volume 1 remains audible. */
+unsigned char sound_hardware_volume(unsigned char logical_volume)
+{
+    unsigned char scaled;
+
+    scaled = (unsigned char)(((unsigned int)logical_volume * 3u) / 4u);
+    if (logical_volume != 0u && scaled == 0u) {
+        scaled = 1u;
+    }
+    return scaled;
+}
+
 /* APS-026: derives this tick's volume from the step's base volume plus
  * how far the step has progressed, so a held note attacks up to its
  * base volume over its first ~20% of ticks, then decays to ~70% of

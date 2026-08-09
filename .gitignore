@@ -3,7 +3,10 @@ build/
 dist/
 *.o
 *.s
+!src/pcm_stream.s
+!src/cart_directory.s
+!src/title_voice_asset.s
+!src/title_voice_stream.s
 *.map
 *.lbl
 .DS_Store
-

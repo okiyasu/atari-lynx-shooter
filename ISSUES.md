@@ -1,8 +1,190 @@
 # ISSUES
 
-最終更新: 2026-08-08(APS-030最終要件実装・検証完了)
+最終更新: 2026-08-09(APS-040 通常敵9種Gearlynx visual evidence追加完了)
 
 ## 課題台帳
+
+### APS-040: 固定spriteデータによるキャラクター表示詳細化
+
+- 状態: 実装・全自動検証・通常敵9種を含むGearlynx headless/GUI各連続2回検証完了（Dev、2026-08-09。Atari Lynx実機・コミット・pushなし）
+- sprite grid: `assets/stages/stages.json`の全13 sprite・2 frameだけを固定authoring dataとして再設計。自機は右向き機首/canopy/engine flare、Stage 1/2通常敵はscout sensor、saucer rim/beacon、dropper claw/core、fighter bank、bomber pod/bay、supply container、Stage 3通常敵はbat wing stroke、worm節、mining drill/core、bossはcoral reactor/command slit、amber carrier bridge/nacelle、violet geode facet/nucleusをrole固定色と輪郭差で表現。sprite ID/順序/kind/寸法（8x6、8x8、24x16、28x14、24x24）、2 frame、collision rectangle、enemy/boss参照は不変。
+- 容量制約: 全26 frameのhorizontal run数は`7/7, 10/10, 9/9, 12/12, 9/9, 10/10, 10/10, 9/9, 8/8, 8/8, 15/15, 14/14, 20/20`、合計282でAPS-039基準と同一。各frame 3〜4色・1〜20 run・rect内・frame差を維持し、`sprite_data.o` RODATA `0x4DD`（1,245 bytes）、runtime/RAM addressを増減させず詳細化。
+- canonical回帰: `tests/golden/sprite-data-v040.json`を追加し、`sprites`配列だけのcanonical SHA-256 `307152b7af0c05722d48e6dac5f87045e46b2c1596df65e061894a7986fef5af`を固定。generator/MakefileがStage挙動golden `stage-data-v034.json`とsprite goldenを独立検証。sprite grid変更時のnegative回帰を追加。C89 host testは全26 frameの固定run数、dense offset、寸法、role、色数、20 run上限、frame差を検査し738 checks成功。JSON/hash/parserはROMへ非搭載。
+- 自動検証: 最終ツリーで`make clean && ./scripts/verify.sh`終了コード0。stage 36、game 542、sound 351、IMA 14,949、sprite 738 checks、strict C89/warnings-as-errors、cc65 2.19 `-W error`、assembly、shell lint、voice/gain strict verify、3-entry cart、LNX成功。ASan/UBSan付きgame 542/sound 351/IMA 14,949/sprite 738/smoke 8、`make smoke-host` 8、`make perf-host`成功（sync 75 draw/300 logic/75 sound、299.94 Hz、game speed x1.00）、`git diff --check`成功。
+- Gearlynx visual: `python3 scripts/verify-stage-visuals-gearlynx.py --output-dir evidence/APS-040`を最終ROMで連続2回成功。各回Stage 1〜3 NORMAL/BOSSの6画面、生成palette、boss active、double-buffer同期を確認。`--gui --output-dir evidence/APS-040/gui`も成功し、GUI/headlessの対応6 PNGはSHA-256一致。証跡hashは`evidence/APS-040/README.md`に記録。
+- APS-040 v002通常敵visual: `GameState`先頭のplayer 4 bytes、`GameEnemy` 14 bytes×4、`GameBullet` 5 bytes×12、`GameEnemyBullet` 7 bytes×16、`GamePowerItem` 6 bytes、`GameBoss.rect` 4 bytesを`include/game.h`から積算し、既存map検証器の`boss.active=242`と一致することで`enemies=4`/stride 14を検算。各Stage NORMALのsound tick entryで3敵をhost debugger injectionし、2回の同一drawでfront/back bufferを同期。Stage 1 SCOUT(0)/SAUCER(1)/DROPPER(2)、Stage 2 FIGHTER(3)/BOMBER(4)/SUPPLY(5)、Stage 3 CAVE_BAT(6)/ROCK_WORM(7)/MINING_DRONE(8)をそれぞれ`(40,24,8,8)/(80,47,8,8)/(120,70,8,8)`でactive/type/rect readback。第4slot inactive、player通常表示・非重複、player/enemy bullet・power item不在、stage palette一致を確認。
+- APS-040 v002 framebuffer: Python標準libraryだけでGearlynx RGBA PNGを復号し、displayed animation frameの9 sprite全非空pixelをauthoring gridのrun/colorとhardware paletteから復元したRGBへ逐点照合。headlessとGUIを各連続2回成功し、追加`stage1/2/3-cast.png`を含む対応9 PNGのSHA-256一致を確認。CAST hashは`047680a1...`,`ed8fec7a...`,`1041b23d...`、全9 hashは`evidence/APS-040/README.md`へ記録。注入はrender証跡専用で、spawn/移動/攻撃/dropのゲームプレイ代替ではない。
+- APS-040 v002全回帰: 最終ツリーで`make clean && ./scripts/verify.sh`終了コード0（stage 36/game 542/sound 351/IMA 14,949/sprite 738、strict C89/warnings-as-errors、cc65 2.19 `-W error`、shell lint、voice/gain/cart/LNX）。ASan/UBSan付きgame 542/sound 351/IMA 14,949/sprite 738/smoke 8、`make smoke-host` 8、`make perf-host`成功（sync 75 draw/300 logic/75 sound、298.85 Hz、game speed x1.00）、`python3 -m py_compile scripts/verify-stage-visuals-gearlynx.py`、`git diff --check`成功。Gearlynx title/GAME OVERは17,408/11,691全sample一致・underrun 0・遷移/gate成功、A/C/Bは8/20/8秒で6/3/5 pitch変化・75% gain一致。
+- APS-040 v002不変確認: `GAME_VERSION_STRING=0.40.0`、LNX 60,126 bytes/SHA-256 `8706fa5f373ffbb7e9f608fb9e42fe0d149fe75cf20a7a93c30cc17c4bdfe1c3`、BSS `0xB2E5..0xB7D1` 1,261 bytes、C stack `0xB838`/残余102 bytes、sprite RODATA `0x4DD` 1,245 bytes、title cart 45,512/8,704 bytes/hash `99eb68...`、GAME OVER cart 54,216/5,846 bytes/hash `848691...`でv001最終値から不変。v002変更はhost visual verifier、追加6 PNG（headless/GUI各3）、evidence README、ISSUES、発行済みbrief v002のみ。runtime/sprite data/version/README本体/design/golden/tests/Makefile/sound/voice/cart/cfgは変更なし。実機LCD視認性・残像・Lynx I/II差は未確認。
+- Gearlynx音声回帰: titleはTimer 3 IRQ/DAC 17,408 sample完全一致、underrun 0、停止zero、Stage 1 BGM開始。GAME OVERは11,691 sample完全一致、underrun 0、A/BGM停止、release→press TITLE復帰、held press 8 poll安定。channel Aは8秒で6 pitch変化、Cは20秒で3、Bは8秒で6、全て75% logical→MIKEY gain一致。
+- ROM/RAM: `GAME_VERSION_STRING=0.40.0`。ROM生成前にversionを更新し、その後の最終ROMだけを検証。LNX 60,126 bytes（APS-039比±0）、SHA-256 `8706fa5f373ffbb7e9f608fb9e42fe0d149fe75cf20a7a93c30cc17c4bdfe1c3`。BSS `0xB2E5..0xB7D1`（1,261 bytes）、C stack開始`0xB838`、残余102 bytes、sprite RODATA `0x4DD`で全てAPS-039基準不変。title cart offset 45,512/8,704 bytes、GAME OVER offset 54,216/5,846 bytes、payload hash不変。
+- 差分/未確認: 変更はsprite grid、sprite-only golden/host回帰、visual verifierのGUI option、version、README/design/ISSUES/evidenceに限定。Stage/formation/boss script/environment/palette、`src/`、GameState/AABB、描画/更新順、敵弾、移動、攻撃、drop、BGM/SFX/voice/Timer/cart semanticsは不変。Atari Lynx実機LCDの視認性、残像、Lynx I/II差、実機音量/clip/IRQ負荷/DAC音質、日本語聴感、長時間反復は未確認。BIOS・外部ROM・外部素材の取得/読取/生成、commit/push/stash/reset/checkoutなし。
+
+### APS-039: BGM Gearlynx検証器のtitle voice状態同期
+
+- 状態: 検証器修正・自動検証・Gearlynx統合再検証完了（Dev、2026-08-09。runtime/ROM変更、実機聴感、コミット、pushなし）
+- 失敗条件/原因: APS-038統合ROMでtitle/GAME OVER voice検証は成功した一方、旧`scripts/verify-audio-gearlynx.py --channel 0 --seconds 8`はpitch変化0で失敗。旧scriptがTITLE描画後の`tap a`→固定`wait 30`→`tap a`とwall-clock sleepだけでStage 1開始を仮定し、75 Hz入力pollの間に瞬間tapが消えると`title_voice_pending`が立たずTITLEへ残留してBGMが開始されない検証器側の入力同期不備。game/runtimeのBGM回帰ではない。
+- 修正: linker mapから既存`main_bss_game_address()`と`title_voice.o` BSSを解決し、`GameState`現行offsetでstage/phase/title_start_armed/title_voice_pending/SoundState.bgm_active、voice BSSでremaining/active/underrunを期限付き5 ms poll。`stage=1, phase=TITLE, armed=1, pending=0`後に持続`press a`を一度だけ送信し、`pending=1, voice active=1`を確認してrelease。`voice remaining=0, active=0, stage=1, phase!=TITLE, bgm_active=1`とA/C MIKEY activeを待ってからpitch/gain観測。B SFXは同じ同期後に`stage=1, phase=NORMAL`を待ってpause注入。瞬間tap、固定`wait 30`、タイトル描画後/開始後の固定sleepを合否条件から除去。
+- timeout診断: TITLE armed、入力受理/voice開始、voice完了/Stage 1 BGM、NORMAL、A/C MIKEY activeを別deadlineとして識別。失敗時はstage/phase/armed/pending/bgm_active、voice remaining/active/underrun、対象channel enabledを短い一行へ出力し、title未受理・voice待ち・BGM未開始を分離可能。runtime、sound table/MML、voice asset/metadata/hash、Timer 3/cart、stage/sprite/versionは変更なし。
+- Gearlynx BGM/SFX: 最終SHA-256 `43356c97f0fcfeb3e984f882186b868c79397ceee2064049d69256110810c966`の0.39.0 ROMでchannel A `--seconds 8`を連続2回成功（各6 pitch変化、logical→MIKEY `5→3, 8→6, 11→8, ... 17→12`）。channel C `--seconds 20`は3 pitch変化、`1→1, 2→1, 3→2, ... 16→12`。channel B既定8秒はStage 1 NORMAL同期後のshot state注入から6 pitch変化、`13→9, ... 31→23`とtraceを確認。全channelで75%式一致、gain mismatch 0。
+- Gearlynx voice回帰: titleはTimer 3 IRQ 17,408、gain後DAC全17,408 sample一致、underrun 0、停止zero、channel A BGM開始。GAME OVERはIRQ 11,691、DAC全11,691一致、underrun 0、A/BGM停止、release→press TITLE復帰、held press 8 poll安定。
+- 自動検証: `make clean && ./scripts/verify.sh`終了コード0。stage 35、game 542、sound 351、IMA 14,949、sprite 712、strict C89/warnings-as-errors、cc65 2.19 `-W error`、shell lint、voice/gain strict verify、3-entry cart、LNX成功。`make smoke-host` 8、`make perf-host`成功（sync 75 draw/300 logic/75 sound、299.28 Hz、game speed x1.00）、`python3 -m py_compile scripts/verify-audio-gearlynx.py`、`git diff --check`成功。
+- ROM/RAM: `GAME_VERSION_STRING=0.39.0`不変、LNX 60,126 bytes、SHA-256 `43356c97f0fcfeb3e984f882186b868c79397ceee2064049d69256110810c966`不変。BSS `0xB2E5..0xB7D1`（1,261 bytes）、C stack開始`0xB838`、残余102 bytes。title cart offset 45,512/8,704 bytes、GAME OVER offset 54,216/5,846 bytesで両payload/hash一致。
+- 差分/未確認: ブリーフどおり検証器と台帳だけを変更。README/designの現行仕様と矛盾なしのため変更なし。Atari Lynx実機の音量、clip、IRQ負荷、DAC音質、日本語聴感、Lynx I/II差、長時間反復は未確認。コミット、push、stash、reset、checkout、BIOS・外部ROM・外部素材の取得/読取/生成なし。
+
+### APS-038: title/GAME OVER共有voice center-preserving +25% saturating gain
+
+- 状態: 実装・自動検証・Gearlynx機械検証完了（Dev、2026-08-09。実機聴感・コミット・pushなし）
+- hardware判定: Lynx Sound Overviewのdirect DAC記述、cc65 V2.19 `AUD3VOL=$FD38`/`AUD3OUT=$FD3A`、Gearlynx main `f0be31d2c33da1e9b5d4cb1fe93c34b6dc34af70`のvolume/output独立registerとoutput直接mixを照合。`AUD3VOL`はpolynomial bitの通常/integrate出力用で、停止したaudio timer下のCPU `AUD3OUT`直書きを後段増幅しないため不採用。PCM側gainを採用。
+- gain: 復号済みsigned DAC byteをunsigned centerへ移した`u = byte XOR 0x80`に対し、中心からの絶対振幅を`floor(abs(u - 128) * 5 / 4)`（絶対値を0方向へ丸め）、符号復元後`-128..127`へsaturateしsigned byteへ戻す。256-byte `voice_gain_table`を生成し、共有`decode_complete`でtitle/GAME OVERへ一度だけ一定時間lookup。zero/silence `0x00`、clamp前の正負対称性、Timer 3 `backup=0x7D control=0xD8`、queue/IRQ、state/input gate、BGM/SFX 75% hardware gainを保全。
+- generator/C89回帰: `scripts/generate-title-voice-gain.py`でassembly include生成・strict一致・全asset解析を追加。C89 host referenceと全256 table entry、全256 runtime mapping、center、`u'=0/255`相当のsigned `0x80/0x7F` clamp、正負1〜102対称を検査。両ADPCMの全29,099 sampleをdecodeし、gain mapping、center、clamp、silent tailを検査。IMAテストは14,949 checks成功。host helperはcc65 ROMで未使用のため`__CC65__`時に除外し、ROM runtimeはassembly tableだけとした。中間linkのMAIN 51 bytes超過を解消し、最終残余102 bytes。
+- asset解析: titleは17,408 samples/8,704 bytes/SHA-256 `99eb68abe7da548a7285510c86dec9417e94766d00ac30638de302a2cd6a1eb2`、signed DAC `-28..33`/peak 33 → `-35..41`/peak 41、center 3,583→3,583、clamp 0（0.000000%）、silent tail 815。GAME OVERは11,691 samples/5,846 bytes/SHA-256 `848691fea26de6e2503c67bed5721f1da27cab1692af81e2227a348ab412cb0f`、`-20..24`/peak 24 → `-25..30`/peak 30、center 2,778→2,778、clamp 0（0.000000%）、silent tail 826。payload/hash/header/cart entry不変。
+- 自動検証: `make clean && ./scripts/verify.sh`終了コード0。stage 35、game 542、sound 351、IMA 14,949、sprite 712 checks、strict C89/warnings-as-errors、cc65 2.19 `-W error`、assembly、shell lint、voice/gain table strict verify、3-entry cart、LNX成功。`make smoke-host` 8、`make perf-host`成功（sync 75 draw/300 logic/75 sound、299.19 Hz、game speed x1.00）、`git diff --check`成功。
+- Gearlynx: 1.2.21でtitle/GAME OVERを各2回連続PASS。titleは各回Timer 3 IRQ 17,408、gain後全17,408 DAC sequenceがhost referenceと一致、underrun 0、silent tail/停止zero、完了後channel A BGM開始。GAME OVERは各回IRQ 11,691、gain後全11,691 DAC一致、underrun 0、A/C/B停止、complete前gate、release→press後TITLE復帰、押下保持8 poll安定。両voiceで126 us/7,936.508 Hz、reference clamp 0を確認。
+- ROM/RAM: `GAME_VERSION_STRING=0.39.0`、LNX 60,126 bytes、SHA-256 `43356c97f0fcfeb3e984f882186b868c79397ceee2064049d69256110810c966`。CODE 38,393 bytes、RODATA 6,435 bytes、DATA 305 bytes、BSS `0xB2E5..0xB7D1`（1,261 bytes）、C stack開始`0xB838`、残余102 bytes。title cart offset 45,512、GAME OVER cart offset 54,216で両payload一致。
+- 差分/未確認: ブリーフ許可どおりvolume register案を退けPCM tableを採用。soft kneeは不要（両assetのclamp 0）で、要求どおり+25% hard saturationを維持。ADPCM/metadata/VOICEVOX/speech rate、Timer 0/2/3設定値、cart layout semantics、game state transition、BGM/SFX table/gainへ変更なし。Atari Lynx実機の音量、clip、IRQ負荷、DAC音質、日本語聴感、Lynx I/II差、長時間反復は未確認。コミット、push、stash、reset、checkout、BIOS取得なし。
+
+### APS-037: VOICEVOX Nemo音声差替え・公開可能ライセンス構成
+
+- 状態: 実装・自動検証・Gearlynx機械検証完了、raw hash再生成不整合是正済み（Dev、2026-08-09。実機聴感・コミット・pushなし）
+- 生成元: 公式VOICEVOX editor 0.25.2 arm64 DMG（2,017,545,955 bytes、SHA-256 `4d532a84470c6d0cf713d2c5c6e6e5f8d2c36b18821055fd2c73386fcdfd6b91`、取得2026-08-09T10:28:51+09:00）と公式Nemo Engine 0.24.0 arm64 VVPP（134,610,531 bytes、SHA-256 `d67cbe5c8e23c0ee41a398e12e20b98de039a0eada944a3938bc6c3e39fc8f4f`、取得2026-08-09T10:31:21+09:00）をrepo外へ導入。配布API digestと取得物を照合し、arm64 native/Rosetta不使用。localhost `127.0.0.1:50121`以外のAPI、外部送信、Personal Voice、第三者音声素材なし。
+- voice/asset: VOICEVOX Nemo男性2（engine `男声2`、UUID `7ecc7a17-1465-4b22-a3b5-842a110ff55e`、style `ノーマル` ID 10000）、speed 0.9/pitch -0.08/intonation 0.9/volume 1.0。titleは17,408 samples/8,704 bytes/SHA-256 `99eb68abe7da548a7285510c86dec9417e94766d00ac30638de302a2cd6a1eb2`、GAME OVERは11,691 samples/5,846 bytes/SHA-256 `848691fea26de6e2503c67bed5721f1da27cab1692af81e2227a348ab412cb0f`。engine既定0.1秒post-phonemeを800 exact-zero sampleへ決定的正規化。
+- generator/verify: `scripts/generate-title-voice.py`をlocalhost限定VOICEVOX API生成へ置換。engine/editor/installer version・speaker UUID/name・style ID/name・8 kHz mono signed 16-bit WAV・sample count・固定query/ADPCM hash・metadata/header・固定クレジット・ライセンス記録をstrict検証。再生成実測でtitleのraw WAV/正規化PCM hashが初回値から変化してもADPCM `99eb68...`・17,408 samplesが一致したため、raw hashは各生成runのprovenanceとしてlowercase SHA-256形式だけを検査し、cross-run完全一致を要求しない。metadataの`hash_policy`に境界を明記し、異なるPCM hashが同一ADPCM/sample count/headerへ量子化されるhost回帰を追加。旧生成依存、旧license note、旧provider表記・成果物を現行文書/metadataから除去。
+- v002再生成: Nemo 0.24.0 arm64実起動下でtitle→GAME OVERの順に再生成し、title raw WAV `a92b34da96447a8b76bfa9a6f945343fb6fefff80e27cae0c81d3d6f569ef84f` / normalized PCM `58a6265bf42b93603eb90e898dcba94eec6bea698a03623fdfa307a41cdb228d`、GAME OVER raw WAV `55f0c015fd0e5f18fb85b64920dbb9f300edb7e854d3dbaedd862e5c73d27c20` / normalized PCM `37ef9d6ee33c633c1162bfc51f2f4a0bb0a9df62ad8d24b859291c3878a0df9c`をrun provenanceとして記録。固定query hash、両sample count、両最終ADPCM/hash、header/cart payload一致。ROM/runtime/state machine変更なし。
+- license/UI: 2026-08-09確認のVOICEVOX Nemo規約とソフトウェア規約に基づき、商用・非商用利用条件、禁止事項、一次資料URLを`assets/voice/LICENSE.md`へ固定。恒久クレジット`VOICEVOX:Nemo（男性2）`をREADME/metadataとタイトル画面y=82..88へ表示し、操作行・version y=90との非重複を確認。
+- runtime/cart: 既存3 entry、Timer 3 `backup=0x7D control=0xD8`（126 us、7,936.508 Hz）、channel D、75% gain非適用、5 buffer/3段queue/専用IRQ、title完了遷移、GAME OVER release→press gateを維持。title実効2.193408秒、GAME OVER実効1.473066秒。entry 1はblock 44/offset 197/cart offset 45,253/length 8,704、entry 2はblock 52/offset 709/cart offset 53,957/length 5,846でROM payload一致。
+- 自動検証: v002で`make voice-generate`→`make voice-generate-game-over`→`make voice-check`、続けて`make clean && ./scripts/verify.sh`終了コード0。raw hash形式/hash policy/異なるPCM→同一ADPCM境界、stage 35、game 542、sound 351、IMA 14,574、sprite 712 checks、strict C89/warnings-as-errors、cc65 2.19 `-W error`、assembly、shell lint、両voice strict verify、3-entry cart、LNX成功。ASan/UBSan付きgame 542/sound 351/IMA 14,574/sprite 712/smoke 8、`make smoke-host` 8、`make perf-host`成功。
+- Gearlynx: 1.2.21でtitleとGAME OVERを各2回連続成功。titleは各回17,408 IRQと全17,408 DAC sample一致、underrun 0、完了後channel A BGM開始。GAME OVERは各回11,691 IRQと全11,691 DAC sample一致、underrun 0、A/C/B停止、完了前gate、release→press後TITLE復帰、押下保持8 poll安定を確認。
+- ROM/RAM: `GAME_VERSION_STRING=0.38.0`、LNX 59,867 bytes、SHA-256 `e5b619b56eadb1fff3fe8655db1f9314b64b2e6bc06ea25d06bb07ae6a109d32`。CODE 38,390 bytes、RODATA 6,179 bytes、DATA 305 bytes、BSS `0xB1E2..0xB6CE`（1,261 bytes）、C stack開始`0xB838`、残余361 bytes。
+- 差分/未確認: Runtime/audio topology/state gateはブリーフどおり不変。日本語suffixだけTGI標準font非対応のため共有5x7 mask rendererを使用。Atari Lynx実機のIRQ負荷、DAC音質・日本語聴感・音量バランス、Lynx I/II差、長時間反復は未確認。規約変更後の新規公開時は一次資料を再確認する。コミット、push、stash、reset、checkout、BIOS取得なし。
+
+### APS-036: 出力ゲイン75%・GAME OVER音声
+
+- 状態: 実装・自動検証・Gearlynx機械検証完了（Dev、2026-08-09。実機聴感・コミット・pushなし）
+- 目的: 論理BGMおよび全7 SFXのMIKEY出力だけを既存値の3/4（切捨て、非zeroは最低1）へ下げ、channel Dのタイトル音声はgain/data/rateを不変にする。当時のローカル音声パイプラインで「お前は弱かった」を8 kHz mono IMA ADPCM化し、最終爆発SFX完了後のGAME OVER画面で一度だけ再生する。旧生成物はAPS-037で削除・差替え済み。
+- 保全条件: music/SFX table値・duration/priority/envelope意味、タイトル音声asset/再生rate、A/C=BGM・B=SFX・D=voice、Timer 3共有、75Hz描画/入力/SFX・300Hz logic、Stage/sprite/data基盤を保全する。GAME OVER音声中はA/Bでタイトル/再開始しない。音声完了後だけ従来のrelease→pressでタイトル復帰を許可する。外部API/ネットワーク/商用TTS/第三者素材/Personal Voiceなし。commit/push/stash/reset/checkout禁止。
+- 完了条件: BGM/SFX hardware gainの0→0、1→1、2→1、3→2、4→3、31→23回帰とlogical table不変、title/game-over音声のasset/metadata/header/cart検証、最終死亡分岐・重複防止・Timer 3/channel D排他・入力gateのgame回帰、全verify、Gearlynxで両voiceのTimer 3/DAC/underrun/完了遷移とA/B/C音量、LNX、`GAME_VERSION_STRING=0.37.0`、ROM SHA-256、ライセンス注記、README/design/.briefs記録。
+
+#### APS-036 実装結果
+
+- output gain: `sound_hardware_volume()`をMIKEY出力段の共通helperとして追加し、channel A/C/BへのVOL書込値だけを`floor(logical*3/4)`、非zero最低1へ変換。境界`0→0, 1→1, 2→1, 3→2, 4→3, 31→23`と0〜31全域を回帰。MML/SFX table、note/wave/duration/priority、envelopeから生成される`SoundOutput.volume`はfull-scaleのまま。channel D DACは別streamでhelper非適用。
+- asset/generator: APS-036時点ではmacOSローカル音声から承認文言「お前は弱かった」を生成し、8 kHz mono IMA ADPCM low-nibble-first、10,119 samples、5,060 bytesとして追加した。`generate-title-voice.py`を複数assetのgenerate/strict verifyへ一般化し、title metadata/headerは当時不変。両旧生成物・hash・生成依存はAPS-037で完全に削除し、VOICEVOX Nemo男性2へ差替え済み。
+- cart/runtime: 3-entry directory（entry 0 resident、entry 1 title、entry 2 GAME OVER）へ拡張。最終titleはblock 44/offset 19/cart offset 45,075/length 8,778、GAME OVERはblock 52/offset 605/cart offset 53,853/length 5,060で、両ROM payloadがchecked-in assetとbyte一致。両clipは既存128-byte 5 buffer、3段queue、専用IRQ、Timer 3/channel Dを共有し、active中startを拒否。GAME OVER再生時間は10,119/7,936.508=約1.275秒。
+- state machine/UI: 最終爆発SFXが実完了した更新だけ`game_over_voice_pending=1`。非最終死亡はpending/completeとも0。GAME OVER画面を描いて`VOICE...`を表示後に一回だけblocking streamを開始し、完了でpending clear/complete set。再生中A/B無視、完了時も`restart_armed=0`、held FIREでは遷移せずrelease→press後だけタイトルへ戻る。重複complete、final boss、環境死亡、完全初期化をhost回帰。
+- 自動検証: `make clean && ./scripts/verify.sh`終了コード0。stage 35、game 542、sound 351、IMA 13,862、sprite 712 checks、strict C89/warnings-as-errors、cc65 2.19 `-W error`、assembly、shell lint、両voice metadata/SHA/header、3-entry cart、LNX成功。ASan/UBSan付きgame 542/sound 351/IMA 13,862/sprite 712/smoke 8、`make smoke-host` 8件、`git diff --check`成功。
+- 性能: `make perf-host`終了コード0。`--sync`はelapsed 1,002,358 us、75 draw/300 logic/75 sound、logic 299.29 Hz、game speed x1.00。host通常game性能でありLynx実機音声IRQ負荷の根拠にはしない。
+- Gearlynx voice: titleはTimer 3 `backup=0x7D control=0xD8`、17,555 IRQ、全17,555 DAC sampleがC89 IMA referenceと一致、`remaining=0 active=0 underrun=0`、停止後zero、channel A BGM開始。GAME OVERはlives=0/dying=1/爆発SFX最終stepをpause注入し、ROMの`update_player_death()`で最終死亡分岐を実行。10,119 IRQ、全10,119 DAC sample一致、underrun 0、A/C/B停止、held A中は`restart_armed=0`、releaseでarmed、pressでTITLEへ一回遷移。両voiceとも126 us/7,936.508 Hz、channel Dのgain非適用を確認。
+- Gearlynx v003再現性修正: 差戻し後の現行scriptでは最終爆発SFX注入から10,119 sampleの音声経路へ到達したが、release→press確認が`controller_macro`の固定`wait=5`に依存し、同一ROMで初回FAIL・再実行PASSを再現した。起動後の`stage=1/phase=TITLE`、release後の`game_over=1/restart_armed=1`、press後の`game_over=0/phase=TITLE`を各5秒期限付きmemory pollへ変更。復帰押下保持中も8 poll連続でTITLE、`title_start_armed=0`、`title_voice_pending=0`を確認する。修正後の単独GAME OVER検証を連続2回成功し、各回Timer 3 IRQ 10,119、全DAC sample一致、underrun 0、停止zero、BGM非再開、release→press復帰を確認。runtime/game/sound/asset/ROM変更なし。
+- Gearlynx gain/visual: channel Aでlogical→MIKEY `5→3, 8→6, 11→8, ... 17→12`、channel Cで`1→1, 2→1, 3→2, ... 16→12`、channel B shot SFXで`15→11, 19→14, 22→16, 24→18, 28→21`を実測し全sampleが75%式一致。Bは短いSFXを確実に測るためStage 1 NORMALでshot SoundStateをpause注入し、gameplay発火経路はhost回帰で別検証。APS-034 visual scriptもStage 1〜3 NORMAL/BOSSを連続2回成功。
+- ROM/RAM: `GAME_VERSION_STRING=0.37.0`、LNX 58,977 bytes、SHA-256 `5485be23efff5a1aae133f5438ee9e9206c0035e66db3c100ad1a43aa667908a`。TITLEVOICE 8,778 bytes、GAMEVOICE 5,060 bytes。BSS `0xB130..0xB61C`（1,261 bytes）、C stack開始`0xB838`、残余539 bytes。
+- 設計差分/未確認: ブリーフ許可どおり3 directory entryを採用。既存`title_voice*`名のstream実装を共用化し、新規driver複製なし。GAME OVER音声中は画面を先に一度描画してblocking pumpするため静止画を維持し、通常75Hz/300Hzは音声外で不変。Gearlynxの最終死亡は爆発SFX最終stepからの実遷移で、全17 tickを含む連続実プレイはhost回帰のみ。Atari Lynx実機のIRQ負荷/DAC音質/音量バランス、日本語聴感、Lynx I/II差、長時間反復は未確認。旧生成物と配布制約はAPS-037で削除・解消済み。commit/push/stash/reset/checkout、外部API/ネットワーク/Personal Voice/第三者素材/BIOS取得なし。
+
+### APS-035: タイトル音声の再生レート復帰
+
+- 状態: 実装・自動検証・Gearlynx機械検証完了（Dev、2026-08-09。実機聴感・コミット・pushなし）
+- 目的: V0.34.0のTimer 3 backup 62（63 us、15,873.016 Hz）によるタイトル音声が早すぎたユーザー確認を受け、asset/IMA ADPCM内容を変えずTimer 3/channel Dの消費レートだけを半分へ戻す。backup 125、period 126 us、7,936.508 Hz（V0.33相当）とし、17,555 samplesの計算再生時間を約2.211930秒へ復帰する。
+- 保全条件: `assets/voice/title-start.adpcm`、TTS/変換script、cart entry、IMA codec、専用IRQ/5 buffer/3段queue、タイトルarmed→一回開始→完了一回`game_start()`、再生中FIRE無視、A/C=BGM、B=SFX、Timer 0/2/7、75Hz描画・入力/SFX、300Hz logic、APS-034のJSON/stage/sprite/paletteを変更しない。既存高速化のqueue/IRQはrateだけの変更で不要な巻戻しをしない。commit/push/stash/reset/checkout禁止。
+- 完了条件: source/header/comments/Gearlynx検証scriptの期待値をbackup 125・126 us・7,936.508 Hzへ整合し、ADPCM SHA-256不変、タイトル完了遷移、underrun=0、Timer 3/channel D停止とchannel A BGM開始をGearlynxで実測する。`make clean && ./scripts/verify.sh`、`make perf-host`、LNX検査、`git diff --check`、`GAME_VERSION_STRING=0.36.0`、ROM SHA-256、README/design/本台帳/.briefs記録を満たす。Lynx実機の音質/負荷は未確認のまま明記する。
+
+#### APS-035 実装結果
+
+- rate: `src/title_voice_stream.s`のTimer 3 reloadだけを62から125へ変更。1 us clock、backup 125、周期126 us、実効7,936.508 Hz。17,555 samplesの計算再生時間2.211930秒。APS-033の15,873.016 Hz・約1.106秒・約1 octave高ピッチ化を取り消し、V0.33相当へ復帰した。
+- 保全: 専用IRQ、exact IMA decoder、128-byte 5 buffer、3段queue、連続pump/title gateは維持。TTS/変換script、IMA codec、cart directory、A/C=BGM・B=SFX、Timer 0/2/7、75 Hz描画/入力/SFX、300 Hz logic、APS-034のJSON/generator/sprite/paletteへ変更なし。`assets/voice/title-start.adpcm`は8,778 bytes、SHA-256 `2c8e8402f6b059de5e746b7513be97626f3301a0aba6f2644da62b82d5b30c6a`で不変。最終cart entry 1はblock 43/offset 603/cart offset 44,635/length 8,778、ROM内dataも同SHA-256。
+- 自動検証: `make clean && ./scripts/verify.sh`終了コード0。stage 35、game 538、sound 316、IMA 8,797、sprite 712 checks、clang strict C89/warnings-as-errors、cc65 2.19 `-W error`、assembly、shell lint、voice metadata/SHA/header、2-entry cart、LNX header成功。ASan/UBSan付きgame 538/sound 316/IMA 8,797/sprite 712、`make smoke-host` 8件、`git diff --check`成功。
+- 性能: `make perf-host`終了コード0。`--sync`はelapsed 1,002,681 us、75 draw/300 logic/75 sound、logic 299.20 Hz、game speed x1.00。host通常game性能でありLynx実機の音声IRQ負荷の根拠にはしない。
+- Gearlynx: Gearlynx 1.2.21 headless MCPでTimer 3 `backup=0x7D control=0xD8 enabled/reload/interrupt=true period_us=126 effective_rate_hz=7936.508`を実測。17,555 Timer 3 IRQ、17,555 DAC sampleが一対一で、全sample列はC89 IMA referenceとbyte完全一致。`remaining=0 active=0 underrun=0`、channel D停止後20 poll以上zero、完了後channel A BGM開始を確認。game 538件の既存回帰でarmed→一回開始→再生中入力無視→完了一回だけ開始も維持。
+- ROM: `GAME_VERSION_STRING=0.36.0`、LNX `magic=LYNX version=1 bank0_page=1024 bank1_page=0 size=53,477 bytes`、SHA-256 `0163b38fd83bc15aeaa6065c85853028d94257d350c563ad630dc275447a573e`。
+- 設計差分: ブリーフどおりTimer 3 reloadと直結するコメント・検証期待値・現行文書だけを変更。APS-033の履歴記録は維持し、APS-035現行仕様を追記。音声asset/codec/cart/runtime queue/state machine、game/stage/sound実装の変更なし。
+- 未確認: Atari Lynx実機の7,936.508 Hz IRQ負荷、DAC音質、日本語聴感、Lynx I/II差、長時間反復耐久。Gearlynxは機械検証であり実機聴感の代替ではない。コミット、push、stash、reset、checkout、asset再生成、外部依存/素材/BIOS取得なし。
+
+### APS-034: カラー表示・stage data authoring基盤
+
+- 状態: 実装・自動検証・Gearlynx機械検証完了（Dev、2026-08-09。実機・GUI editor・コミット・pushなし）
+- 基点: APS-031〜033を含む未コミット`GAME_VERSION_STRING=0.34.0`作業ツリー。既存差分を保全する。
+- 目的: Lynx同時16色制約内で自機・通常敵・ボスを各3〜4色の色付き水平ラン/パーツ描画へ拡張し、Stage 1〜3の初期敵配置・敵種・移動・出現タイミング・発射位相・背景/環境/ボス参照をhost側JSON authoring→厳格検証→ROM用C table生成へ移行する。
+- 保全条件: 外部素材/依存/ROMパーサなし。固有既存ゲームの輪郭・配色・名称・攻撃模倣なし。既存のStage 1〜3挙動、敵数上限4、敵弾上限16、75Hz描画・入力1回/描画・300Hzロジック、BGM/SFX/音声を保全する。GUI editorは対象外。commit/push/stash/reset/checkout禁止。
+- 完了条件: JSON schema/strict host validator/generator/CI verify統合、範囲・画面外spawn・ID参照検証、生成C tableと移行前Stage挙動の固定回帰、カラーsprite回帰、LNX/Gearlynx表示確認、`GAME_VERSION_STRING=0.35.0`、ROM SHA-256、ISSUES/design/.briefs記録。GUI editorの残要件を明記する。
+
+#### APS-034 実装結果
+
+- authoring/generator: `assets/stages/stages.json`へ3 theme、3 stage、3 formation、9 enemy type、3 boss、7 boss step、3 environment/16 event、自機・9通常敵・3 bossの2-frame spriteを集約。Python 3標準libraryだけの`scripts/generate-stage-data.py`が重複/未知/欠落key、型、C整数域、密ID、参照/未参照、3 stage/4 slot、spawn/respawn/fire、boss/script/event、grid/role/寸法/3〜4色/最大20 runを検証し、`build/gen/stage_data.{c,h}`と`build/gen/sprite_data.{c,h}`を生成する。ROM内JSON parser・文字列ID・外部dependencyなし。
+- 移行/描画: `game.c`のhardcoded Stage/formation/boss/environment tableを生成tableへ置換。phase尺、移動式、4敵/16敵弾/12自機弾、操作、score、75Hz描画・入力1回/描画・300Hz logicは維持。`main.c`は全13 spriteを共通horizontal-run rendererへ統合し、各Stageの最初の描画/Stage番号変更時だけ32-byte Lynx paletteを設定する。index 0〜5はStage theme、6〜15は固定role。
+- 回帰: canonical table snapshot `tests/golden/stage-data-v034.json`のSHA-256は`eea07bb60c67cc94bf6586c84c97d9df56871ae2b7c7116c15ca7e94f42a6779`。validator/generator 35件、既存game 538件、sprite 712件で全table/offset/count、palette role、run境界、3〜4色、2 frame差、boss sprite/collision寸法を固定。旧hardcoded tableは除去したため決定的長期GameStateの旧/新二重実行は追加せず、全authoring値goldenと既存GameState回帰の組合せで同値を検査した。
+- 自動検証: `make clean && ./scripts/verify.sh`終了コード0。stage 35、game 538、sound 316、IMA 8,797、sprite 712 checks、clang strict C89/warnings-as-errors、cc65 2.19 `-W error`、assembly、shell lint、voice metadata/SHA/header、2-entry cart、LNX header成功。ASan/UBSan付きgame 538/sound 316/IMA 8,797/sprite 712/smoke 8件、`make smoke-host` 8件、`make perf-host`、`git diff --check`成功。
+- 性能: `make perf-host`の`--sync`はelapsed 1,001,196 us、75 draw/300 logic/75 sound、logic 299.64 Hz、game speed x1.00。host計測でありLynx実機性能の根拠にはしない。
+- Gearlynx: Gearlynx 1.2.21 headless MCPへ最終LNXをロードし、GameStateの正規phase遷移を使ってStage 1〜3のNORMAL/BOSSを描画。各StageのMIKEY `0xFDA0..0xFDBF`が生成32-byte paletteと一致し、全6画面で自機・通常敵またはboss・Stage固有背景のcolor frameを取得。`evidence/APS-034/`へPNG 6枚と再現手順を保存。BIOS/外部ROM取得なし。
+- Gearlynx決定性是正（v003）: Dev Front再実行時の`stage 1 did not enter active BOSS`を受け、Devも旧固定sleep版で`stage 2 did not enter NORMAL`を再現。phase判定・描画同期の`time.sleep(2.0/0.5)`を廃止し、安定TITLE poll→pause、INTRO/WARNING終端注入、`phase` CPU write breakpoint、`_game_update_logic` execute breakpoint 8回でtarget描画とdouble-buffer swapを同期する方式へ変更した。最終ROM SHA-256 `07e96cb7f79cd57407606e7f70e2fa9529a1e35dedb31a524dcece9b0465bb2f`で連続2回、各回Stage 1〜3 NORMAL/BOSS・palette・boss active・PNG 6枚を成功。BOSS 3枚は色付きbossがfront bufferにあることを目視した。
+- v003再検証: `make clean && ./scripts/verify.sh`終了コード0。stage 35、game 538、sound 316、IMA 8,797、sprite 712 checks、clang strict C89/warnings-as-errors、cc65 2.19 `-W error`、assembly、shell lint、voice metadata/SHA/header、2-entry cart、LNX header成功。LNX 53,477 bytes、SHA-256は上記から不変。`python3 scripts/verify-stage-visuals-gearlynx.py`連続2回成功。state注入はINTRO/WARNING終端からの正規遷移・描画回帰であり、Stage 1開始からの連続playthrough、通常phase全尺、実機・GUI連続playthroughは未確認。
+- ROM/RAM: `GAME_VERSION_STRING=0.35.0`、LNX 53,477 bytes、SHA-256 `07e96cb7f79cd57407606e7f70e2fa9529a1e35dedb31a524dcece9b0465bb2f`。0.34.0基点53,618 bytes比-141 bytes。CODE `0x93D0`=37,840 bytes（-612）、RODATA `0x17E7`=6,119 bytes（+471）、DATA `0x0131`不変、BSS `0x04EB`（+1）。BSS終端`0xB46A`、C stack開始`0xB838`、残余973 bytes（+140）。ADPCM cart dataは8,778 bytes、SHA-256 `2c8e8402f6b059de5e746b7513be97626f3301a0aba6f2644da62b82d5b30c6a`で不変。
+- GUI editor残要件: schema-aware form/grid、ID rename参照一括更新、palette role preview、2-frame onion-skin、run/rect/rangeの入力中表示、formation/environment timeline、path付きvalidation、canonical JSONのatomic保存。JSON以外の正本やROM parserは追加しない。
+- 未確認: Atari Lynx実機のpalette/描画性能・ちらつき・入力追従・視認性、Gearlynx GUIでの連続実プレイと難易度。headless evidenceはstate注入を使った6画面検査で、Stage 1開始から全3 Stageを通したplaythroughではない。コミット、push、stash、reset、checkout、外部依存/素材/BIOS取得なし。
+
+### APS-033: タイトル音声の16kHz再生レート化
+
+- 状態: 実装・自動検証・Gearlynx機械検証完了（Dev、2026-08-09。実機聴感・コミット・pushなし）
+- 基点: 未コミットのAPS-031/APS-032完了状態（`GAME_VERSION_STRING=0.33.0`）。既存差分を保全する。
+- 目的: `assets/voice/title-start.adpcm`（8 kHz生成済みIMA ADPCM、17,555 samples、8,778 bytes）を再生成・再合成せず、Timer 3/channel D DACの消費レートだけを16 kHzへ変更して、タイトル音声の再生時間を約半分（約1.097秒）にする。
+- 保全条件: ADPCM asset、入力文言、TTS/変換script、BGM/SFX、A-C配線、75Hz描画・入力1回/描画・300Hzロジックを変更しない。タイトルのarmed→音声開始→完了後`game_start()`、再生中FIRE無視、終了時Timer 3/channel D停止を維持する。コミット・push・stash・reset・checkout禁止。
+- 注意: これはsample rateを2倍にする方式であり、音声のピッチも約1 octave上昇する。pitch保持の自然な速度変更ではない。16 kHz IRQによる実機CPU負荷・欠落・音質は未確認として残す。
+- 完了条件: MIKEY Timer 3の実際のreload/periodを根拠付きで16 kHzへ設定し、Gearlynxでchannel Dの設定レート・ADPCM変化・underrun=0・安定停止・完了後channel A/BGM開始を確認する。必要なhost/game回帰、`make clean && ./scripts/verify.sh`、LNX検査、ROM SHA-256、`GAME_VERSION_STRING=0.34.0`、設計/README/本台帳/.briefs記録を満たす。ROM内data SHA-256がAPS-032と不変であることも確認する。
+
+#### APS-033 実装結果
+
+- rate: Gearlynx 1.2.21のTimer実装でcounterは0の次tickにborrowするため周期は`backup + 1`。Timer 3の1 us clockでbackup 62を採用し、63 us/sample = 15,873.016 Hz（16 kHz比-0.7937%、APS-032 backup 125/126 us/7,936.508 Hzの正確な2倍）。17,555 samplesの計算再生時間1.105965秒。61/62交互reloadによる16 kHz exactはIRQ分岐・書込増を避けるため不採用。
+- asset/cart: `assets/voice/title-start.adpcm`は17,555 samples、8,778 bytes、SHA-256 `2c8e8402f6b059de5e746b7513be97626f3301a0aba6f2644da62b82d5b30c6a`でAPS-032から不変。生成/変換script、IMA C codec、cartridge directory構造は無変更。最終entry 1はblock 43/offset 744/cart offset 44,776/length 8,778でROM内dataも同SHA-256。
+- IRQ/decode: 単純reload変更ではcc65共通IRQ walk込みの復号が63 us期限を超えてunderrunしたため、再生中だけ元vectorを保存する専用IRQへ切替。16 code indexed jump table、事前計算difference/next-step table、6502 overflow flagによるpredictor clampでexact IMA復号を短縮。Timer 2等の同時pendingは`callirq`へ委譲し、その間に発生したTimer 3 borrowを消さず同じIRQで処理。完了/stopでTimer 3/channel Dをzero化し元vectorを復元。
+- producer/state: 128-byte compressed buffer 5本（current 1、assembly 3段queue、prefetch 1）へ拡張。開始入力受理後は約1.106秒のtitle gate内でpumpを連続実行し、入力/logic/drawを進めずVBlankを維持する。再生中FIRE無視、完了一回だけ`game_title_voice_complete()`→`game_start()`、A/C=BGM・B=SFX・Timer 0/2/7は維持。BSS終端`0xB4F6`、C stack開始`0xB838`、残余833 bytes。
+- Gearlynx: Timer 3 `backup=0x3E control=0xD8 enabled/reload/interrupt=true period_us=63`を実測。17,555 Timer 3 IRQ、17,555 DAC sampleが一対一で、全sample列はC89 IMA referenceとbyte完全一致。`remaining=0 active=0 underrun=0`、停止後20 poll以上zero、channel A BGM開始を確認。既存BGM回帰はchannel Aが8秒で7音程、channel Cが20秒で3音程変化してPASS。
+- 自動検証: `make clean && ./scripts/verify.sh`終了コード0。game 538件、sound 316件、IMA 8,797 checks、clang strict C89/warnings-as-errors、cc65 2.19 `-W error`、assembly、shell lint、voice metadata/SHA/header、2-entry cart、LNX header成功。ASan/UBSan付きgame 538/sound 316/IMA 8,797/smoke 8件、`make smoke-host` 8件、`git diff --check`成功。
+- 性能: `make perf-host`終了コード0。`--sync`はelapsed 1,002,690 us、75 draw/300 logic/75 sound、logic 299.20 Hz、game speed x1.00。title専用IRQはGearlynx全sample/全IRQ一対一とunderrun 0で別途実動検証。
+- ROM: `GAME_VERSION_STRING=0.34.0`、LNX `magic=LYNX version=1 bank0_page=1024 bank1_page=0 size=53,618 bytes`、SHA-256 `1d2c3560b87a4d5fa6bda92faf1c47bca4df03db1c35819e481963f055066923`。
+- 設計差分: ブリーフの「消費rateだけ」から、16 kHzで実測したdecoder/producer underrun解消に必要な範囲として専用IRQ、3段queue、5-buffer、blocking title gateまで変更。asset/IMA形式/cart構造/BGM/SFX/通常時速度は保全。音声再生中のタイトルanimation停止は、再生中入力無視と完了後一回遷移を確実にするための明示差分。
+- 未確認: Atari Lynx実機の16 kHz IRQ負荷、DAC音質、日本語聴感、Lynx I/II差、長時間反復耐久。ピッチは約1 octave上昇し、pitch保持の自然な速度変更ではない。コミット、push、stash、reset、checkout、asset再生成、外部依存/素材/BIOS取得なし。
+
+### APS-032: タイトル開始音声「わしは宇宙の帝王ザカリテ」統合
+
+- 状態: 実装・自動検証・Gearlynx機械検証完了（Dev、2026-08-08。実機聴感・配布用音声置換・コミット・pushなし）
+- 基点: APS-031プロトタイプを含む未コミットV0.32.0作業ツリー。既存差分を保全する。
+- 目的: ユーザー提供文言「わしは宇宙の帝王ザカリテ」をmacOSローカルTTSのみで生成し、8 kHz mono IMA ADPCMとして同梱、タイトル開始入力→音声再生完了→`game_start()`へ統合する。
+- 保全条件: 外部API/ネットワーク/商用TTS/外部素材なし。75Hz描画・入力1回/描画・300Hzロジック、BGM4倍/SFX75Hz、既存開始アーム規則、BGM/SFX/A-C配線、ゲームオーバーを保全する。再生中入力は重複開始しない。ゲームオーバー音声は対象外。
+- 完了条件: 再生成可能な文言入力・ローカル変換スクリプト・最終圧縮データ・ライセンス注記、タイトル遷移/完了/重複入力の回帰、cc65リアルタイム復号の検証、LNX/Gearlynx/ROM SHA-256を記録する。自然長8 kHz IMA ADPCMがresident RAMまたは実時間復号に不適合なら無断の短縮/PCM変更をせず、実測と比較案を報告する。`GAME_VERSION_STRING`は`0.33.0`へ更新する。
+
+#### APS-032 実装結果
+
+- TTS/asset: APS-032時点ではmacOSローカル音声から入力`わしは宇宙の帝王ザカリテ`を8 kHz mono signed 16-bit PCMへ一時変換後、low-nibble-first IMA ADPCMへ圧縮した。自然長17,555 samples=2.194375秒、8,778 bytes。AIFF/WAVは一時directoryだけで削除し、Git対象はtext/ADPCM/JSON metadata/header/script/license noteだった。旧生成物・hash・生成依存はAPS-037で完全に削除済み。
+- ライセンス: APS-032時点の旧生成物に関する配布制約とlicense noteはAPS-037の公開可能なVOICEVOX Nemo男性2差替えにより削除。現行条件は`assets/voice/LICENSE.md`を正本とする。
+- cart/RAM: 自然長8,778 bytesはAPS-031 resident余地6,262 bytesを超えるため短縮・PCM化・sample rate変更を行わず、custom 2-entry Lynx cartを採用。entry 0=resident executable、entry 1=cartridge-only ADPCM。final entry 1はblock 42/offset 794/cart offset 43,802/length 8,778でassetとbyte同一。BSS終端`0xAFB5`、C stack開始`0xB838`、残余2,179 bytes。resident executable cart長43,583 bytes（APS-031比+3,521）、最終LNX 52,644 bytes（同+12,582）。
+- decoder/backend: mainlineは128-byte compressed buffer 2本へcartを先読み。Timer 3/125 us IRQごとに65SC02 assemblyがIMA 1 nibbleを復号し、predictor high byteをsigned 8-bit channel D DACへ書く。89 step×8 magnitudeのdifferenceはbuild-time table化し、static conservative estimateはcommon IRQ chain込み約300〜410 cycles/sample（4MHzで500、3.6MHz仮定450 cycle/sample予算）。A/C=BGM、B=SFX、Timer 0/2/7へ無変更。
+- 状態機械: armed後最初のFIREは`title_voice_pending`だけを設定。同一描画内の残りlogic updateと再生中FIREを無視し、完了一回だけ`game_title_voice_complete()`→`game_start()`。invalid/length 0はskipして開始。非title全経路でTimer 3/channel D/queueを停止。GAME OVER音声は未実装。
+- 回帰: game 538件（APS-031 534→+4: pending/重複入力/完了一回/再開始）、sound 316件、IMA 8,797 checks（既存14相当+実asset全8,778 byte/17,555 sample検査）、startup smoke 8件。clang strict C89/warnings-as-errors、cc65 2.19 `-W error`、assembly、shell lint、voice metadata/SHA/header、2-entry cart、LNX header、`git diff --check`成功。ASan/UBSan付きgame 538/sound 316/IMA 8,797/smoke 8件成功。
+- Gearlynx: `verify-title-voice-gearlynx.py`でchannel D 225 polls中176 nonzero、39 distinct、完了後20回以上zero、`remaining=0 active=0 underrun=0`、channel A BGM開始を確認。MCP trace 983 DAC writesの先頭256 sampleがC89 referenceとbyte完全一致（driver明示zero write 4回後）。既存channel Aは8秒で4音程、channel Cは25秒で3音程変化してPASS。`make smoke-gearlynx`はROM起動/monitor待受後、一般input/state protocol不在の既知仕様で終了コード3 `UNVERIFIED`。
+- 性能: `make perf-host`成功。`--sync`はelapsed 1,003,816 us、75 draw/300 logic/75 sound、logic 298.86 Hz、game speed x1.00。ホスト通常game性能でありtitle IRQ負荷の実機計測ではない。IRQ実時間適合はGearlynx全sample完走・underrun 0で補完した。
+- ROM: `GAME_VERSION_STRING=0.33.0`、LNX `magic=LYNX version=1 bank0_page=1024 bank1_page=0 size=52644 bytes`、SHA-256 `383f8d82e90574c2bcf587e7529d4c6deb71d9b2a5119d558bfa89bb4a24925c`。
+- version是正: v001検証中の中間ROMに用いた版数は最終成果物の版数へ持ち越さず、ユーザー指定および完了条件どおり最終版を`0.33.0`へ統一。採用実装はdirect IRQ+precomputed difference tableのみで、C ring/mainline assemblyはGearlynxでproducer underrunを検出したため不採用。
+- v002再検証: `make clean && ./scripts/verify.sh`終了コード0。game 538件、sound 316件、IMA 8,797 checks、clang strict C89/warnings-as-errors、cc65 2.19 `-W error`、assembly、shell lint、voice metadata/SHA/header、2-entry cart、LNX header成功。`strings -a dist/asteroid-patrol.lnx`でROM内表示文字列`V0.33.0`を確認し、`git diff --check`成功。versionと直接連動する文書・生成ROM以外のAPS-031/032実装、テスト意味、音声assetは無変更。
+- 変更範囲: APS-031差分を保全し、`assets/voice/`、`cfg/lynx-voice.cfg`、`src/cart_directory.s`、`src/title_voice*.{c,s,inc}`、`include/title_voice*.h`、voice/cart/Gearlynx scripts、`game.h/c`、`main.c`、game/smoke/IMA tests、Makefile、README、design/APS-032設計、本台帳、versionを追加・更新。BGM/SFX table、MML、低音ベース、`sound.c/h`、ゲーム速度定数は無変更。
+- 未確認: Atari Lynx実機のIRQ cycle/sample欠落/音質/Lynx I・II音量差、Gearlynx GUI/実機スピーカーでの日本語聴感、公開配布用音声への置換。コミット、push、stash、reset、checkout、BIOS/外部ROM取得なし。
+
+### APS-031: タイトル開始時の短音声再生 — 技術調査・実現性プロトタイプ
+
+- 状態: 調査・最小プロトタイプ・自動検証完了（Dev、2026-08-08。実音声/タイトル統合/コミット・pushなし）
+- 基点: 発行ブリーフはAPS-030未コミット`0.31.0`を前提としたが、着手時の実ツリーはAPS-030を含む`4d648d9121cab5b587f6fa1005d48f2822747070`がHEADで、既存差分は本項と未追跡`.briefs/APS-031/`のみだった。この実基点から既存成果を保全した。
+- 目的: タイトル画面で開始入力を受けた際に「ゲームスタート」と聞こえる短音声を将来再生できるか、MIKEY/cc65/既存OSS/現行A=C=BGM、B=SFXのバックエンドに基づき判定する。MIKEYにハードウェアADPCMデコーダがなければCPU復号+MIKEY direct PCM(DAC)出力を比較し、タイトル専用でゲーム中負荷・BGM/SFXとの競合を避ける。
+- 保全条件: 75Hz描画・入力1回/描画・300Hzロジック・BGM4倍/SFX75Hz、既存BGM/SFXデータとMIKEY A/B/C配線、低音ベース音色を変更しない。無断の外部音声素材・商用TTS・APIキー・BIOS/外部ROM・ライブラリ導入、stash/commit/push禁止。
+- 完了条件: 根拠付きの実現可否、推奨codec/sample-rate/ROM・CPU概算、入力遷移/重複入力/チャンネル競合の設計を記録する。合法的な自作・生成不要の非発話テストデータで、採用候補パイプラインのC89ホスト回帰とLynx ROMビルドを行う。実在「ゲームスタート」音源の同梱はユーザー選択まで行わない。`ISSUES.md`、`.briefs/APS-031/v001.md`、必要な設計書を更新し、検証結果・ROM SHA-256・未確認事項を記録する。
+
+#### APS-031 調査・プロトタイプ結果
+
+- 実現性: MIKEYには4本の8-bit DAC `AUD0OUT`〜`AUD3OUT`があるが、ADPCM専用decoder/DMA/block-stateレジスタはない。cc65 V2.19 `_mikey.h`/`lynx.inc`/`lynx-snd.s`、Furnace `efd85a2`、lynxcc HandyMusic `e63e91e`を照合し、動作実績のあるsample経路はいずれもCPU/Timer IRQがsigned 8-bit sampleを`AUDxOUT`へ書く方式と判定した。根拠URL・該当行は`docs/plan/aps-031-audio-feasibility.md`へ固定した。
+- 推奨: 実音声を0.75秒以下へ編集できる場合は8 kHz・mono・signed 8-bit PCMを第一候補とする（6,000 bytes/0.75秒、復号不要）。1秒は8,000 bytesで現行resident RAM余地を超える。超過時は4-bit IMA ADPCM（4,000 bytes/秒）を第二候補とするが、C版decoderのcc65 real-time性能は未証明のため、65SC02最適化またはring bufferとcycle計測を別途合格させる。
+- codec: `include/ima_adpcm.h`/`src/ima_adpcm.c`へ動的確保・浮動小数なしのC89 encoder/decoderを追加。16-bit predictor、89段step table、index/predictor clamp、IMA low-nibble-first byte decode、signed 16-bit PCM→MIKEY signed 8-bit DAC byte変換を実装した。`tests/test_ima_adpcm.c`は既知vector、clamp、DAC端点、決定的な非発話triangle 512 sampleの独立decode状態一致・誤差上限を14件で検証する。実在音声/外部sampleはない。
+- PCM backend: `src/pcm_stream.s`をcc65 interruptorとして追加し、Timer 3を125 us（8 kHz）で駆動してresident PCMを未使用channel D `AUD3OUT`へ送る。source差替/length 0/完了/明示stopでTimer 3・channel D control・DAC出力を停止する。既存channel A/C/B、Timer 0/2/7、TGI、`src/main.c`へ書かず、game flowから未呼出のため通常動作は不変。将来は開始edgeを一度だけ受理、再生中の重複入力無視、完了観測一回で`game_start()`、全ゲーム経路でPCM停止とする。
+- 容量/CPU: 基点ROM 38,553 bytes・SHA-256 `54d1b06d2ccdc3920264e858d265763c8eeb68328501e1c66ac1ed317f666022`から、codec+backend込みROM 40,062 bytes（+1,509 bytes）へ増加。最終mapはBSS終端`0x9FC1`、C stack開始`0xB838`、resident余地6,262 bytes。4 MHz/8 kHzは500 cycle/sample（実効3.6 MHz仮定で450）、PCM IRQ chain静的概算は約130〜180 cycle/sample（約26〜40%、実機未計測）。タイトル専用以外では使用しない。
+- 自動検証: 最終コード状態の`make clean && ./scripts/verify.sh`は終了コード0（ゲーム534件、サウンド316件、IMA ADPCM 14件、clang厳格C89/warnings-as-errors、cc65 2.19 `-W error`、assembly、shell lint、LNX検査）。ASan/UBSan付きゲーム534件・サウンド316件・IMA ADPCM 14件・スモーク7件、`make smoke-host` 7件、`git diff --check`も終了コード0。
+- 性能/ROM: `make perf-host`終了コード0。`--sync`は75描画/300ロジック/75音tick、`logic_hz=299.20`、`game_speed_x=1.00`。LNXは`magic=LYNX version=1 bank0_page=1024 bank1_page=0 size=40062 bytes`、SHA-256 `44c94ace32ed1894eb49626bd9e419434e2524c8b39b53d4f6878fb16ee797ca`。`include/version.h`はROM作成規則に従い`0.32.0`。
+- Gearlynx: 最終ROMの`make smoke-gearlynx`はheadless起動とdebug monitor待受を確認し、入力/state protocol不在の既知理由で終了コード3 `UNVERIFIED`（make終了コード2）。既存音声回帰はchannel A `--seconds 8`で5音程変化、channel C `--seconds 20`で3音程変化してPASSした。asset未同梱・game flow未統合のためchannel D PCM自体は再生していない。
+- 変更範囲: `.gitignore`（手書きassembly追跡例外）、`Makefile`、`docs/plan/design.md`、`docs/plan/aps-031-audio-feasibility.md`、`include/ima_adpcm.h`、`include/pcm_stream.h`、`include/version.h`、`src/ima_adpcm.c`、`src/pcm_stream.s`、`tests/test_ima_adpcm.c`、本台帳、`.briefs/APS-031/v001.md`。`src/main.c`、game/soundロジック、MML/生成音楽データ、SFX/BGM table、A/B/C backend、速度定数は無変更。
+- 未確認: Atari Lynx実機のTimer 3 IRQ負荷・channel D DAC音質・Lynx I/II差、Gearlynx/実機でのPCM sample欠落、IMA decoderのcc65 cycle/sample、実在「ゲームスタート」の長さ・権利・話者・生成/収録方法。コミット、push、stash、reset、checkout、外部依存/音声素材/TTS/API/BIOS/外部ROMの取得・導入なし。
 
 ### APS-030: 全体4倍速化・自機爆発SE完了同期
 

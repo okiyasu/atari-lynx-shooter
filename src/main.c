@@ -4,43 +4,45 @@
 #include <tgi.h>
 
 #include "game.h"
+#include "sprite_data.h"
+#include "title_voice.h"
 #include "version.h"
 
 #define GAME_COLOR_BLACK 0u
 #define GAME_COLOR_WHITE 15u
 #define GAME_COLOR_PLANET_BODY 1u
 #define GAME_COLOR_PLANET_DETAIL 3u
-#define GAME_COLOR_FAR_STAR 2u
-#define GAME_COLOR_NEAR_STAR 7u
-#define GAME_COLOR_PLAYER 10u
-#define GAME_COLOR_BULLET 14u
-#define GAME_COLOR_ENEMY_BULLET 15u
-#define GAME_COLOR_SCOUT 4u
-#define GAME_COLOR_SAUCER 12u
-#define GAME_COLOR_DROPPER 9u
-#define GAME_COLOR_POWER_ITEM 11u
-#define GAME_COLOR_EXPLOSION 14u
-#define GAME_COLOR_BOSS 13u
-#define GAME_COLOR_BOSS_DETAIL 5u
-#define GAME_COLOR_SKY 8u
-#define GAME_COLOR_MOUNTAIN 4u
-#define GAME_COLOR_MID_CLOUD 7u
-#define GAME_COLOR_NEAR_CLOUD 15u
-#define GAME_COLOR_FIGHTER 14u
-#define GAME_COLOR_BOMBER 6u
-#define GAME_COLOR_SUPPLY 11u
-#define GAME_COLOR_CAVE_WALL 1u
-#define GAME_COLOR_CAVE_SHADOW 3u
-#define GAME_COLOR_CAVE_ROCK 5u
-#define GAME_COLOR_CAVE_NEAR 13u
-#define GAME_COLOR_CAVE_BAT 12u
-#define GAME_COLOR_ROCK_WORM 9u
-#define GAME_COLOR_MINING_DRONE 14u
-#define GAME_COLOR_ENVIRONMENT_BODY 5u
-#define GAME_COLOR_ENVIRONMENT_DETAIL 13u
+#define GAME_COLOR_FAR_STAR 3u
+#define GAME_COLOR_NEAR_STAR 4u
+#define GAME_COLOR_DANGER 6u
+#define GAME_COLOR_PLAYER_GLOW 7u
+#define GAME_COLOR_PLAYER_HULL 8u
+#define GAME_COLOR_PLAYER_DEEP 9u
+#define GAME_COLOR_ENEMY_HULL 10u
+#define GAME_COLOR_ENEMY_DARK 11u
+#define GAME_COLOR_GLOW_YELLOW 12u
+#define GAME_COLOR_MINERAL_VIOLET 13u
+#define GAME_COLOR_MINERAL_TEAL 14u
+#define GAME_COLOR_BULLET GAME_COLOR_PLAYER_GLOW
+#define GAME_COLOR_ENEMY_BULLET GAME_COLOR_DANGER
+#define GAME_COLOR_POWER_ITEM GAME_COLOR_GLOW_YELLOW
+#define GAME_COLOR_EXPLOSION GAME_COLOR_DANGER
+#define GAME_COLOR_SKY 0u
+#define GAME_COLOR_MOUNTAIN 1u
+#define GAME_COLOR_MID_CLOUD 3u
+#define GAME_COLOR_NEAR_CLOUD 4u
+#define GAME_COLOR_CAVE_WALL 0u
+#define GAME_COLOR_CAVE_SHADOW 1u
+#define GAME_COLOR_CAVE_ROCK 3u
+#define GAME_COLOR_CAVE_NEAR 4u
+#define GAME_COLOR_ENVIRONMENT_BODY GAME_COLOR_MINERAL_VIOLET
+#define GAME_COLOR_ENVIRONMENT_DETAIL GAME_COLOR_MINERAL_TEAL
 #define GAME_COLOR_WIND_WARNING 6u
-#define GAME_COLOR_WIND_ACTIVE 14u
+#define GAME_COLOR_WIND_ACTIVE GAME_COLOR_MINERAL_TEAL
 #define SCORE_DIGITS 5u
+#define VOICE_CREDIT_ASCII_X 12u
+#define VOICE_CREDIT_SUFFIX_X 116u
+#define VOICE_CREDIT_Y 82u
 
 /* MIKEY audio channel register blocks (include/_mikey.h layout): eight
  * registers per channel starting at 0xFD20 (channel A), 0xFD28
@@ -91,13 +93,6 @@ typedef struct BackgroundTheme {
     unsigned char far_star_color;
     unsigned char near_star_color;
 } BackgroundTheme;
-
-typedef struct BossRun {
-    unsigned char y;
-    unsigned char x0;
-    unsigned char x1;
-    unsigned char palette_index;
-} BossRun;
 
 typedef struct SkyRun {
     unsigned char y;
@@ -214,6 +209,7 @@ static SoundHardwareState sound_hardware_bgm;
 static SoundHardwareState sound_hardware_bgm_bass;
 static SoundHardwareState sound_hardware_sfx;
 static GameState game;
+static unsigned char active_palette_stage;
 
 /* Fixed wiring of one logical sound output to one MIKEY channel. The
  * map rows keep the historical register write order (A, C, B). Adding
@@ -265,129 +261,6 @@ static const PlanetRun planet_runs[32] = {
     { 7u, 7u, 15u, 1u }, { 8u, 9u, 13u, 1u },
     { 14u, 20u, 24u, 1u }, { 15u, 18u, 25u, 1u },
     { 16u, 19u, 25u, 1u }, { 17u, 21u, 23u, 1u }
-};
-
-#define SPACE_FORTRESS_RUN_COUNT 26u
-
-static const BossRun space_fortress_runs[2][SPACE_FORTRESS_RUN_COUNT] = {
-    {
-        /* 24x16 hull: the left edge is the forward twin turret. */
-        { 0u, 10u, 17u, 0u }, { 1u, 7u, 20u, 0u },
-        { 2u, 5u, 22u, 0u }, { 3u, 4u, 23u, 0u },
-        { 4u, 0u, 6u, 0u }, { 4u, 3u, 23u, 0u },
-        { 5u, 2u, 21u, 0u }, { 6u, 3u, 23u, 0u },
-        { 7u, 0u, 23u, 0u }, { 8u, 0u, 23u, 0u },
-        { 9u, 3u, 23u, 0u }, { 10u, 2u, 21u, 0u },
-        { 11u, 0u, 6u, 0u }, { 11u, 3u, 23u, 0u },
-        { 12u, 4u, 23u, 0u }, { 13u, 5u, 22u, 0u },
-        { 14u, 7u, 20u, 0u }, { 15u, 10u, 17u, 0u },
-        /* Armor/core is central; the rightmost runs are rear engines. */
-        { 3u, 16u, 20u, 1u }, { 6u, 10u, 14u, 1u },
-        { 7u, 9u, 15u, 1u }, { 8u, 9u, 15u, 1u },
-        { 9u, 10u, 14u, 1u }, { 12u, 16u, 20u, 1u },
-        { 5u, 22u, 23u, 1u }, { 10u, 22u, 23u, 1u }
-    },
-    {
-        /* Frame two keeps the hull and pulses core/engine detail. */
-        { 0u, 10u, 17u, 0u }, { 1u, 7u, 20u, 0u },
-        { 2u, 5u, 22u, 0u }, { 3u, 4u, 23u, 0u },
-        { 4u, 0u, 6u, 0u }, { 4u, 3u, 23u, 0u },
-        { 5u, 2u, 21u, 0u }, { 6u, 3u, 23u, 0u },
-        { 7u, 0u, 23u, 0u }, { 8u, 0u, 23u, 0u },
-        { 9u, 3u, 23u, 0u }, { 10u, 2u, 21u, 0u },
-        { 11u, 0u, 6u, 0u }, { 11u, 3u, 23u, 0u },
-        { 12u, 4u, 23u, 0u }, { 13u, 5u, 22u, 0u },
-        { 14u, 7u, 20u, 0u }, { 15u, 10u, 17u, 0u },
-        { 3u, 16u, 20u, 1u }, { 6u, 11u, 13u, 1u },
-        { 7u, 10u, 14u, 1u }, { 8u, 10u, 14u, 1u },
-        { 9u, 11u, 13u, 1u }, { 12u, 16u, 20u, 1u },
-        { 6u, 22u, 23u, 1u }, { 9u, 22u, 23u, 1u }
-    }
-};
-
-#define AIR_CARRIER_RUN_COUNT 27u
-
-static const BossRun air_carrier_runs[2][AIR_CARRIER_RUN_COUNT] = {
-    {
-        /* Flat deck and left-facing bow with upper/middle/lower guns. */
-        { 0u, 8u, 23u, 0u }, { 1u, 5u, 26u, 0u },
-        { 2u, 0u, 7u, 1u }, { 2u, 3u, 27u, 0u },
-        { 3u, 4u, 26u, 0u }, { 4u, 6u, 25u, 0u },
-        { 5u, 5u, 26u, 0u }, { 6u, 0u, 7u, 1u },
-        { 6u, 3u, 27u, 0u }, { 7u, 0u, 7u, 1u },
-        { 7u, 2u, 27u, 0u }, { 8u, 4u, 27u, 0u },
-        { 9u, 5u, 26u, 0u }, { 10u, 0u, 7u, 1u },
-        { 10u, 3u, 27u, 0u }, { 11u, 6u, 25u, 0u },
-        { 12u, 8u, 23u, 0u }, { 13u, 11u, 20u, 0u },
-        /* Central hull windows and twin rear engines. */
-        { 3u, 12u, 18u, 1u }, { 5u, 10u, 12u, 1u },
-        { 5u, 16u, 18u, 1u }, { 8u, 10u, 18u, 1u },
-        { 11u, 12u, 18u, 1u }, { 3u, 25u, 27u, 1u },
-        { 5u, 26u, 27u, 1u }, { 9u, 26u, 27u, 1u },
-        { 11u, 25u, 27u, 1u }
-    },
-    {
-        { 0u, 8u, 23u, 0u }, { 1u, 5u, 26u, 0u },
-        { 2u, 0u, 7u, 1u }, { 2u, 3u, 27u, 0u },
-        { 3u, 4u, 26u, 0u }, { 4u, 6u, 25u, 0u },
-        { 5u, 5u, 26u, 0u }, { 6u, 0u, 7u, 1u },
-        { 6u, 3u, 27u, 0u }, { 7u, 0u, 7u, 1u },
-        { 7u, 2u, 27u, 0u }, { 8u, 4u, 27u, 0u },
-        { 9u, 5u, 26u, 0u }, { 10u, 0u, 7u, 1u },
-        { 10u, 3u, 27u, 0u }, { 11u, 6u, 25u, 0u },
-        { 12u, 8u, 23u, 0u }, { 13u, 11u, 20u, 0u },
-        { 3u, 13u, 17u, 1u }, { 5u, 11u, 13u, 1u },
-        { 5u, 15u, 17u, 1u }, { 8u, 11u, 17u, 1u },
-        { 11u, 13u, 17u, 1u }, { 4u, 25u, 27u, 1u },
-        { 6u, 26u, 27u, 1u }, { 8u, 26u, 27u, 1u },
-        { 10u, 25u, 27u, 1u }
-    }
-};
-
-#define ROCK_GUARDIAN_RUN_COUNT 36u
-
-static const BossRun rock_guardian_runs[2][ROCK_GUARDIAN_RUN_COUNT] = {
-    {
-        /* Jagged 24x24 shell with upper/lower fangs around the muzzle. */
-        { 0u, 9u, 14u, 0u }, { 1u, 6u, 17u, 0u },
-        { 2u, 4u, 19u, 0u }, { 3u, 2u, 21u, 0u },
-        { 4u, 3u, 22u, 0u }, { 5u, 1u, 23u, 0u },
-        { 6u, 0u, 22u, 0u }, { 7u, 2u, 23u, 0u },
-        { 8u, 1u, 23u, 0u }, { 9u, 0u, 23u, 0u },
-        { 10u, 2u, 23u, 0u }, { 11u, 0u, 23u, 0u },
-        { 12u, 0u, 23u, 0u }, { 13u, 2u, 23u, 0u },
-        { 14u, 0u, 23u, 0u }, { 15u, 1u, 23u, 0u },
-        { 16u, 2u, 23u, 0u }, { 17u, 0u, 22u, 0u },
-        { 18u, 1u, 23u, 0u }, { 19u, 3u, 22u, 0u },
-        { 20u, 2u, 21u, 0u }, { 21u, 4u, 19u, 0u },
-        { 22u, 6u, 17u, 0u }, { 23u, 9u, 14u, 0u },
-        { 3u, 0u, 2u, 1u }, { 4u, 0u, 1u, 1u },
-        { 19u, 0u, 1u, 1u }, { 20u, 0u, 2u, 1u },
-        { 7u, 7u, 16u, 1u }, { 8u, 6u, 17u, 1u },
-        { 9u, 5u, 18u, 1u }, { 10u, 5u, 18u, 1u },
-        { 11u, 4u, 19u, 1u }, { 12u, 4u, 19u, 1u },
-        { 13u, 5u, 18u, 1u }, { 14u, 6u, 17u, 1u }
-    },
-    {
-        { 0u, 9u, 14u, 0u }, { 1u, 6u, 17u, 0u },
-        { 2u, 4u, 19u, 0u }, { 3u, 2u, 21u, 0u },
-        { 4u, 3u, 22u, 0u }, { 5u, 1u, 23u, 0u },
-        { 6u, 0u, 22u, 0u }, { 7u, 2u, 23u, 0u },
-        { 8u, 1u, 23u, 0u }, { 9u, 0u, 23u, 0u },
-        { 10u, 2u, 23u, 0u }, { 11u, 0u, 23u, 0u },
-        { 12u, 0u, 23u, 0u }, { 13u, 2u, 23u, 0u },
-        { 14u, 0u, 23u, 0u }, { 15u, 1u, 23u, 0u },
-        { 16u, 2u, 23u, 0u }, { 17u, 0u, 22u, 0u },
-        { 18u, 1u, 23u, 0u }, { 19u, 3u, 22u, 0u },
-        { 20u, 2u, 21u, 0u }, { 21u, 4u, 19u, 0u },
-        { 22u, 6u, 17u, 0u }, { 23u, 9u, 14u, 0u },
-        { 2u, 0u, 3u, 1u }, { 3u, 0u, 1u, 1u },
-        { 20u, 0u, 1u, 1u }, { 21u, 0u, 3u, 1u },
-        { 8u, 8u, 15u, 1u }, { 9u, 7u, 16u, 1u },
-        { 10u, 6u, 17u, 1u }, { 11u, 5u, 18u, 1u },
-        { 12u, 5u, 18u, 1u }, { 13u, 6u, 17u, 1u },
-        { 14u, 7u, 16u, 1u }, { 15u, 8u, 15u, 1u }
-    }
 };
 
 /* SKY far layer: fixed 192-pixel mountain/horizon horizontal runs. */
@@ -477,60 +350,6 @@ static const Star near_stars[7] = {
     { 106u, 95u }, { 132u, 29u }, { 151u, 74u }
 };
 
-static const unsigned char player_masks[2][GAME_PLAYER_HEIGHT] = {
-    { 0x18u, 0x3cu, 0xfeu, 0xffu, 0xfeu, 0x24u },
-    { 0x18u, 0x7cu, 0xfeu, 0xffu, 0xfeu, 0x42u }
-};
-
-static const unsigned char enemy_masks[GAME_ENEMY_TYPE_COUNT][2]
-    [GAME_ENEMY_HEIGHT] = {
-    {
-        /* SCOUT: pointed interceptor with a blinking tail fin. */
-        { 0x10u, 0x38u, 0x7cu, 0xfeu, 0xffu, 0x7cu, 0x24u, 0x42u },
-        { 0x08u, 0x1cu, 0x7eu, 0xffu, 0xfeu, 0x3eu, 0x24u, 0x81u }
-    },
-    {
-        /* SAUCER: flat rim, dome and alternating landing lights. */
-        { 0x18u, 0x3cu, 0x7eu, 0xffu, 0xffu, 0x7eu, 0x42u, 0x00u },
-        { 0x18u, 0x7eu, 0xffu, 0xffu, 0x7eu, 0x3cu, 0x81u, 0x00u }
-    },
-    {
-        /* DROPPER: cargo pod with opening lower hatch. */
-        { 0x3cu, 0x7eu, 0xffu, 0xdbu, 0xdbu, 0xffu, 0x3cu, 0x18u },
-        { 0x3cu, 0x7eu, 0xffu, 0xbdu, 0xffu, 0x5au, 0x3cu, 0x24u }
-    },
-    {
-        /* FIGHTER: narrow nose and swept wings. */
-        { 0x80u, 0xc0u, 0xf0u, 0xfeu, 0xffu, 0x7cu, 0x18u, 0x10u },
-        { 0x80u, 0xe0u, 0xf8u, 0xffu, 0xfeu, 0x38u, 0x18u, 0x08u }
-    },
-    {
-        /* BOMBER: broad twin-engine wing. */
-        { 0x24u, 0x66u, 0x7eu, 0xffu, 0xffu, 0x7eu, 0x66u, 0x24u },
-        { 0x42u, 0x66u, 0xffu, 0xffu, 0x7eu, 0x7eu, 0x66u, 0x42u }
-    },
-    {
-        /* SUPPLY: box fuselage and straight transport wing. */
-        { 0x3cu, 0x3cu, 0xffu, 0xffu, 0x7eu, 0x3cu, 0x24u, 0x24u },
-        { 0x3cu, 0x7eu, 0xffu, 0xffu, 0x3cu, 0x3cu, 0x42u, 0x42u }
-    },
-    {
-        /* CAVE_BAT: broad flapping wings around a narrow body. */
-        { 0x81u, 0xc3u, 0x7eu, 0x3cu, 0x18u, 0x3cu, 0x24u, 0x42u },
-        { 0x18u, 0x5au, 0xffu, 0x7eu, 0x18u, 0x3cu, 0x42u, 0x81u }
-    },
-    {
-        /* ROCK_WORM: offset armored segments and a distinct head. */
-        { 0xc0u, 0xf0u, 0x7cu, 0x3eu, 0x1fu, 0x0eu, 0x1cu, 0x38u },
-        { 0x60u, 0xf8u, 0x7cu, 0x3eu, 0x1fu, 0x0eu, 0x1cu, 0x70u }
-    },
-    {
-        /* MINING_DRONE: box chassis, lamp and animated drill. */
-        { 0x18u, 0x7eu, 0xffu, 0xdbu, 0xffu, 0x7eu, 0x18u, 0x24u },
-        { 0x18u, 0x7eu, 0xffu, 0xdbu, 0xffu, 0x7eu, 0x24u, 0x18u }
-    }
-};
-
 static const unsigned char power_item_mask[GAME_POWER_ITEM_HEIGHT] = {
     0x60u, 0xf0u, 0xf0u, 0x60u
 };
@@ -591,6 +410,7 @@ static void sound_backend_apply(volatile unsigned char* channel,
 {
     const SoundPitchRegister* pitch;
     const SoundWaveRegister* wave;
+    unsigned char hardware_volume;
 
     if (output->active == 0u || output->note == SOUND_NOTE_REST ||
         output->note > SOUND_NOTE_COUNT ||
@@ -603,6 +423,7 @@ static void sound_backend_apply(volatile unsigned char* channel,
      * length, so the lookup is per wave (see the table comment). */
     pitch = &sound_pitch_registers[output->wave][output->note - 1u];
     wave = &sound_wave_registers[output->wave];
+    hardware_volume = sound_hardware_volume(output->volume);
     if (hardware->active == 0u ||
         output->note != hardware->note ||
         output->wave != hardware->wave) {
@@ -614,16 +435,16 @@ static void sound_backend_apply(volatile unsigned char* channel,
          * level carried over from the previous note/SFX cannot push
          * the new note's triangle into the +/-128 clamp. */
         channel[SOUND_REG_OUTPUT] = 0u;
-        channel[SOUND_REG_VOL] = output->volume;
+        channel[SOUND_REG_VOL] = hardware_volume;
         channel[SOUND_REG_RELOAD] = pitch->reload;
         channel[SOUND_REG_CONTROL_A] = (unsigned char)(pitch->prescaler |
             SOUND_TIMER_ENABLE | wave->integrate);
-    } else if (output->volume != hardware->volume) {
-        channel[SOUND_REG_VOL] = output->volume;
+    } else if (hardware_volume != hardware->volume) {
+        channel[SOUND_REG_VOL] = hardware_volume;
     }
     hardware->active = 1u;
     hardware->note = output->note;
-    hardware->volume = output->volume;
+    hardware->volume = hardware_volume;
     hardware->wave = output->wave;
 }
 
@@ -900,82 +721,38 @@ static void format_score(unsigned long score, char* text)
     }
 }
 
-static void draw_clipped_boss_run(const GameBoss* boss,
-    const BossRun* run)
+static void draw_sprite(int x, int y, unsigned char sprite_id,
+    unsigned char animation_frame)
 {
-    draw_clipped_hline((int)boss->rect.x + (int)run->x0,
-        (int)boss->rect.x + (int)run->x1,
-        (int)boss->rect.y + (int)run->y,
-        run->palette_index == 0u ?
-            GAME_COLOR_BOSS : GAME_COLOR_BOSS_DETAIL);
+    const GameSpriteDefinition* sprite;
+    const GameSpriteFrame* frame;
+    const GameSpriteRun* run;
+    unsigned char i;
+
+    if (sprite_id >= GAME_SPRITE_COUNT || animation_frame > 1u) {
+        return;
+    }
+    sprite = &game_sprite_definitions[sprite_id];
+    frame = &sprite->frames[animation_frame];
+    for (i = 0u; i < frame->run_count; ++i) {
+        run = &game_sprite_runs[frame->run_offset + i];
+        draw_clipped_hline(x + (int)run->x0, x + (int)run->x1,
+            y + (int)run->y, run->color);
+    }
 }
-
-static void draw_common_boss(const GameBoss* boss)
-{
-    unsigned int x0;
-    unsigned int x1;
-    unsigned int y0;
-    unsigned int y1;
-
-    x0 = boss->rect.x;
-    x1 = (unsigned int)boss->rect.x + boss->rect.width - 1u;
-    y0 = boss->rect.y;
-    y1 = (unsigned int)boss->rect.y + boss->rect.height - 1u;
-    tgi_setcolor(GAME_COLOR_BOSS);
-    tgi_bar(x0 + 4u, y0, x1 - 4u, y0 + 2u);
-    tgi_bar(x0 + 2u, y0 + 3u, x1 - 2u, y1 - 3u);
-    tgi_bar(x0 + 4u, y1 - 2u, x1 - 4u, y1);
-    tgi_setcolor(GAME_COLOR_BOSS_DETAIL);
-    tgi_bar(x0, y0 + 5u, x0 + 5u, y0 + 7u);
-    tgi_bar(x0 + 7u, y0 + 5u, x1 - 5u, y0 + 7u);
-    tgi_bar(x1 - 3u, y0 + 2u, x1, y1 - 2u);
-}
-
-/* Two-frame run-sprite table for the named boss appearances (APS-021):
- * replaces one identical draw function per appearance. Index is
- * appearance_id - 1 (COMMON has no run sprite). */
-typedef struct BossSprite {
-    const BossRun* frames[2];
-    unsigned char run_count;
-} BossSprite;
-
-static const BossSprite boss_sprites[GAME_BOSS_APPEARANCE_COUNT - 1u] = {
-    { { space_fortress_runs[0], space_fortress_runs[1] },
-        SPACE_FORTRESS_RUN_COUNT },
-    { { air_carrier_runs[0], air_carrier_runs[1] },
-        AIR_CARRIER_RUN_COUNT },
-    { { rock_guardian_runs[0], rock_guardian_runs[1] },
-        ROCK_GUARDIAN_RUN_COUNT }
-};
 
 static void draw_boss(const GameBoss* boss, unsigned char animation_frame)
 {
-    const BossSprite* sprite;
-    const BossRun* runs;
-    unsigned char i;
+    unsigned char sprite_id;
 
-    if (boss->appearance_id == GAME_BOSS_APPEARANCE_COMMON ||
-        boss->appearance_id >= GAME_BOSS_APPEARANCE_COUNT) {
-        draw_common_boss(boss);
+    if (boss->appearance_id >= GAME_BOSS_APPEARANCE_COUNT) {
         return;
     }
-    sprite = &boss_sprites[boss->appearance_id - 1u];
-    runs = sprite->frames[animation_frame];
-    for (i = 0u; i < sprite->run_count; ++i) {
-        draw_clipped_boss_run(boss, &runs[i]);
+    sprite_id = game_boss_sprite_ids[boss->appearance_id];
+    if (sprite_id == GAME_SPRITE_INVALID) {
+        return;
     }
-}
-
-static unsigned char enemy_color(unsigned char type)
-{
-    static const unsigned char colors[GAME_ENEMY_TYPE_COUNT] = {
-        GAME_COLOR_SCOUT, GAME_COLOR_SAUCER, GAME_COLOR_DROPPER,
-        GAME_COLOR_FIGHTER, GAME_COLOR_BOMBER, GAME_COLOR_SUPPLY,
-        GAME_COLOR_CAVE_BAT, GAME_COLOR_ROCK_WORM,
-        GAME_COLOR_MINING_DRONE
-    };
-
-    return colors[type];
+    draw_sprite(boss->rect.x, boss->rect.y, sprite_id, animation_frame);
 }
 
 static unsigned char tiny_glyph_row(char glyph, unsigned char row)
@@ -1204,6 +981,29 @@ static void draw_environment(const GameState* game,
     }
 }
 
+/* The stock TGI font is ASCII-only. Keep the exact project credit visible by
+ * drawing "VOICEVOX:Nemo" with that font and the required full-width
+ * Japanese suffix as compact 5x7 glyphs. The row at y=82 sits below the
+ * controls and above the version without overlap on the 160x102 display. */
+static void draw_voice_credit(void)
+{
+    static const unsigned char suffix[5][7] = {
+        { 48u, 64u, 128u, 128u, 128u, 64u, 48u },
+        { 248u, 136u, 248u, 32u, 248u, 80u, 136u },
+        { 160u, 240u, 160u, 184u, 224u, 160u, 184u },
+        { 240u, 8u, 8u, 240u, 128u, 128u, 248u },
+        { 96u, 16u, 8u, 8u, 8u, 16u, 96u }
+    };
+    unsigned char glyph;
+
+    tgi_outtextxy(VOICE_CREDIT_ASCII_X, VOICE_CREDIT_Y,
+        "VOICEVOX:Nemo");
+    for (glyph = 0u; glyph < 5u; ++glyph) {
+        draw_mask(VOICE_CREDIT_SUFFIX_X + glyph * 6u, VOICE_CREDIT_Y,
+            5u, 7u, suffix[glyph], GAME_COLOR_WHITE);
+    }
+}
+
 static void draw_game(const GameState* game)
 {
     const GameStageConfig* stage_config;
@@ -1218,12 +1018,17 @@ static void draw_game(const GameState* game)
         tgi_outtextxy(32u, 42u, "A/B TO START");
         tgi_outtextxy(28u, 62u, "ARROWS: MOVE");
         tgi_outtextxy(36u, 74u, "A/B: FIRE");
+        draw_voice_credit();
         tgi_outtextxy(52u, 90u, "V" GAME_VERSION_STRING);
         tgi_updatedisplay();
         return;
     }
 
     stage_config = game_get_stage_config(game->stage);
+    if (active_palette_stage != game->stage) {
+        tgi_setpalette(game_stage_palettes[game->stage - 1u]);
+        active_palette_stage = game->stage;
+    }
     theme = &background_themes[stage_config->background_theme_id];
     tgi_setbgcolor(theme->background_color);
     tgi_clear();
@@ -1249,19 +1054,16 @@ static void draw_game(const GameState* game)
                     GAME_EXPLOSION_STAGE_FRAMES],
                 GAME_COLOR_EXPLOSION);
         } else if (game_player_is_visible(game) != 0u) {
-            draw_mask(game->player.x, game->player.y, GAME_PLAYER_WIDTH,
-                GAME_PLAYER_HEIGHT, player_masks[game->animation_frame],
-                GAME_COLOR_PLAYER);
+            draw_sprite(game->player.x, game->player.y,
+                GAME_SPRITE_PLAYER, game->animation_frame);
         }
         for (i = 0u; i < GAME_MAX_ENEMIES; ++i) {
             if (game->enemies[i].active != 0u &&
                 game->enemies[i].rect.x < GAME_SCREEN_WIDTH) {
-                draw_mask(game->enemies[i].rect.x,
-                    game->enemies[i].rect.y, GAME_ENEMY_WIDTH,
-                    GAME_ENEMY_HEIGHT,
-                    enemy_masks[game->enemies[i].type]
-                        [game->animation_frame],
-                    enemy_color(game->enemies[i].type));
+                draw_sprite(game->enemies[i].rect.x,
+                    game->enemies[i].rect.y,
+                    game_enemy_sprite_ids[game->enemies[i].type],
+                    game->animation_frame);
             }
         }
         if (game->boss.active != 0u) {
@@ -1304,7 +1106,11 @@ static void draw_game(const GameState* game)
     }
     if (game->game_over != 0u) {
         tgi_outtextxy(48u, 40u, "GAME OVER");
-        tgi_outtextxy(40u, 58u, "A/B TO TITLE");
+        if (game->game_over_voice_complete != 0u) {
+            tgi_outtextxy(40u, 58u, "A/B TO TITLE");
+        } else {
+            tgi_outtextxy(48u, 58u, "VOICE...");
+        }
     }
     tgi_updatedisplay();
 }
@@ -1325,7 +1131,9 @@ void main(void)
     tgi_setbgcolor(GAME_COLOR_BLACK);
     tgi_setframerate(75u);
     sound_backend_init();
+    title_voice_init();
     game_init(&game);
+    active_palette_stage = 0u;
     logic_remainder = 0u;
 
     for (;;) {
@@ -1339,5 +1147,24 @@ void main(void)
         game_sound_tick(&game);
         sound_backend_apply_all();
         draw_game(&game);
+        if (game.phase == GAME_PHASE_TITLE &&
+            game.title_voice_pending != 0u) {
+            if (title_voice_start() != 0u) {
+                while (title_voice_is_playing() != 0u) {
+                    title_voice_pump();
+                }
+                title_voice_stop();
+            }
+            game_title_voice_complete(&game);
+        } else if (game.game_over != 0u &&
+            game.game_over_voice_pending != 0u) {
+            if (game_over_voice_start() != 0u) {
+                while (title_voice_is_playing() != 0u) {
+                    title_voice_pump();
+                }
+                title_voice_stop();
+            }
+            game_game_over_voice_complete(&game);
+        }
     }
 }

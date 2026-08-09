@@ -6,9 +6,9 @@ Atari Lynxの標準160x102・16色モードで動く、最小構成の横スク�
 
 ## 構成
 
-- `src/game.c`: ハードウェア非依存の状態遷移。背景テーマID・通常敵編成ID・Boss設定ID・Boss外観IDを持つStage固定設定、Stage 1〜3の共通進行、固定設定表と攻撃手順表によるボス、移動、境界、12発の自機弾、符号付き速度を持つ16発の敵弾、3段階武器、8フレームの連射間隔、AABB、得点、4敵の再出現、敵ごとのドロップ能力と強化アイテム、残機、爆発・再出撃・無敵、ゲームオーバー、ALL CLEAR、完全再開始、3層背景、サウンドイベント発火を担当。
-- `src/sound.c`: 75Hzのハードウェア非依存サウンド状態。3曲の固定BGM表と、7種SFX、優先度、固定1件保留を持つ。BGM・SFXは独立した論理出力（`output_bgm`/`output_sfx`）を持ち、`bgm_active`が真の間はBGMカーソルが常時BGM出力を生成し、SFXはアクティブな間だけ独立にSFX出力を生成する（APS-020で2ch復帰）。
-- `src/main.c`: cc65/Lynxアダプタ。標準ジョイスティックドライバを読み、Stage設定から選ぶ配色とTGIで固定水平ラン表の惑星・山・雲・洞窟地形、固定星、行マスクの自機と画面内の4敵、Stage 1宇宙要塞・Stage 2空中母艦・Stage 3岩石コア、両陣営の弾、Stage/フェーズ表示、ボスHPバー、HUDを背面から順に描く。純CのBGM論理出力をMIKEY音源channel Aへ、SFX論理出力をchannel Bへそれぞれ反映する。
+- `src/game.c`: ハードウェア非依存の状態遷移。`assets/stages/stages.json`から生成した背景テーマID・通常敵編成ID・Boss設定/外観/攻撃手順・環境イベント表を参照し、Stage 1〜3の共通進行、移動、境界、12発の自機弾、符号付き速度を持つ16発の敵弾、3段階武器、8フレームの連射間隔、AABB、得点、4敵の再出現、敵ごとのドロップ能力と強化アイテム、残機、爆発・再出撃・無敵、ゲームオーバー、ALL CLEAR、完全再開始、3層背景、サウンドイベント発火を担当。
+- `src/sound.c`: 75Hzのハードウェア非依存サウンド状態。3曲の固定BGM表と、7種SFX、優先度、固定1件保留を持つ。BGM・SFXは独立した論理出力（`output_bgm`/`output_sfx`）を持ち、`bgm_active`が真の間はBGMカーソルが常時BGM出力を生成し、SFXはアクティブな間だけ独立にSFX出力を生成する（APS-020で2ch復帰）。APS-036のgain helperは論理値を変更せずhardware投影値だけを返す。
+- `src/main.c`: cc65/Lynxアダプタ。標準ジョイスティックドライバを読み、Stage遷移時だけ生成済み32-byte paletteをTGIへ設定する。固定水平ラン表の惑星・山・雲・洞窟地形、固定星、生成済み3〜4色水平runの自機・9通常敵・3ボス、両陣営の弾、Stage/フェーズ表示、ボスHPバー、HUDを背面から順に描く。純Cのメロディ/ベース/SFX論理出力を75% gain後にMIKEY channel A/C/Bへ反映し、cartridge-only音声は共有+25% saturating PCM gain後にchannel Dへ排他的に流す。
 - `tests/test_game.c`と`tests/test_sound.c`: 同じゲーム/サウンドロジックをmacOS clangで実行する回帰テスト。
 
 描画フレームごとに入力を一度取得し、画面クリアと再描画、`tgi_updatedisplay()`、`sound_tick()`を各一回だけ75Hzで行う。APS-030最終仕様のゲーム内ロジックは剰余0からの`4/1`固定スケジューラで、各描画フレームに4回、300Hz（基準75Hz比4.00倍）更新する。同じ描画フレーム内の4回の更新にも同一入力を渡すため、状態遷移、進行タイマ、移動、弾、クールダウン、敵発射、環境、無敵は決定的に4倍で進む。`sound_tick()`は論理出力を一回投影した後、非死亡時の共有BGMカーソル（メロディ/ベース）だけを4回進める。SFXカーソルは一回だけ進め、SFXの実時間長、優先順位、開始回数を保つ。自機死亡開始時はBGMを停止し、爆発SFXの完了を死亡状態の解除条件とするため、300HzロジックがSFXより先に再出撃やGAME OVERへ進むことはない。GAME OVER/ALL CLEARの解除・再押下判定を最優先とし、導入・警告・クリアは許可された背景・入力を一度更新してから境界判定する。NORMALは既存の通常戦闘順を維持し、BOSSは背景、自機、射撃、自機弾、ボス命中、既存敵弾、ボス移動/発射、自機損傷の順とする。HP0更新は直ちにクリアへ移って後続ボス処理を省略する。動的確保、外部アセット、外部音源を使わない。
@@ -30,9 +30,9 @@ Lynxの初期化では、TGI/ジョイスティック初期化と`CLI()`後に�
 - 最背面惑星: 8フレームに1px、遠景星: 4フレームに1px、近景星: 2フレームに1pxで左へ進む。惑星は192px、星は160pxでラップする。
 - 星はプレイ領域内の固定座標表から描き、遠景10個は暗い1px、近景7個は明るい1〜2pxとする。オフセットと間引きカウンタを`GameState`に保持し、乱数や符号なしアンダーフローを使わず0〜159で明示的に循環させる。
 - 惑星は32x24px、基準位置(120,18)。オフセットを0〜191で循環し、符号付き描画X=`120-offset`が-32未満なら192を加える。丸い輪郭24本と内部の2クレーター8本を相対座標の固定水平ラン表で自作し、暗色2色、画面左右クリップ付きで星より先に描画する。
-- 自機: 8x6の1bit行マスク、敵: 8x8の9種類の1bit行マスク、自機弾: 3x2矩形、敵弾: 2x2矩形、強化アイテム: 4x4の1bit行マスク。自機と敵は各2フレームを持ち8フレームごとに切り替える。
-- 自機、Scout、Saucer、Dropper、FIGHTER、BOMBER、SUPPLY、CAVE_BAT、ROCK_WORM、MINING_DRONEは互いに異なるシルエットを持ち、各キャラクターの2フレームも異なる。強化アイテムも固有の4x4マスクと固定色で識別する。キャラクターとアイテムは行の連続bitを画面内にクリップした`tgi_bar()`の水平ランとして描画する。背景、弾、HUD、文字もTGIプリミティブとTGI内蔵文字だけを使う。
-- 常時Stage番号を表示し、導入、WARNING、STAGE CLEAR、ALL CLEARと再開始案内をフェーズに応じて表示する。BOSS中はBoss外観IDでStage 1の24x16宇宙要塞、Stage 2の28x14空中母艦、Stage 3の24x24岩石コアを選び、現在HP比率のバーを表示する。ゲームオーバー中は最終ゲーム画面を背景に`GAME OVER`と`A/B TO TITLE`を重ねる。
+- 自機: 8x6、敵: 8x8、ボス: Stage別24x16/28x14/24x24の3〜4色水平run sprite。各2フレームを持ち8フレームごとに切り替える。自機弾は3x2矩形、敵弾は2x2矩形、強化アイテムは4x4の1bit行マスクを維持する。
+- 自機、Scout、Saucer、Dropper、FIGHTER、BOMBER、SUPPLY、CAVE_BAT、ROCK_WORM、MINING_DRONEは互いに異なる独自シルエットを持ち、各キャラクターの2フレームも異なる。生成時に各runがcollision rect内、各frame最大20 run、3〜4色、role許可内であることを検査する。強化アイテムは固有4x4マスクと固定色で識別する。背景、弾、HUD、文字もTGIプリミティブとTGI内蔵文字だけを使う。
+- 常時Stage番号を表示し、導入、WARNING、STAGE CLEAR、ALL CLEARと再開始案内をフェーズに応じて表示する。BOSS中はBoss外観IDでStage 1の24x16珊瑚要塞、Stage 2の28x14琥珀母艦、Stage 3の24x24紫/青緑ジオード生命体を選び、現在HP比率のバーを表示する。ゲームオーバー中は最終ゲーム画面を背景に`GAME OVER`を重ね、音声中は`VOICE...`、完了後は`A/B TO TITLE`を表示する。
 - 爆発中は通常の自機の代わりに4段階の自作爆発マスクを各8ロジック更新表示し、最終段階で飽和させて配列境界内を保つ。爆発SFX完了後の再出撃では4ロジック更新単位の点滅で無敵時間を表す。
 
 ## 当たり判定
@@ -53,7 +53,7 @@ Lynxの初期化では、TGI/ジョイスティック初期化と`CLI()`後に�
 
 残機があれば爆発SFX完了を最初に観測したロジック更新で、得点、惑星を含む3層背景座標、武器レベル、フェーズ経過を維持し、自機を初期座標へ戻して60戦闘更新の無敵で再出撃する。同時に現StageのBGMを曲頭から再開する。NORMALでは4敵編成と各発射カウンタを初期化し、BOSSではHPを維持してボス位置・移動・攻撃手順だけを初期化する。いずれも両陣営の弾と活動アイテムを全消去する。各戦闘更新の開始時に保護状態を確定してから残り時間を減らすため、60回目の更新中まで保護し、61回目から損傷可能になる。無敵中は3層背景を通常どおり進める。点滅は無敵の経過更新数から決定し、4ロジック更新ごとに表示・非表示を切り替える。
 
-初期残機は3。最終残機の損傷でも即時GAME OVERにせず、爆発SFXの実完了後にだけGAME OVERへ入り、BGMは再開しない。GAME OVERではフェーズ、3層背景、キャラクターアニメーション、敵・ボス、両陣営の弾、武器レベル、強化アイテムを凍結し、最終ゲーム画面を背景に`GAME OVER`と`A/B TO TITLE`を重ねる。画面成立後にA/Bを離してから再押下するとタイトルへ戻り、その復帰押下は開始へ流用しない。タイトルでは再度A/Bを離してから新たに押下した場合だけStage 1導入へ完全な新規ゲームを開始する。ALL CLEARだけは画面成立後のA/B解除と再押下で直接Stage 1導入へ完全再開始する。いずれの完全新規開始でも、惑星オフセット/間引き0、武器Lv1、アイテムなし、得点、残機、自機、非活動の通常敵・ボス、両陣営の弾、各クールダウンとカウンタ、背景、アニメーション、死亡/無敵/進行状態を初期化し、その更新には発射しない。
+初期残機は3。最終残機の損傷でも即時GAME OVERにせず、爆発SFXの実完了後にだけGAME OVERへ入り、BGMは再開しない。同時にGAME OVER音声を一度だけpending化し、完了まではA/Bを無視して`restart_armed=0`を維持する。完了後も押下済み入力を利用せず、A/Bを離してから再押下するとタイトルへ戻り、その復帰押下は開始へ流用しない。GAME OVERではフェーズ、3層背景、キャラクターアニメーション、敵・ボス、両陣営の弾、武器レベル、強化アイテムを凍結する。タイトルでは再度A/Bを離してから新たに押下した場合だけStage 1導入へ完全な新規ゲームを開始する。ALL CLEARだけは画面成立後のA/B解除と再押下で直接Stage 1導入へ完全再開始する。いずれの完全新規開始でも、惑星オフセット/間引き0、武器Lv1、アイテムなし、得点、残機、自機、非活動の通常敵・ボス、両陣営の弾、各クールダウンとカウンタ、背景、アニメーション、死亡/無敵/進行状態を初期化し、その更新には発射しない。
 
 ## 制約と判断
 
@@ -230,3 +230,163 @@ APS-027の設計:
 - 自機爆発SFXだけを、2 tickのmetallic初期衝撃と4/5/6 tickのnoise減衰尾部（音量31→27→21→13、合計17 tick）へ変更する。他6種SFXの全ステップ、優先度、Boss撃破→Stage Clear保留規則は不変とする。
 - `sound_stop_bgm()`はBGMメロディ/ベースだけを即時無音化し、活動中SFXを保持する。`sound_sfx_is_active()`は指定SFXの活動状態だけを返す。死亡開始時にBGMを停止して自機爆発を開始し、死亡ロジックは同SFXが活動中である限り戦闘・環境・入力を凍結する。
 - `explosion_timer`は描画側の既存4段階マスクを守るため31で飽和させるが、復帰条件には使わない。非最終ライフは爆発SFX完了後に現Stage BGMを曲頭から再開して再出撃し、最終ライフはBGMを再開せずGAME OVERへ遷移する。
+
+## APS-031 タイトル短音声の実現性プロトタイプ
+
+MIKEYにADPCM専用decoderはなく、4本の8-bit DAC `AUD0OUT`〜`AUD3OUT`へCPUが
+sampleを書き込む方式を採る。現行A=melody、C=bass、B=SFXは保全し、タイトル専用
+PCM候補を未使用channel Dへ割り当てる。Timer 3の8 kHz IRQでresident signed 8-bit
+PCMを送る独立backendと、4-bit IMA ADPCMのC89 host/cc65 codecを追加したが、実音声と
+game flow統合は行わない。方式比較、RAM上限、根拠URL、将来の入力/完了状態機械は
+[`docs/plan/aps-031-audio-feasibility.md`](aps-031-audio-feasibility.md)を正本とする。
+
+## APS-032 タイトル開始音声統合
+
+タイトルのarmed後FIREは即`game_start()`せず`title_voice_pending`へ入り、ローカル
+VOICEVOX Nemo男性2由来の「わしは宇宙の帝王ザカリテ」を8 kHz mono IMA ADPCMで
+channel Dへ再生する。
+再生中入力は無視し、完了観測一回でStage 1 INTROへ進む。自然長8,704-byte assetは
+resident余地を超えるため、Lynx cartridge directory entry 1に保持し、2本の128-byte
+compressed bufferへ先読みする。Timer 3 IRQ内の65SC02 assemblyが事前計算difference tableで
+1 sampleずつ復号する。A/C=BGM、B=SFX、75Hz描画/入力/SFX、300Hz logic、BGM4倍は不変。
+APS-037後の現行assetは17,408 samples・8,704 bytes。生成条件、ライセンス、cart layout、
+容量、復号検証は
+[`docs/plan/aps-032-title-voice.md`](aps-032-title-voice.md)を正本とする。
+
+## APS-033 タイトル音声の16 kHz再生レート化
+
+APS-032の8 kHz生成済みIMA ADPCM asset（17,555 samples、8,778 bytes、SHA-256
+`2c8e8402f6b059de5e746b7513be97626f3301a0aba6f2644da62b82d5b30c6a`）と
+cartridge layout、IMA形式を変更せず、Timer 3/channel Dの消費レートを2倍にする。
+MIKEY Timer 3はcontrol Aのclock select 0で1 us tickとなり、counterはbackupから0まで進んだ
+次のtickでborrowするため周期は`(backup + 1) us`である。APS-032のbackup 125は実効126 us
+（7,936.508 Hz）だった。APS-033はbackup 62を選び、63 us（15,873.016 Hz、16 kHzに対し
+-0.7937%、APS-032の実効rateの正確な2倍）とする。17,555 samplesの計算上の再生時間は
+1.105965秒。backup 61/62を交互にする62.5 us平均（16 kHz exact）はIRQごとの分岐・書込を増やし、
+固定reloadよりIRQ安全性を悪化させるため採用しない。
+
+16 kHz化に対する最初のreload変更だけでは、cc65の共通IRQ walkを含む復号がsample周期を超え、
+producerも128-byte 2-bufferのqueue切替期限へ間に合わずunderrunした。採用実装は音声再生中だけ
+元のIRQ vectorを保存してタイトル音声専用vectorへ切り替え、復号code別のindexed jump table、
+predictor加減算、次step index tableで1 nibbleを処理する。Timer 2等が同時pendingなら`callirq`へ
+委譲するが、そこで生じたTimer 3 borrowは消さず同じIRQ内で復号する。完了/stop時はTimer 3と
+channel Dを停止して元vectorを復元する。Gearlynx traceで17,555 Timer 3 IRQに対し17,555 sampleを
+欠落なく出力し、全DAC列がC89 IMA referenceと一致した。
+
+cartridge producerは128-byte compressed chunkのresident bufferを5本使う。current 1本、assemblyの
+3段queue、mainline prefetch 1本に分け、queue境界の63 us raceとcart読込の揺らぎを吸収する。
+開始入力受理後の約1.106秒はタイトル遷移gate内で`title_voice_pump()`を連続実行し、通常の描画・
+logic/inputを進めない。Timer 2/VBlankは専用IRQから共通handlerへ委譲するため表示swapは停止しない。
+再生中FIREを無視する既存仕様と開始後一回だけ`game_start()`する意味は不変で、音声外の75 Hz描画・
+入力、300 Hz logicも不変。これは16 kHzでunderrunを避けるためのbuffer/実行方式差分であり、
+asset、IMA codec、cart entry配置、A/C/B音声backend、Timer 0/2/7には変更を加えていない。
+
+音声dataをtime-stretch・再合成していないため、再生時間が約半分になる代わりにピッチも約1 octave
+上がる。pitchを保つ自然な速度変更ではない。タイトルのarmed→一回だけ再生→完了一回だけ
+`game_start()`、再生中FIRE無視、非title/stopでTimer 3/channel Dを停止する状態機械、
+A/C=BGM、B=SFX、Timer 0/2/7は維持する。
+
+## APS-035 タイトル音声の再生レート復帰
+
+APS-033の15,873.016 Hz再生が早すぎるというユーザー確認を受け、Timer 3/channel Dの
+消費レートだけを半分へ戻す。Timer 3は1 us clock、backup 125、周期126 us、実効
+7,936.508 Hzとする。17,555 samplesの計算再生時間は2.211930秒で、APS-033の高ピッチ化を
+取り消したV0.33相当の設定である。8 kHz exactではなく、8 kHz生成済みassetを7,936.508 Hzで
+消費する。
+
+ADPCM asset（8,778 bytes、SHA-256
+`2c8e8402f6b059de5e746b7513be97626f3301a0aba6f2644da62b82d5b30c6a`）、IMA codec、TTS/変換、
+cart entryは変更しない。APS-033で導入した専用IRQ、128-byte 5 buffer、3段queue、連続pumpと
+title gateも維持する。armed→一回開始→再生中FIRE無視→完了一回だけ`game_start()`、終了時の
+Timer 3/channel D停止、A/C=BGM・B=SFX、Timer 0/2/7、75 Hz描画/入力/SFX・300 Hz logicは不変。
+
+## APS-036 出力gainとGAME OVER音声
+
+BGMメロディ/ベースと全7 SFXは、MML/SFX table、note、wave、duration、priority、envelopeの論理値を変更せず、`src/main.c`がMIKEY channel A/C/Bへ書く直前だけ`floor(volume*3/4)`を適用する。非zero入力は最低1とし、境界は`0→0, 1→1, 2→1, 3→2, 4→3, 31→23`。channel Dのsigned DAC sampleにはこのgainを適用しない。
+
+APS-036では「お前は弱かった」の8 kHz mono IMA ADPCMをcartridge directory entry 2へ追加し、entry 1のタイトルassetと128-byte 5 buffer、3段queue、専用IRQ、Timer 3 backup 125（126 us、7,936.508 Hz）、channel Dを共有する構成にした。APS-037で両assetだけをVOICEVOX Nemo男性2へ差し替えたが、このcart/runtime構成と再生中start拒否による排他は不変。
+
+最終ライフの爆発SFXを`sound_sfx_is_active()`が非活動として観測した更新だけが`game_over_voice_pending=1`へ進む。非最終死亡は再出撃し音声を開始しない。main loopはGAME OVER画面を先に表示してからblocking pumpで一度だけ再生し、完了APIがpendingをclearしてcompleteを立てる。complete前はA/Bを無視し、完了時にFIREが押下済みでも`restart_armed=0`のままなので、従来どおりrelease→press後だけタイトルへ戻る。
+
+GearlynxのGAME OVER回帰は、実ROMが安定したTITLEへ到達したことを`stage=1`・`phase=TITLE`で確認してpauseし、cc65の現行`GameState`/`SoundState`レイアウトに対応する`lives=0`、`dying=1`、爆発SFX最終stepを注入する。その後はROM自身の`update_player_death()`でpending化し、現行assetの全Timer 3 IRQと全DAC sample、停止、入力gateを検査する。release→press確認はhost側の固定waitを合否条件にせず、`restart_armed=1`と`game_over=0`・`phase=TITLE`を期限付きpollで同期する。復帰押下を保持したままTITLEが8 poll安定し、`title_voice_pending=0`を維持することも確認して、同じ押下の再利用を防ぐ。
+
+## APS-037 VOICEVOX Nemo公開可能音声
+
+タイトルとGAME OVERの生成元を公式VOICEVOX Nemo 0.24.0の男性2（エンジン表記`男声2`、UUID `7ecc7a17-1465-4b22-a3b5-842a110ff55e`、`ノーマル` style ID `10000`）へ統一する。合成設定はspeed 0.9、pitch -0.08、intonation 0.9、volume 1.0。localhost限定の公式arm64 engineから8 kHz mono signed 16-bit PCM WAVを生成し、既存C89 encoderでIMA ADPCM low-nibble-firstへ変換する。既定post-phoneme 0.1秒は既存decoder回帰に合わせて800 sampleのexact zeroへ正規化する。タイトルは17,408 samples・8,704 bytes・SHA-256 `99eb68abe7da548a7285510c86dec9417e94766d00ac30638de302a2cd6a1eb2`、GAME OVERは11,691 samples・5,846 bytes・SHA-256 `848691fea26de6e2503c67bed5721f1da27cab1692af81e2227a348ab412cb0f`。
+
+公式VOICEVOX 0.25.2 arm64 DMGとNemo Engine 0.24.0 arm64 VVPPをrepo外へ導入し、配布APIのSHA-256と取得ファイルを照合した。実行はarm64 nativeでRosettaを使わず、外部API・外部送信・Personal Voice・第三者音声素材は使わない。`scripts/generate-title-voice.py`はversion、speaker UUID/name、style ID/nameを生成前に照合し、8 kHz mono 16-bit WAV以外を拒否する。offline strict verifyはinstaller/engine/editor version、license、credit、固定query hash、WAV format、PCM正規化条件、sample count、最終ADPCM hash、metadata/headerを検査する。raw WAVと正規化PCMのSHA-256は各生成runのprovenanceとして形式だけを検査し、run間完全一致を要求しない。VOICEVOXのraw PCMは変動してもlossy IMA ADPCMが同一になる実測があるため、決定性境界はROM同梱の最終ADPCM、sample count、生成header、cart payloadとする。host回帰でも異なるPCM hashが同じADPCM/sample count/headerへ収束する量子化境界を固定する。
+
+Timer 3 backup 125、channel D、gain非適用、5 buffer/3段queue、cart 3 entry、title完了遷移、GAME OVER release→press gateは変更しない。タイトルには操作行とversionの間へ固定クレジット`VOICEVOX:Nemo（男性2）`を表示する。ASCII部分はTGI font、ASCII非対応の日本語suffixは5x7 bitmapで描き、160x102内のy=82..88に収めてversion y=90と重ねない。
+
+最終LNXは59,867 bytes、SHA-256 `e5b619b56eadb1fff3fe8655db1f9314b64b2e6bc06ea25d06bb07ae6a109d32`。BSSは`0xB1E2..0xB6CE`、C stack開始`0xB838`、残余361 bytes。title entryはblock 44/offset 197/cart offset 45,253、GAME OVER entryはblock 52/offset 709/cart offset 53,957で、両payloadはchecked-in assetと一致する。
+
+2026-08-09確認のNemo規約はクレジットを条件に生成音声の商用・非商用利用を許諾する。禁止事項、ソフトウェア規約、再許諾時の遵守条件、一次資料URLは`assets/voice/LICENSE.md`へ固定し、ROMには公式software/modelではなく最終ADPCMだけを同梱する。
+
+## APS-038 共有voice center-preserving +25% saturating gain
+
+title/GAME OVERの共有streamだけを大きくし、BGM/SFXの75% hardware gain、両ADPCM asset、
+VOICEVOX生成条件、Timer 3 backup 125、channel D、queue/IRQ、状態機械を変更しない。
+Lynx Sound Overviewは`AUDxOUT`を直接書ける独立8-bit DACとし、`AUDxVOL`はpolynomial bitを
+通常モードで正負volumeへ変換、integrateモードでrunning totalへ加算する値と説明する。
+cc65 V2.19のaddress定義とGearlynx main `f0be31d2c33da1e9b5d4cb1fe93c34b6dc34af70`
+（volume/outputを別registerとして保持し、mixerはoutputを直接読む）も一致する。このため、
+停止したpolynomial generatorの`AUD3VOL`を増やしてもCPUの`AUD3OUT`直書きは増幅されず、
+PCM側gainを採用する。
+
+復号後signed DAC byteを`u = byte XOR 0x80`でunsigned center 128へ移し、中心からの振幅を
+`floor(abs(u - 128) * 5 / 4)`（端数は絶対値を0方向へ丸め）として元の符号を戻し、
+`-128..127`へsaturateしてから`u' XOR 0x80`相当のsigned byteへ戻す。0は必ず0、clamp前の
+正負同振幅は対称である。`scripts/generate-title-voice-gain.py`が256-byte tableを生成し、
+C89 referenceとassembly includeの全entry一致、両asset全sampleのgain前後範囲・peak・center・
+clamp・silent tailを検査する。IRQの共有`decode_complete`はpredictor high byteをindexに
+1回lookupするだけで、title/GAME OVERへ同じgainを一度だけ適用する。
+
+## APS-034 カラーspriteとJSON stage authoring
+
+`assets/stages/stages.json`をStage 1〜3のauthoring正本とする。Python 3標準libraryだけを使う
+`scripts/generate-stage-data.py`が、重複JSON key、未知/欠落key、型、C整数域、ID参照と未参照定義、
+3 stage・4 slot、画面外spawn、respawnの`unsigned char` wrap、発射位相、boss rectangle/script、
+environment eventのkind別範囲とstrict order、sprite grid寸法/文字/色role/run上限をfail-fast検査する。
+検証後に`build/gen/stage_data.{c,h}`と`build/gen/sprite_data.{c,h}`だけをROMへリンクし、JSON parser・
+文字列ID・外部dependencyはROMへ入れない。文字列IDは入力順の密なC IDへ変換し、boss scriptの
+offset/countとenvironment eventのoffset/countもgeneratorが算出する。
+
+移行対象はStage設定、3 formationの初期4 slotとrespawn式パラメータ、9 enemy type/movement/fire、
+3 bossのcollision/HP/score/appearance/script、7 boss step、3 environmentの全16 eventである。
+`tests/golden/stage-data-v034.json`はこれら全値のcanonical snapshot SHA-256を固定し、authoring値が
+0.34.0挙動から逸脱すると生成前に失敗する。既存ゲーム回帰は同じ生成C tableをリンクし、Stage設定、
+formation、respawn、boss、environmentの既存固定値検査を継続する。phase尺、移動運動学、画面/HUD、
+4敵/16敵弾/12自機弾、操作、score、75Hz描画・入力1回/描画・300Hzロジックはengine固定のままである。
+
+palette index 0〜5はStage別背景theme、6〜15は全Stage固定roleとする。固定roleは6=`DANGER` `$F2C`、
+7=`PLAYER_GLOW` `$9FE`、8=`PLAYER_HULL` `$F64`、9=`PLAYER_DEEP` `$348`、
+10=`ENEMY_HULL` `$E93`、11=`ENEMY_DARK` `$842`、12=`GLOW_YELLOW` `$FD5`、
+13=`MINERAL_VIOLET` `$84D`、14=`MINERAL_TEAL` `$3CB`、15=`WHITE` `$FFF`である。
+generatorはLynx TGIの16個のhigh nibble + 16個のlow byteからなる32-byte paletteへ変換する。
+`src/main.c`は起動後の最初のStage描画とStage番号変化時だけ`tgi_setpalette()`を呼ぶ。
+
+自機、9通常敵、3 bossはすべてauthoring gridから生成した2-frame水平run spriteで、各frameは3〜4色、
+最大20 run、collision rectangle内に限定する。自機は淡青glow/珊瑚hull/深青、Stage 1/2通常敵は
+琥珀hull/暗褐outline/黄glow、Stage 3通常敵と最終bossは紫/青緑の鉱物生命体として描く。
+既存のenemy type、AABB、攻撃、移動、drop、boss HP/攻撃手順は変更しない。
+
+APS-040では同じ13 spriteのID・順序・寸法・roleを保ったまま固定gridだけを詳細化した。自機は右向きの
+機首、canopy、engine flare、Stage 1/2通常敵は迎撃drone、rim付きsaucer、開閉claw、bankするfighter、
+engine pod付きbomber、container droneとして輪郭を分離する。Stage 3通常敵はdown/upstrokeのbat、
+曲がる鉱物worm、drill/coreを持つmining droneとする。bossはcoral bastionの反応炉/command slit、
+amber carrierの薄い横長nacelle/bridge、violet geodeの非対称facet/nucleusをframe間で変える。
+`tests/golden/sprite-data-v040.json`は`sprite`配列だけのcanonical SHA-256を固定し、Stage挙動goldenとは
+独立に意図しないgrid変更を拒否する。host C回帰は全26 frameのrun数、dense offset、寸法、role、
+3〜4色、20 run上限、frame差を固定する。JSON/hash/parserはROMへ入れず、runtime描画とAABBは不変である。
+
+GUI editorは対象外で、後続実装に残す要件は、schema-aware form/grid編集、ID rename時の参照一括更新、
+palette role preview、2-frame onion-skin、run数/rect/rangeの入力中表示、formationとenvironment timeline、
+生成前validation結果のpath付き表示、canonical JSONの安定した整形とatomic保存である。GUIがJSON以外の
+独自正本やROM parserを増やすことは禁止する。
+
+Gearlynx headless表示回帰は、TITLE到達をpollしてpauseし、`GameState`のINTRO/WARNING終端を
+注入した後、`phase` write breakpointで正規NORMAL/BOSS遷移を捕捉する。さらに
+`_game_update_logic` execute breakpointを8回捕捉し、300 Hz logicの2描画分とdouble-buffer
+swapを完了してから、Stage 1〜3のNORMAL/BOSS、`boss.active`、生成32-byte palette、front
+buffer PNGを検査する。host固定sleepをphase判定に使わない。これは状態注入地点からの遷移・
+描画回帰であり、Stage 1開始からStage 3までの連続playthroughや通常phase全尺の代替ではない。

@@ -152,7 +152,7 @@ static void test_stage_one_configuration(void)
         stage_config->enemy_formation_id == GAME_ENEMY_FORMATION_SPACE &&
         stage_config->boss_config_id == 0u &&
         stage_config->boss_appearance_id ==
-            GAME_BOSS_APPEARANCE_SPACE_FORTRESS &&
+            GAME_BOSS_APPEARANCE_CORAL_BASTION &&
         stage_config->environment_id == GAME_ENVIRONMENT_ASTEROIDS,
         "stage one selects SPACE formation and SPACE_FORTRESS IDs");
     expect(game_get_stage_config(0u) == (const GameStageConfig*)0 &&
@@ -163,7 +163,7 @@ static void test_stage_one_configuration(void)
         stage_config->enemy_formation_id == GAME_ENEMY_FORMATION_AIR &&
         stage_config->boss_config_id == 1u &&
         stage_config->boss_appearance_id ==
-            GAME_BOSS_APPEARANCE_AIR_CARRIER &&
+            GAME_BOSS_APPEARANCE_AMBER_CARRIER &&
         stage_config->environment_id == GAME_ENVIRONMENT_WIND,
         "stage two selects SKY AIR and AIR_CARRIER IDs");
     stage_config = game_get_stage_config(3u);
@@ -171,7 +171,7 @@ static void test_stage_one_configuration(void)
         stage_config->enemy_formation_id == GAME_ENEMY_FORMATION_CAVE &&
         stage_config->boss_config_id == 2u &&
         stage_config->boss_appearance_id ==
-            GAME_BOSS_APPEARANCE_ROCK_GUARDIAN &&
+            GAME_BOSS_APPEARANCE_VIOLET_GEODE &&
         stage_config->environment_id == GAME_ENVIRONMENT_ROCKFALL,
         "stage three selects CAVE formation and ROCK_GUARDIAN IDs");
 
@@ -497,6 +497,9 @@ static void test_boot_initialization_and_intro_input(void)
         first.phase_timer == 0u && first.lives == GAME_INITIAL_LIVES &&
         first.game_over == 0u && first.dying == 0u &&
         first.restart_armed == 0u && first.title_start_armed == 0u &&
+        first.title_voice_pending == 0u &&
+        first.game_over_voice_pending == 0u &&
+        first.game_over_voice_complete == 0u &&
         first.sound.bgm_active == 0u &&
         first.sound.output_bgm.active == 0u &&
         first.sound.output_sfx.active == 0u,
@@ -511,10 +514,23 @@ static void test_boot_initialization_and_intro_input(void)
         first.player.x == 10u && first.player.y == 48u,
         "releasing fire arms a later title start without movement");
     game_update(&first, GAME_INPUT_FIRE | GAME_INPUT_RIGHT);
-    expect(first.phase == GAME_PHASE_STAGE_INTRO && first.phase_timer == 0u &&
+    expect(first.phase == GAME_PHASE_TITLE &&
+        first.title_voice_pending != 0u && first.phase_timer == 0u &&
         first.player.x == 10u && first.player.y == 48u &&
         count_player_bullets(&first) == 0u,
-        "fresh title fire starts intro without moving or firing");
+        "fresh title fire queues voice without moving or firing");
+    game_update(&first, GAME_INPUT_FIRE | GAME_INPUT_RIGHT);
+    expect(first.phase == GAME_PHASE_TITLE &&
+        first.title_voice_pending != 0u && first.phase_timer == 0u &&
+        count_player_bullets(&first) == 0u,
+        "held title fire cannot restart or skip queued voice");
+    game_title_voice_complete(&first);
+    expect(first.phase == GAME_PHASE_STAGE_INTRO &&
+        first.title_voice_pending == 0u && first.phase_timer == 0u,
+        "voice completion starts intro exactly once");
+    game_title_voice_complete(&first);
+    expect(first.phase == GAME_PHASE_STAGE_INTRO && first.phase_timer == 0u,
+        "duplicate voice completion cannot restart the intro");
     game_update(&first, GAME_INPUT_FIRE | GAME_INPUT_RIGHT);
     expect(first.phase == GAME_PHASE_STAGE_INTRO && first.phase_timer == 1u &&
         first.player.x == 10u && first.player.y == 48u &&
@@ -1444,8 +1460,13 @@ static void test_explosion_respawn_and_invincibility(void)
         "death remains frozen until logic observes actual explosion completion");
     game_update(&game, GAME_INPUT_FIRE);
     expect(game.dying == 0u && game.player.x == 10u &&
-        game.player.y == 48u && game.invincibility_timer == 60u,
-        "the first logic update after explosion completion respawns the player");
+        game.player.y == 48u && game.invincibility_timer == 60u &&
+        game.game_over_voice_pending == 0u &&
+        game.game_over_voice_complete == 0u,
+        "non-final explosion respawns without queuing GAME OVER voice");
+    game_game_over_voice_complete(&game);
+    expect(game.game_over_voice_complete == 0u,
+        "GAME OVER voice completion outside GAME OVER has no effect");
     expect(game.score == 700ul && game.planet_offset == 43u &&
         game.planet_counter == 0u && game.far_star_offset == 23u &&
         game.near_star_offset == 51u,
@@ -1549,14 +1570,29 @@ static void test_game_over_and_restart(void)
         frozen_state_matches(&game, &frozen),
         "final death stays frozen through the explosion's final sound tick");
     game_update(&game, GAME_INPUT_FIRE);
-    expect(game.dying == 0u && game.game_over != 0u,
-        "game over begins only after actual explosion SFX completion");
+    expect(game.dying == 0u && game.game_over != 0u &&
+        game.game_over_voice_pending != 0u &&
+        game.game_over_voice_complete == 0u &&
+        game.restart_armed == 0u,
+        "game over voice queues only after actual final explosion SFX completion");
     frozen = game;
     for (i = 0u; i < 4u; ++i) {
         game_update(&game, GAME_INPUT_RIGHT | GAME_INPUT_FIRE);
     }
-    expect(game.game_over != 0u && frozen_state_matches(&game, &frozen),
-        "held fire leaves all game over state frozen");
+    game_update(&game, GAME_INPUT_RIGHT);
+    expect(game.game_over != 0u && game.restart_armed == 0u &&
+        frozen_state_matches(&game, &frozen),
+        "held and released fire stay ignored while GAME OVER voice is pending");
+    game_game_over_voice_complete(&game);
+    expect(game.game_over_voice_pending == 0u &&
+        game.game_over_voice_complete != 0u && game.restart_armed == 0u,
+        "GAME OVER voice completion opens the input gate without arming restart");
+    game_game_over_voice_complete(&game);
+    expect(game.game_over_voice_complete != 0u && game.restart_armed == 0u,
+        "duplicate GAME OVER voice completion has no effect");
+    game_update(&game, GAME_INPUT_FIRE);
+    expect(game.game_over != 0u && game.restart_armed == 0u,
+        "fire held when GAME OVER voice completes cannot return to title");
     game_update(&game, GAME_INPUT_RIGHT);
     expect(game.restart_armed != 0u && game.game_over != 0u,
         "release arms title return without changing gameplay");
@@ -1573,9 +1609,14 @@ static void test_game_over_and_restart(void)
         "the game-over return press cannot also start from title");
     game_update(&game, 0u);
     game_update(&game, GAME_INPUT_FIRE);
-    expect(game.phase == GAME_PHASE_STAGE_INTRO && game.game_over == 0u &&
+    expect(game.phase == GAME_PHASE_TITLE &&
+        game.title_voice_pending != 0u && game.game_over == 0u &&
         game.lives == 3u && game.score == 0ul,
-        "a title fire press performs complete restart");
+        "a title fire press queues restart voice");
+    game_title_voice_complete(&game);
+    expect(game.phase == GAME_PHASE_STAGE_INTRO && game.game_over == 0u &&
+        game.title_voice_pending == 0u,
+        "restart voice completion performs complete restart");
     expect(game.player.x == 10u && game.player.y == 48u &&
         game.respawn_sequence == 0u && game.fire_cooldown == 0u,
         "title restart restores player sequence and cooldown");
@@ -1798,7 +1839,7 @@ static void test_boss_configuration_and_scripts(void)
         game.boss.max_hp == 60u && game.boss.rect.x == 132u &&
         game.boss.rect.y == 43u && game.boss.rect.width == 24u &&
         game.boss.rect.height == 16u &&
-        game.boss.appearance_id == GAME_BOSS_APPEARANCE_SPACE_FORTRESS,
+        game.boss.appearance_id == GAME_BOSS_APPEARANCE_CORAL_BASTION,
         "stage one boss initializes entirely from configuration");
     game.boss.attack_timer = 19u;
     game_update(&game, 0u);
@@ -1856,7 +1897,7 @@ static void test_boss_configuration_and_scripts(void)
         game.boss.max_hp == 90u && game.boss.rect.x == 128u &&
         game.boss.rect.y == 44u && game.boss.rect.width == 28u &&
         game.boss.rect.height == 14u &&
-        game.boss.appearance_id == GAME_BOSS_APPEARANCE_AIR_CARRIER,
+        game.boss.appearance_id == GAME_BOSS_APPEARANCE_AMBER_CARRIER,
         "stage two initializes the complete AIR_CARRIER boss state");
     game.boss.attack_timer = 19u;
     game_update(&game, 0u);
@@ -1933,7 +1974,7 @@ static void test_boss_configuration_and_scripts(void)
         game.boss.max_hp == 120u && game.boss.rect.x == 132u &&
         game.boss.rect.y == 39u && game.boss.rect.width == 24u &&
         game.boss.rect.height == 24u &&
-        game.boss.appearance_id == GAME_BOSS_APPEARANCE_ROCK_GUARDIAN,
+        game.boss.appearance_id == GAME_BOSS_APPEARANCE_VIOLET_GEODE,
         "stage three initializes the complete ROCK_GUARDIAN state");
     game.boss.attack_timer = 8u;
     game_update(&game, 0u);
@@ -2256,8 +2297,10 @@ static void test_boss_hits_death_and_priority(void)
         "final boss damage starts an explosion before game over");
     finish_player_explosion(&game);
     expect(game.dying == 0u && game.game_over != 0u &&
-        game.phase == GAME_PHASE_BOSS && game.restart_armed == 0u,
-        "final boss explosion enters game over only after SFX completion");
+        game.phase == GAME_PHASE_BOSS && game.restart_armed == 0u &&
+        game.game_over_voice_pending != 0u &&
+        game.game_over_voice_complete == 0u,
+        "final boss explosion queues GAME OVER voice only after SFX completion");
 }
 
 static void test_stage_one_asteroids(void)
@@ -2653,6 +2696,7 @@ static void test_environment_phase_boundaries_and_restart(void)
     game_update(&game, 0u);
     finish_player_explosion(&game);
     expect(game.game_over != 0u &&
+        game.game_over_voice_pending != 0u &&
         game.asteroids[0].active == 0u &&
         game.environment_event_cursor == 0u,
         "final explosion clears environment before GAME OVER becomes visible");
@@ -3077,6 +3121,7 @@ static void test_sound_boss_chain_stage_terminal_and_restart(void)
         game.sound.output_bgm.active == 0u &&
         game.sound.output_sfx.active == 0u,
         "GAME OVER stops all sound on both channels after final explosion completion");
+    game_game_over_voice_complete(&game);
     game_update(&game, 0u);
     game_update(&game, GAME_INPUT_FIRE);
     expect(game.game_over == 0u &&
