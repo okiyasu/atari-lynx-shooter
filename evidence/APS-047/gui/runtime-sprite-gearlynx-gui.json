@@ -1,0 +1,265 @@
+{
+  "actual_play": {
+    "enemy_frame": 1,
+    "enemy_rect": [
+      134,
+      47,
+      8,
+      8
+    ],
+    "enemy_rendered_origin": [
+      138,
+      47
+    ],
+    "enemy_slot": 0,
+    "enemy_sprite": "scout",
+    "enemy_type": 0,
+    "entry": "TITLE release/press A to Stage 1 NORMAL",
+    "path": "actual-play-stage1.png",
+    "phase": 1,
+    "player_frame": 1,
+    "player_rect": [
+      10,
+      48,
+      8,
+      6
+    ],
+    "png_sha256": "3cf57f744ec30428d80790bc9ada7d201d23e71ab4d9803ecdbefc483646c330",
+    "stage": 1
+  },
+  "aps": "APS-047",
+  "individual_sprite_sha256": {
+    "amber_carrier": "983b3d403cd972e40447ff44d35e91053f1983ee01720b8139aab70986b06d43",
+    "bomber": "2333c144b59eb7b35830de17f07b75505bb92f598fdf8a30f30fe4e07c35b6fc",
+    "cave_bat": "35aebe2647530b8c8eab2529b52980c5caa4f80ed7d6eef9ed1304b5f91d2abd",
+    "coral_bastion": "60d37161c4ee0a87d90e40c7018c6d2be64081723ca3912a3d7fd2c99803221a",
+    "dropper": "2771fcda4fa48a59f0d35b7bde4ceda6cf483d01f8372cee102a4babcdc6205b",
+    "fighter": "4a9ddb66e734f979415c4867cbd76ca710fe923fe67fab05053d586d6544bbc4",
+    "mining_drone": "54eb826d33beb0668c6b8eac9bfe713bdd7c70fba30c7c80f34290476319adce",
+    "player": "fc5d05db3ba4da15afaec6df582341f1ffe1f8cd8bb786feecef77b662618d8b",
+    "rock_worm": "55839a8b21434a8a6ee8dfd5a5f2c6aedeaaac7957bf1c2ed79c23d69cac92d6",
+    "saucer": "f16add4b81fdb070d0876039ed8387c6e48617f20f34098ec6788e976050e4ef",
+    "scout": "a3cc0a8f68fcd76885c264295e761d8e482e18864ad6b2d2e3ce73985b02bf4c",
+    "supply": "d7ce5228b239bd2e166057b63c54e3a3f9ec565928d137d9245b3e917667a990",
+    "violet_geode": "24ba63854cc91a07b93aa4e8bce50ccd59648d646d79f48a79116b0dc5fbc4db"
+  },
+  "injected_paths": [
+    {
+      "boss": {
+        "animation_frame": 0,
+        "appearance": "coral_bastion",
+        "origin": [
+          132,
+          43
+        ],
+        "path": "stage1-boss.png",
+        "png_sha256": "427a34cf52c8d40141dcc8b462623acc687fc2d9f575f277fa45c072e2ed85f0",
+        "rect": [
+          132,
+          43,
+          24,
+          16
+        ]
+      },
+      "cast": {
+        "animation_frame": 1,
+        "path": "stage1-cast.png",
+        "png_sha256": "435c8219714178892a0c26e97cc70a274b4fe03200b41d4393f630a59e0731bf",
+        "readback": [
+          [
+            0,
+            [
+              40,
+              24,
+              8,
+              8
+            ]
+          ],
+          [
+            1,
+            [
+              80,
+              47,
+              8,
+              8
+            ]
+          ],
+          [
+            2,
+            [
+              120,
+              70,
+              8,
+              8
+            ]
+          ]
+        ]
+      },
+      "normal": {
+        "path": "stage1-normal.png",
+        "player_frame": 0,
+        "player_rect": [
+          10,
+          48,
+          8,
+          6
+        ],
+        "png_sha256": "c258dc6ab3e84fb7ba7462a3dc7e952fdf09a70d9e85a8b83dbe282eee7ad003"
+      },
+      "stage": 1
+    },
+    {
+      "boss": {
+        "animation_frame": 1,
+        "appearance": "amber_carrier",
+        "origin": [
+          128,
+          45
+        ],
+        "path": "stage2-boss.png",
+        "png_sha256": "2be24cb669822af2ade16e9566ebd29db89001e67ae22c35e7cea51d06bad58b",
+        "rect": [
+          128,
+          47,
+          28,
+          14
+        ]
+      },
+      "cast": {
+        "animation_frame": 0,
+        "path": "stage2-cast.png",
+        "png_sha256": "9da65884c275033e81fee60ba4320da226b3b192d8b49bfaf475ae4182ac82b2",
+        "readback": [
+          [
+            3,
+            [
+              40,
+              24,
+              8,
+              8
+            ]
+          ],
+          [
+            4,
+            [
+              80,
+              47,
+              8,
+              8
+            ]
+          ],
+          [
+            5,
+            [
+              120,
+              70,
+              8,
+              8
+            ]
+          ]
+        ]
+      },
+      "normal": {
+        "path": "stage2-normal.png",
+        "player_frame": 1,
+        "player_rect": [
+          10,
+          48,
+          8,
+          6
+        ],
+        "png_sha256": "3db5c020672256b751c520dbc9c057e96728a915b1cd10784c93b6b020de9a5e"
+      },
+      "stage": 2
+    },
+    {
+      "boss": {
+        "animation_frame": 0,
+        "appearance": "violet_geode",
+        "origin": [
+          132,
+          39
+        ],
+        "path": "stage3-boss.png",
+        "png_sha256": "1f4772bb9f784f3a0e0f928b42229336e5149a50053c7be2dc7e14821a3a6c3b",
+        "rect": [
+          132,
+          39,
+          24,
+          24
+        ]
+      },
+      "cast": {
+        "animation_frame": 1,
+        "path": "stage3-cast.png",
+        "png_sha256": "2c46afe2f348543bc2295d685c3c9fe2879ddd348e9a4a18257d612e11a4e188",
+        "readback": [
+          [
+            6,
+            [
+              40,
+              24,
+              8,
+              8
+            ]
+          ],
+          [
+            7,
+            [
+              80,
+              47,
+              8,
+              8
+            ]
+          ],
+          [
+            8,
+            [
+              120,
+              70,
+              8,
+              8
+            ]
+          ]
+        ]
+      },
+      "normal": {
+        "path": "stage3-normal.png",
+        "player_frame": 0,
+        "player_rect": [
+          10,
+          48,
+          8,
+          6
+        ],
+        "png_sha256": "0b429e4c89806e3ae07c11599be7e8853699ac9863dcf25f75d4d56d0e8a7f5c"
+      },
+      "stage": 3
+    }
+  ],
+  "mode": "gui",
+  "rom_tables": {
+    "boss_mapping": [
+      255,
+      10,
+      11,
+      12
+    ],
+    "definition_bytes": 104,
+    "definitions_sha256": "aef5c9e0c76ee494c997a05747c1e2e93781a49ff4a234ba2c316ceca19cf84d",
+    "enemy_mapping": [
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9
+    ],
+    "packed_run_bytes": 822,
+    "run_count": 274,
+    "run_data_sha256": "b50a98b31030019a2db6a2cdbe718b02ef280131ef13c104f0d927088b8e7fd8"
+  }
+}

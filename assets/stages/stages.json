@@ -1,102 +1,27 @@
 {
   "format_version": 1,
+  "normal_combatant_weight": 1,
+  "boss_combatant_weight": 4,
+  "combatant_limit": 8,
   "themes": [
     {"id": "space", "colors": ["000", "113", "225", "346", "467", "579"]},
     {"id": "sky", "colors": ["102", "246", "578", "9AC", "BCD", "EED"]},
     {"id": "cave", "colors": ["101", "223", "345", "456", "678", "89A"]}
   ],
   "sprites": [
-    {
-      "id": "player", "kind": "player", "width": 8, "height": 6,
-      "frames": [
-        ["...7....", "..888...", ".999....", "99999977", ".8888...", "...7...."],
-        ["..7.....", "...88...", ".9999...", "99999997", "..8888..", "....7..."]
-      ]
-    },
-    {
-      "id": "scout", "kind": "enemy", "width": 8, "height": 8,
-      "frames": [
-        ["...C....", "..BBB...", ".AAAA...", "BBAAAC..", ".AAAA...", "..BBB...", "...B....", "...C...."],
-        ["....C...", "...BBB..", "..AAAA..", ".BBAAAC.", "..AAAA..", "...BBB..", "..B.....", "..C....."]
-      ]
-    },
-    {
-      "id": "saucer", "kind": "enemy", "width": 8, "height": 8,
-      "frames": [
-        ["...C....", "..AAA...", ".BBBBB..", "BAAAAAB.", ".BBBBB..", "..CCCC..", "..BBB...", "........"],
-        ["....C...", "..AAA...", ".BBBBB..", "BAAAAAB.", ".BBBBB..", "...CC...", "..BBB...", "........"]
-      ]
-    },
-    {
-      "id": "dropper", "kind": "enemy", "width": 8, "height": 8,
-      "frames": [
-        ["..CCCC..", "..BBBB..", ".AAAAAA.", "BAAAAAAB", "..CCCC..", ".B....B.", "B......B", "...C...."],
-        ["...CC...", "..BBBB..", ".AAAAAA.", "BAAAAAAB", "...CC...", "B......B", ".B....B.", "..CCCC.."]
-      ]
-    },
-    {
-      "id": "fighter", "kind": "enemy", "width": 8, "height": 8,
-      "frames": [
-        ["B.......", "BB......", ".AAA....", "AAAAAC..", "AAAAAAA.", "..AAA...", "...BBB..", "....C..."],
-        ["..B.....", ".BB.....", "..AAA...", ".AAAAAC.", "AAAAAAAA", ".AAA....", "..BBB...", "..C....."]
-      ]
-    },
-    {
-      "id": "bomber", "kind": "enemy", "width": 8, "height": 8,
-      "frames": [
-        ["..C..C..", ".BBBBBB.", ".AAAAAA.", ".BBBBBB.", "..CCCC..", ".AAAAAA.", ".B....B.", "..BBBB.."],
-        [".C....C.", ".BBBBBB.", ".AAAAAA.", ".BBBBBB.", "...CC...", ".AAAAAA.", "..B..B..", "..BBBB.."]
-      ]
-    },
-    {
-      "id": "supply", "kind": "enemy", "width": 8, "height": 8,
-      "frames": [
-        ["...C....", "...B....", "..BBB...", ".AAAAA..", "BAAAAAB.", ".AAAAA..", "..BBB...", "..CCC..."],
-        ["..CCC...", "...B....", "..BBB...", ".AAAAA..", "BAAAAAB.", ".AAAAA..", "..BBB...", "...C...."]
-      ]
-    },
-    {
-      "id": "cave_bat", "kind": "mineral", "width": 8, "height": 8,
-      "frames": [
-        ["B......B", "..DDDD..", "..DDDD..", "...EE...", "..BBBB..", "..DDDD..", "B......B", "........"],
-        ["........", "..B..B..", ".D....D.", "..EEEE..", ".BBBBBB.", "..DDDD..", "...E....", "...B...."]
-      ]
-    },
-    {
-      "id": "rock_worm", "kind": "mineral", "width": 8, "height": 8,
-      "frames": [
-        ["...DDD..", "..DDDD..", ".EEEEE..", "EEEE....", ".BBBB...", "..EEEE..", "...DDDDD", "....BBBB"],
-        ["....DDD.", "...DDDD.", "..EEEEE.", ".EEEE...", "BBBB....", ".EEEE...", "..DDDDD.", "...BBBB."]
-      ]
-    },
-    {
-      "id": "mining_drone", "kind": "mineral", "width": 8, "height": 8,
-      "frames": [
-        ["...D....", "..BBBB..", ".DDDDDD.", "..EEEE..", ".DDDDDD.", "..BBBB..", "...B....", "..BBB..."],
-        ["....D...", "...BBBB.", "..DDDDDD", "...EEEE.", "..DDDDDD", "...BBBB.", "....B...", "...BBB.."]
-      ]
-    },
-    {
-      "id": "coral_bastion", "kind": "boss", "width": 24, "height": 16,
-      "frames": [
-        ["...........F............", "........BBBBBBBB........", "......BBBBBBBBBBBB......", "....AAAAAAAAAAAAAAAA....", "..AAAAAAAAAAAAAAAAAAAA..", ".CCCCCCCCCCCCCCCCCCCCCC.", "AAAAAAAAAAAAAAAAAAAAAAAA", ".BBBBBBBBBBBBBBBBBBBBBB.", "...FFFFFFFFFFFFFFFFFF...", ".AAAAAAAAAAAAAAAAAAAAAA.", "..CCCCCCCCCCCCCCCCCCCC..", "...AAAAAAAAAAAAAAAAAA...", ".....BBBBBBBBBBBBBB.....", ".......AAAAAAAAAA.......", ".........BBBBBB.........", "........................"],
-        ["..........FFF...........", ".......BBBBBBBBBB.......", ".....BBBBBBBBBBBBBB.....", "...AAAAAAAAAAAAAAAAAA...", ".AAAAAAAAAAAAAAAAAAAAAA.", "..CCCCCCCCCCCCCCCCCCCC..", "AAAAAAAAAAAAAAAAAAAAAAAA", ".BBBBBBBBBBBBBBBBBBBBBB.", "....FFFFFFFFFFFFFFFF....", ".AAAAAAAAAAAAAAAAAAAAAA.", "...CCCCCCCCCCCCCCCCCC...", "....AAAAAAAAAAAAAAAA....", "......BBBBBBBBBBBB......", "........AAAAAAAA........", "..........BBBB..........", "........................"]
-      ]
-    },
-    {
-      "id": "amber_carrier", "kind": "boss", "width": 28, "height": 14,
-      "frames": [
-        ["............................", ".........FFFFFFFFFF.........", ".......BBBBBBBBBBBBBB.......", "....AAAAAAAAAAAAAAAAAAAA....", "..AAAAAAAAAAAAAAAAAAAAAAAA..", ".BBBBBBBBBBBBBBBBBBBBBBBBBB.", "CCCCCCCCCCCCCCCCCCCCCCCCCCCC", "AAAAAAAAAAAAAAAAAAAAAAAAAAAA", "...FFFFFFFFFFFFFFFFFFFFFF...", "AAAAAAAAAAAAAAAAAAAAAAAAAAAA", "..CCCCCCCCCCCCCCCCCCCCCCCC..", "....AAAAAAAAAAAAAAAAAAAA....", "......BBBBBBBBBBBBBBBB......", "....C..................C...."],
-        ["............................", "...........FFFFFF...........", "........BBBBBBBBBBBB........", ".....AAAAAAAAAAAAAAAAAA.....", "...AAAAAAAAAAAAAAAAAAAAAA...", ".BBBBBBBBBBBBBBBBBBBBBBBBBB.", "CCCCCCCCCCCCCCCCCCCCCCCCCCCC", "AAAAAAAAAAAAAAAAAAAAAAAAAAAA", "....FFFFFFFFFFFFFFFFFFFF....", "AAAAAAAAAAAAAAAAAAAAAAAAAAAA", "...CCCCCCCCCCCCCCCCCCCCCC...", ".....AAAAAAAAAAAAAAAAAA.....", ".......BBBBBBBBBBBBBB.......", ".....C................C....."]
-      ]
-    },
-    {
-      "id": "violet_geode", "kind": "mineral_boss", "width": 24, "height": 24,
-      "frames": [
-        ["........................", "........................", ".........BBBB...........", ".......BBBBBBBB.........", ".....DDDDDDDDDDDD.......", "....DDDDDDDDDDDDDD......", "...EEEEEEEEEEEEEEEE.....", "..EEEEEEEEEEEEEEEEEEE...", ".DDDDDDDFFFFFDDDDDDDD...", "DDDDDDFFFFFFFFDDDDDDDDD.", "EEEEEEEEEEEEEEEEEEEEEEEE", ".EEEEEEEEEEEEEEEEEEEEEE.", "..DDDDDDDDDDDDDDDDDDDD..", "...EEEEEEEEEEEEEEEEEE...", "....BBBBBBBBBBBBBBBB....", "......DDDDDDDDDDDD......", ".......EEEEEEEEEEEE.....", ".........BBBBBBBB.......", "........................", "........................", "........................", "........................", "........................", "........................"],
-        ["........................", "........................", "...........BBBB.........", ".........BBBBBBBB.......", "......DDDDDDDDDDDD......", ".....DDDDDDDDDDDDDD.....", "...EEEEEEEEEEEEEEEEEE...", "..EEEEEEEEEEEEEEEEEEEE..", ".DDDDDFFFFFFDDDDDDDDD...", "DDDDFFFFFFFFFFDDDDDDDDD.", ".EEEEEEEEEEEEEEEEEEEEEEE", "..EEEEEEEEEEEEEEEEEEEE..", "...DDDDDDDDDDDDDDDDDD...", "....EEEEEEEEEEEEEEEE....", ".....BBBBBBBBBBBBBB.....", ".......DDDDDDDDDD.......", ".........EEEEEEEEEE.....", "..........BBBBBBBB......", "........................", "........................", "........................", "........................", "........................", "........................"]
-      ]
-    }
+    {"id": "player", "kind": "player", "width": 8, "height": 6},
+    {"id": "scout", "kind": "enemy", "width": 8, "height": 8},
+    {"id": "saucer", "kind": "enemy", "width": 8, "height": 8},
+    {"id": "dropper", "kind": "enemy", "width": 8, "height": 8},
+    {"id": "fighter", "kind": "enemy", "width": 8, "height": 8},
+    {"id": "bomber", "kind": "enemy", "width": 8, "height": 8},
+    {"id": "supply", "kind": "enemy", "width": 8, "height": 8},
+    {"id": "cave_bat", "kind": "mineral", "width": 8, "height": 8},
+    {"id": "rock_worm", "kind": "mineral", "width": 8, "height": 8},
+    {"id": "mining_drone", "kind": "mineral", "width": 8, "height": 8},
+    {"id": "coral_bastion", "kind": "boss", "width": 24, "height": 16},
+    {"id": "amber_carrier", "kind": "boss", "width": 28, "height": 14},
+    {"id": "violet_geode", "kind": "mineral_boss", "width": 24, "height": 24}
   ],
   "enemy_types": [
     {"id": "scout", "engine_type": "SCOUT", "sprite": "scout"},
@@ -184,8 +109,8 @@
     ]}
   ],
   "stages": [
-    {"id": 1, "theme": "space", "formation": "space", "environment": "asteroids", "boss": "stage1_boss"},
-    {"id": 2, "theme": "sky", "formation": "air", "environment": "wind", "boss": "stage2_boss"},
-    {"id": 3, "theme": "cave", "formation": "cave", "environment": "rockfall", "boss": "stage3_boss"}
+    {"id": 1, "theme": "space", "formation": "space", "environment": "asteroids", "boss": "stage1_boss", "boss_coexists_with_normal_enemies": false},
+    {"id": 2, "theme": "sky", "formation": "air", "environment": "wind", "boss": "stage2_boss", "boss_coexists_with_normal_enemies": false},
+    {"id": 3, "theme": "cave", "formation": "cave", "environment": "rockfall", "boss": "stage3_boss", "boss_coexists_with_normal_enemies": false}
   ]
 }

@@ -1,0 +1,440 @@
+{
+  "actual_play": {
+    "enemy_frame": 0,
+    "enemy_rect": [
+      134,
+      47,
+      8,
+      8
+    ],
+    "enemy_rendered_origin": [
+      136,
+      44
+    ],
+    "enemy_slot": 0,
+    "enemy_sprite": "scout",
+    "enemy_type": 0,
+    "entry": "TITLE release/press A to Stage 1 NORMAL",
+    "path": "actual-play-stage1.png",
+    "phase": 1,
+    "player_frame": 0,
+    "player_rect": [
+      10,
+      48,
+      8,
+      6
+    ],
+    "png_sha256": "cc4ecfbf15319268c341641ec282982bfdf84f81f45c3e8b557ddbed87121e1b",
+    "stage": 1
+  },
+  "aps": "APS-049",
+  "contract": "f",
+  "expected_pixel_source": "assets/previews/*.json (frame 0 verbatim + anim_delta overlay for frame 1), offset by scripts/generate-stage-data.py sprite_anchor() and drawn at each sprite's SPRITE_CONTRACTS boss_visual_scale (1x normal/player, 2x boss) -- rom byte identity is contract e (scripts/verify-sprite-rom-bytes.py).",
+  "individual_sprite_sha256": {
+    "amber_carrier": {
+      "clipped_columns": 0,
+      "clipped_rows": 0,
+      "sha256": "dab01500e86b62e9c11a77b0f35ffe66d7a1ad497f77366e928b4274a1b85064"
+    },
+    "bomber": {
+      "clipped_columns": 0,
+      "clipped_rows": 0,
+      "sha256": "793e707e1983cc192c6d81f39f6504accc446defa5144ac2e82d6edf395ff0d3"
+    },
+    "cave_bat": {
+      "clipped_columns": 0,
+      "clipped_rows": 0,
+      "sha256": "e1860ba4cee71b13ea528820c1e93f09af3d72042a1f56e9df6b8029f3b3bf93"
+    },
+    "coral_bastion": {
+      "clipped_columns": 3,
+      "clipped_rows": 0,
+      "sha256": "be924229c8bdb601283962785708f8b0c3e681eb5351a32fc845a82e73487053"
+    },
+    "dropper": {
+      "clipped_columns": 0,
+      "clipped_rows": 0,
+      "sha256": "ada1b88f78b35862960dc8ff7927acd011be6b2703aeaa18b443569012a93fe2"
+    },
+    "fighter": {
+      "clipped_columns": 0,
+      "clipped_rows": 0,
+      "sha256": "42e8965d0826b7f156d4befb7acaa6b3d35024f1e484392fce5e63792b4f7132"
+    },
+    "mining_drone": {
+      "clipped_columns": 0,
+      "clipped_rows": 0,
+      "sha256": "3e2ca99770d5efb72eff69f268a9dc35aae05a3553959f89f7b0ed7a7dc9bc15"
+    },
+    "player": {
+      "clipped_columns": 0,
+      "clipped_rows": 0,
+      "sha256": "a1f0ee2c0c1937f19331519fd4dbaab6586a1081eded93aed22cb09e851b1b75"
+    },
+    "rock_worm": {
+      "clipped_columns": 0,
+      "clipped_rows": 0,
+      "sha256": "da08e91d8d31d5e1bc664b978e6305de401b40511de433c0f990b999d2d42f1f"
+    },
+    "saucer": {
+      "clipped_columns": 0,
+      "clipped_rows": 0,
+      "sha256": "d89c946fdacc968408945c958c7e62fe33a8244359a4cffab4f203b07a1cd4c5"
+    },
+    "scout": {
+      "clipped_columns": 0,
+      "clipped_rows": 0,
+      "sha256": "503e4f6693fc829e87576f053b040190577872d5f4061ca299f9ec3c9d9722a6"
+    },
+    "supply": {
+      "clipped_columns": 0,
+      "clipped_rows": 0,
+      "sha256": "05316c5df669a2b0d4e3e6984b65a5c6025445b85f7351660b3cdcf78cd21062"
+    },
+    "violet_geode": {
+      "clipped_columns": 3,
+      "clipped_rows": 0,
+      "sha256": "e3d9a95c478a5fb28b68db4e4a5b999278433c31f16c3443c9fb94525bc6d1c5"
+    }
+  },
+  "injected_paths": [
+    {
+      "boss": {
+        "animation_frame": 0,
+        "appearance": "coral_bastion",
+        "origin": [
+          131,
+          36
+        ],
+        "path": "stage1-boss.png",
+        "png_sha256": "034ea43784aa3380e6402d2e97f4b8b67e624a9f61b1a8a4fbcf16e4f1979e1c",
+        "rect": [
+          132,
+          43,
+          24,
+          16
+        ]
+      },
+      "cast": {
+        "animation_frame": 1,
+        "path": "stage1-cast.png",
+        "png_sha256": "69e94fad01ec2f0a12b46e8a669f3ad6fe5d5ca98b3d33c0a5da81d432b444a2",
+        "readback": [
+          [
+            0,
+            [
+              40,
+              24,
+              8,
+              8
+            ]
+          ],
+          [
+            1,
+            [
+              80,
+              47,
+              8,
+              8
+            ]
+          ],
+          [
+            2,
+            [
+              120,
+              70,
+              8,
+              8
+            ]
+          ]
+        ]
+      },
+      "normal": {
+        "path": "stage1-normal.png",
+        "player_frame": 0,
+        "player_rect": [
+          10,
+          48,
+          8,
+          6
+        ],
+        "png_sha256": "0fd2728370829a51d6e217ebc439744e60787c4a81eff71d6a5193999c49f7e1"
+      },
+      "stage": 1
+    },
+    {
+      "boss": {
+        "animation_frame": 1,
+        "appearance": "amber_carrier",
+        "origin": [
+          128,
+          39
+        ],
+        "path": "stage2-boss.png",
+        "png_sha256": "7d568aa6377d2c77965073aebccbc392e8ba5dd6a86514c712c15c4184df1725",
+        "rect": [
+          128,
+          47,
+          28,
+          14
+        ]
+      },
+      "cast": {
+        "animation_frame": 0,
+        "path": "stage2-cast.png",
+        "png_sha256": "c6215b722f53176d12c86f164f8329990770b617c9297e31184d2dc9fab704fd",
+        "readback": [
+          [
+            3,
+            [
+              40,
+              24,
+              8,
+              8
+            ]
+          ],
+          [
+            4,
+            [
+              80,
+              47,
+              8,
+              8
+            ]
+          ],
+          [
+            5,
+            [
+              120,
+              70,
+              8,
+              8
+            ]
+          ]
+        ]
+      },
+      "normal": {
+        "path": "stage2-normal.png",
+        "player_frame": 0,
+        "player_rect": [
+          10,
+          48,
+          8,
+          6
+        ],
+        "png_sha256": "580b9c1ca1bc52077da38c2d86318aa239afc6c4c4b0e7ecb5978e04a0d295fa"
+      },
+      "stage": 2
+    },
+    {
+      "boss": {
+        "animation_frame": 0,
+        "appearance": "violet_geode",
+        "origin": [
+          131,
+          36
+        ],
+        "path": "stage3-boss.png",
+        "png_sha256": "8c4c41a832d942cd782e33c85264e5e847ad7aeeffeec8f93f8d03bad2b2b7bc",
+        "rect": [
+          132,
+          39,
+          24,
+          24
+        ]
+      },
+      "cast": {
+        "animation_frame": 0,
+        "path": "stage3-cast.png",
+        "png_sha256": "6147100036e28a4eaa87957dcb60ddf65efd78895c1c68c57b62da32b2c5de5b",
+        "readback": [
+          [
+            6,
+            [
+              40,
+              24,
+              8,
+              8
+            ]
+          ],
+          [
+            7,
+            [
+              80,
+              47,
+              8,
+              8
+            ]
+          ],
+          [
+            8,
+            [
+              120,
+              70,
+              8,
+              8
+            ]
+          ]
+        ]
+      },
+      "normal": {
+        "path": "stage3-normal.png",
+        "player_frame": 0,
+        "player_rect": [
+          10,
+          48,
+          8,
+          6
+        ],
+        "png_sha256": "da1b0f0177402631f429f6fa6786f8d57eb77489a9733c938552f850b1d602c1"
+      },
+      "stage": 3
+    }
+  ],
+  "mode": "headless",
+  "sprite_geometry": {
+    "amber_carrier": {
+      "anchor": [
+        0,
+        -6
+      ],
+      "scale": 2,
+      "visual_size": [
+        32,
+        32
+      ]
+    },
+    "bomber": {
+      "anchor": [
+        -3,
+        -3
+      ],
+      "scale": 1,
+      "visual_size": [
+        16,
+        16
+      ]
+    },
+    "cave_bat": {
+      "anchor": [
+        -4,
+        -4
+      ],
+      "scale": 1,
+      "visual_size": [
+        16,
+        16
+      ]
+    },
+    "coral_bastion": {
+      "anchor": [
+        -1,
+        -7
+      ],
+      "scale": 2,
+      "visual_size": [
+        32,
+        32
+      ]
+    },
+    "dropper": {
+      "anchor": [
+        -3,
+        -4
+      ],
+      "scale": 1,
+      "visual_size": [
+        16,
+        16
+      ]
+    },
+    "fighter": {
+      "anchor": [
+        -4,
+        -3
+      ],
+      "scale": 1,
+      "visual_size": [
+        16,
+        16
+      ]
+    },
+    "mining_drone": {
+      "anchor": [
+        -4,
+        -3
+      ],
+      "scale": 1,
+      "visual_size": [
+        16,
+        16
+      ]
+    },
+    "player": {
+      "anchor": [
+        -4,
+        -4
+      ],
+      "scale": 1,
+      "visual_size": [
+        16,
+        16
+      ]
+    },
+    "rock_worm": {
+      "anchor": [
+        -4,
+        -3
+      ],
+      "scale": 1,
+      "visual_size": [
+        16,
+        16
+      ]
+    },
+    "saucer": {
+      "anchor": [
+        -3,
+        -4
+      ],
+      "scale": 1,
+      "visual_size": [
+        16,
+        16
+      ]
+    },
+    "scout": {
+      "anchor": [
+        -2,
+        -3
+      ],
+      "scale": 1,
+      "visual_size": [
+        16,
+        16
+      ]
+    },
+    "supply": {
+      "anchor": [
+        -2,
+        -3
+      ],
+      "scale": 1,
+      "visual_size": [
+        16,
+        16
+      ]
+    },
+    "violet_geode": {
+      "anchor": [
+        -1,
+        -3
+      ],
+      "scale": 2,
+      "visual_size": [
+        32,
+        32
+      ]
+    }
+  }
+}

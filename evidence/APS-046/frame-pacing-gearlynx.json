@@ -1,0 +1,154 @@
+{
+  "aps": "APS-046",
+  "boss_combatant_limit": 8,
+  "draw_hz": 75,
+  "hardware_completion": {
+    "breakpoint_symbol": "_game_frame_end_complete",
+    "completed_frames_per_scenario": 75,
+    "position": "after GAME_FRAME_END_WAIT(tgi_busy())",
+    "timer_0": {
+      "borrow_in": true,
+      "borrow_out": false,
+      "enabled": true,
+      "fields": [
+        "name",
+        "address",
+        "value"
+      ],
+      "frequency": "1 MHz (1us)",
+      "index": 0,
+      "interrupt": false,
+      "interrupt_available": true,
+      "linked": false,
+      "name": "HBLANK TIMER",
+      "period_value": 0,
+      "registers": [
+        [
+          "backup",
+          "FD00",
+          "7E"
+        ],
+        [
+          "control_a",
+          "FD01",
+          "18"
+        ],
+        [
+          "counter",
+          "FD02",
+          "7A"
+        ],
+        [
+          "control_b",
+          "FD03",
+          "0A"
+        ]
+      ],
+      "reload": true,
+      "reset_done": false,
+      "timer_done": true
+    },
+    "timer_2": {
+      "borrow_in": false,
+      "borrow_out": false,
+      "enabled": true,
+      "fields": [
+        "name",
+        "address",
+        "value"
+      ],
+      "frequency": "N/A",
+      "index": 2,
+      "interrupt": true,
+      "interrupt_available": true,
+      "linked": true,
+      "linked_to_index": 0,
+      "linked_to_type": "timer",
+      "name": "VBLANK TIMER",
+      "period_value": 7,
+      "registers": [
+        [
+          "backup",
+          "FD08",
+          "68"
+        ],
+        [
+          "control_a",
+          "FD09",
+          "9F"
+        ],
+        [
+          "counter",
+          "FD0A",
+          "65"
+        ],
+        [
+          "control_b",
+          "FD0B",
+          "08"
+        ]
+      ],
+      "reload": true,
+      "reset_done": false,
+      "timer_done": true
+    }
+  },
+  "normal_combatant_limit": 8,
+  "rejected_injection": {
+    "accepted": false,
+    "bosses": 1,
+    "normal_enemies": 8,
+    "total": 9
+  },
+  "scenarios": [
+    {
+      "advisory_window_us": [
+        12000,
+        15000
+      ],
+      "completed_hardware_frames": 75,
+      "inside_advisory_window": 0,
+      "maximum_us": 230047,
+      "median_us": 210860,
+      "minimum_us": 75646,
+      "observed_count_max": 0,
+      "observed_count_min": 0,
+      "requested_combatants": 0,
+      "samples": 75
+    },
+    {
+      "advisory_window_us": [
+        12000,
+        15000
+      ],
+      "completed_hardware_frames": 75,
+      "inside_advisory_window": 0,
+      "maximum_us": 269403,
+      "median_us": 250288,
+      "minimum_us": 224745,
+      "observed_count_max": 4,
+      "observed_count_min": 4,
+      "requested_combatants": 4,
+      "samples": 75
+    },
+    {
+      "advisory_window_us": [
+        12000,
+        15000
+      ],
+      "completed_hardware_frames": 75,
+      "inside_advisory_window": 0,
+      "maximum_us": 309146,
+      "median_us": 295043,
+      "minimum_us": 281642,
+      "observed_count_max": 8,
+      "observed_count_min": 8,
+      "requested_combatants": 8,
+      "samples": 75
+    }
+  ],
+  "wall_clock": {
+    "advisory_only": true,
+    "debugger_round_trip_included": true
+  }
+}

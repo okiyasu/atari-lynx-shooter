@@ -1,0 +1,107 @@
+{
+  "all_enemy_counts_held": true,
+  "all_within_budget": true,
+  "aps": "APS-049",
+  "hardware_cadence_contract": {
+    "budget_us": 13333.333333333334,
+    "source": "6502 total_ticks via get_6502_status, validated round-trip-frequency-independent by scripts/calibrate-cadence-ticks-gearlynx.py",
+    "us_per_tick": 0.02409435348826003
+  },
+  "method": "low round-trip contract-g re-measurement: state injected once per fixture, all 75 draw frames advanced in a single debug_step_frame call, total_ticks read only before/after (~12 MCP round trips per fixture vs ~370+ in the original per-frame-breakpoint method)",
+  "scenarios": [
+    {
+      "bosses": 0,
+      "normal_enemies": 0,
+      "phase_runs": [
+        {
+          "avg_us_per_draw_frame": 59.288,
+          "bosses": 0,
+          "budget_us": 13333.333333333334,
+          "delta_ticks": 184549,
+          "enemy_count_held": true,
+          "frames": 75,
+          "normal_enemies": 0,
+          "phase": "normal",
+          "readback_boss_active_end_of_run": 0,
+          "readback_normal_enemies_end_of_run": 0,
+          "round_trips": 12,
+          "within_budget": true
+        }
+      ]
+    },
+    {
+      "bosses": 0,
+      "normal_enemies": 4,
+      "phase_runs": [
+        {
+          "avg_us_per_draw_frame": 118.573,
+          "bosses": 0,
+          "budget_us": 13333.333333333334,
+          "delta_ticks": 369090,
+          "enemy_count_held": true,
+          "frames": 75,
+          "normal_enemies": 4,
+          "phase": "normal",
+          "readback_boss_active_end_of_run": 0,
+          "readback_normal_enemies_end_of_run": 4,
+          "round_trips": 12,
+          "within_budget": true
+        }
+      ]
+    },
+    {
+      "bosses": 0,
+      "normal_enemies": 8,
+      "phase_runs": [
+        {
+          "avg_us_per_draw_frame": 118.463,
+          "bosses": 0,
+          "budget_us": 13333.333333333334,
+          "delta_ticks": 368746,
+          "enemy_count_held": true,
+          "frames": 75,
+          "normal_enemies": 8,
+          "phase": "normal",
+          "readback_boss_active_end_of_run": 0,
+          "readback_normal_enemies_end_of_run": 8,
+          "round_trips": 12,
+          "within_budget": true
+        }
+      ]
+    },
+    {
+      "bosses": 1,
+      "normal_enemies": 4,
+      "phase_runs": [
+        {
+          "avg_us_per_draw_frame": 118.566,
+          "bosses": 1,
+          "budget_us": 13333.333333333334,
+          "delta_ticks": 369067,
+          "enemy_count_held": true,
+          "frames": 75,
+          "normal_enemies": 4,
+          "phase": "normal",
+          "readback_boss_active_end_of_run": 1,
+          "readback_normal_enemies_end_of_run": 4,
+          "round_trips": 12,
+          "within_budget": true
+        },
+        {
+          "avg_us_per_draw_frame": 118.558,
+          "bosses": 1,
+          "budget_us": 13333.333333333334,
+          "delta_ticks": 369043,
+          "enemy_count_held": true,
+          "frames": 75,
+          "normal_enemies": 4,
+          "phase": "boss",
+          "readback_boss_active_end_of_run": 1,
+          "readback_normal_enemies_end_of_run": 4,
+          "round_trips": 12,
+          "within_budget": true
+        }
+      ]
+    }
+  ]
+}

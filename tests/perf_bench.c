@@ -60,9 +60,9 @@ static void prepare_combat(GameState* game)
     game->phase_timer = 0u;
     game->environment_event_cursor = GAME_ASTEROID_EVENT_COUNT;
     for (i = 0u; i < GAME_MAX_ENEMIES; ++i) {
-        game->enemies[i].active = 1u;
-        game->enemies[i].rect.x = (unsigned char)(120u + i * 8u);
-        game->enemies[i].rect.y = (unsigned char)(70u + i * 4u);
+        game_enemy_at(game, i)->active = 1u;
+        game_enemy_at(game, i)->rect.x = (unsigned char)(120u + i * 4u);
+        game_enemy_at(game, i)->rect.y = (unsigned char)(60u + i * 4u);
     }
     for (i = 0u; i < GAME_MAX_PLAYER_BULLETS; ++i) {
         game->bullets[i].active = 1u;

@@ -1,0 +1,791 @@
+{
+  "format_version": 1,
+  "width": 16,
+  "height": 16,
+  "scale": 8,
+  "background": "#111122",
+  "palette": {
+    "A": "#EE9933",
+    "B": "#884422",
+    "C": "#FFDD55",
+    "D": "#8844DD",
+    "E": "#33CCBB",
+    "F": "#FFFFFF"
+  },
+  "characters": [
+    {
+      "id": "scout",
+      "grid_name": "aps044_scout_preview",
+      "category": "normal",
+      "roles": "ABC",
+      "silhouette": "sensor wedge",
+      "features": {
+        "sensor": [
+          [
+            0,
+            6
+          ],
+          [
+            12,
+            6
+          ]
+        ],
+        "wedge": [
+          [
+            11,
+            6
+          ],
+          [
+            11,
+            5
+          ]
+        ],
+        "shadow": [
+          [
+            6,
+            2
+          ],
+          [
+            2,
+            8
+          ]
+        ]
+      },
+      "grid": [
+        "................",
+        "................",
+        "......BB........",
+        ".....BAAB.......",
+        "...BBAAAABB.....",
+        ".BBAAAAAAAABB...",
+        "CBAAAAAAAABBC...",
+        ".CBBAAAAAABBB...",
+        "..B.AAAAAABB....",
+        "...BBAAAAB......",
+        ".....BAAB.......",
+        "......BB........",
+        "................",
+        "................",
+        "................",
+        "................"
+      ],
+      "anim_delta": [
+        [
+          0,
+          7,
+          "C"
+        ]
+      ]
+    },
+    {
+      "id": "saucer",
+      "grid_name": "aps044_saucer_preview",
+      "category": "normal",
+      "roles": "ABC",
+      "silhouette": "offset dome and rim",
+      "features": {
+        "dome": [
+          [
+            8,
+            3
+          ],
+          [
+            7,
+            4
+          ]
+        ],
+        "rim": [
+          [
+            4,
+            7
+          ],
+          [
+            12,
+            7
+          ]
+        ],
+        "shadow": [
+          [
+            1,
+            7
+          ],
+          [
+            6,
+            10
+          ]
+        ]
+      },
+      "grid": [
+        "................",
+        "................",
+        "................",
+        ".......BB.......",
+        ".....BBAAB......",
+        "...BBAAAAABB....",
+        ".BBAAAAAAAAABB..",
+        "BBCCCCCCCCCCBB..",
+        "..BAAAAAAAAB....",
+        "...BBAAAAB......",
+        ".....BBBB.......",
+        "......B.........",
+        "................",
+        "................",
+        "................",
+        "................"
+      ],
+      "anim_delta": [
+        [
+          7,
+          4,
+          "B"
+        ]
+      ]
+    },
+    {
+      "id": "dropper",
+      "grid_name": "aps044_dropper_preview",
+      "category": "normal",
+      "roles": "ABC",
+      "silhouette": "claw and cargo pod",
+      "features": {
+        "pod": [
+          [
+            6,
+            6
+          ],
+          [
+            8,
+            6
+          ]
+        ],
+        "claw": [
+          [
+            1,
+            12
+          ],
+          [
+            10,
+            12
+          ]
+        ],
+        "sensor": [
+          [
+            6,
+            2
+          ],
+          [
+            7,
+            2
+          ]
+        ]
+      },
+      "grid": [
+        "................",
+        "................",
+        "......BB........",
+        ".....BAAB.......",
+        "....BAAAAB......",
+        "...BBAAAABB.....",
+        "..BAACCCAAB.....",
+        ".BBAAAAAAAABB...",
+        "..BBAAAAABB.....",
+        "...B.AA.B.......",
+        "..B.B..B.B......",
+        ".BB......BB.....",
+        ".B........B.....",
+        ".B..............",
+        "................",
+        "................"
+      ],
+      "anim_delta": [
+        [
+          6,
+          3,
+          "B"
+        ]
+      ]
+    },
+    {
+      "id": "fighter",
+      "grid_name": "aps044_fighter_preview",
+      "category": "normal",
+      "roles": "ABC",
+      "silhouette": "banked wing and long nose",
+      "features": {
+        "nose": [
+          [
+            13,
+            6
+          ],
+          [
+            14,
+            6
+          ]
+        ],
+        "bank-wing": [
+          [
+            0,
+            6
+          ],
+          [
+            13,
+            7
+          ]
+        ],
+        "nozzle": [
+          [
+            6,
+            11
+          ],
+          [
+            7,
+            10
+          ]
+        ]
+      },
+      "grid": [
+        "................",
+        "................",
+        "......BB........",
+        ".....BAAB.......",
+        "....BAAAAB......",
+        "..BBAAAAAABB....",
+        "BBAAAAAAAAABBCC.",
+        ".BBAAAAAAAAABBB.",
+        "...BBAAAAAB.....",
+        ".....BAAAB......",
+        "......BAB.......",
+        "......B.........",
+        "................",
+        "................",
+        "................",
+        "................"
+      ],
+      "anim_delta": [
+        [
+          13,
+          5,
+          "C"
+        ]
+      ]
+    },
+    {
+      "id": "bomber",
+      "grid_name": "aps044_bomber_preview",
+      "category": "normal",
+      "roles": "ABC",
+      "silhouette": "armored pod and bomb bay",
+      "features": {
+        "pod": [
+          [
+            2,
+            2
+          ],
+          [
+            8,
+            2
+          ]
+        ],
+        "bay": [
+          [
+            4,
+            6
+          ],
+          [
+            7,
+            6
+          ]
+        ],
+        "armor": [
+          [
+            0,
+            5
+          ],
+          [
+            11,
+            7
+          ]
+        ]
+      },
+      "grid": [
+        "................",
+        "................",
+        "..BB....BB......",
+        ".BAAB..BBAAB....",
+        "BAAAABBAAAAAB...",
+        "BBAAAAAAAAABBB..",
+        ".BAACCCCAAAB....",
+        "BBAAAAAAAAABB...",
+        ".BAABBBBBBAAB...",
+        "..BBAAAAABB.....",
+        "...B.AA.B.......",
+        "...B....BB......",
+        "................",
+        "................",
+        "................",
+        "................"
+      ],
+      "anim_delta": [
+        [
+          2,
+          3,
+          "B"
+        ]
+      ]
+    },
+    {
+      "id": "supply",
+      "grid_name": "aps044_supply_preview",
+      "category": "normal",
+      "roles": "ABC",
+      "silhouette": "cargo frame and lock",
+      "features": {
+        "cargo": [
+          [
+            5,
+            5
+          ],
+          [
+            9,
+            7
+          ]
+        ],
+        "lock": [
+          [
+            5,
+            6
+          ],
+          [
+            7,
+            6
+          ]
+        ],
+        "antenna": [
+          [
+            3,
+            11
+          ],
+          [
+            4,
+            10
+          ]
+        ]
+      },
+      "grid": [
+        "................",
+        "................",
+        ".....BB.........",
+        "....BAAB........",
+        "..BBBAAABBB.....",
+        ".BAAAAAAAAAB....",
+        "BBAABCCCBAABB...",
+        ".BAAAAAAAAAB....",
+        "..BBBAAABBB.....",
+        "....BAAB........",
+        "...BB..B........",
+        "...B...BB.......",
+        "................",
+        "................",
+        "................",
+        "................"
+      ],
+      "anim_delta": [
+        [
+          5,
+          3,
+          "B"
+        ]
+      ]
+    },
+    {
+      "id": "cave_bat",
+      "grid_name": "aps044_cave_bat_preview",
+      "category": "normal",
+      "roles": "BDE",
+      "silhouette": "swept split wing",
+      "features": {
+        "wing": [
+          [
+            0,
+            2
+          ],
+          [
+            15,
+            2
+          ]
+        ],
+        "membrane": [
+          [
+            2,
+            5
+          ],
+          [
+            13,
+            5
+          ]
+        ],
+        "eye": [
+          [
+            7,
+            10
+          ],
+          [
+            8,
+            10
+          ]
+        ]
+      },
+      "grid": [
+        "................",
+        "................",
+        "B..............B",
+        "BB............BB",
+        "BDD..........DDB",
+        ".BDD........DDB.",
+        "..BDD......DDB..",
+        "...BDDD..DDDB...",
+        "....BDEEEEDB....",
+        ".....BDEEDB.....",
+        "......BEEB......",
+        ".......BB.......",
+        ".......B........",
+        "................",
+        "................",
+        "................"
+      ],
+      "anim_delta": [
+        [
+          7,
+          7,
+          "E"
+        ]
+      ]
+    },
+    {
+      "id": "rock_worm",
+      "grid_name": "aps044_rock_worm_preview",
+      "category": "normal",
+      "roles": "BDE",
+      "silhouette": "segmented mineral drill",
+      "features": {
+        "drill": [
+          [
+            14,
+            2
+          ],
+          [
+            13,
+            3
+          ]
+        ],
+        "segment": [
+          [
+            10,
+            4
+          ],
+          [
+            7,
+            5
+          ]
+        ],
+        "seam": [
+          [
+            0,
+            8
+          ],
+          [
+            6,
+            6
+          ]
+        ]
+      },
+      "grid": [
+        "................",
+        "................",
+        "..............B.",
+        "............BEB.",
+        ".........BBDDEEB",
+        "......BBDDEEBB..",
+        "...BBDDEEBB.....",
+        ".BDDEEBB........",
+        "BDDEEB..........",
+        ".BDEB...........",
+        "..BB............",
+        "..B.............",
+        "................",
+        "................",
+        "................",
+        "................"
+      ],
+      "anim_delta": [
+        [
+          13,
+          2,
+          "E"
+        ]
+      ]
+    },
+    {
+      "id": "mining_drone",
+      "grid_name": "aps044_mining_drone_preview",
+      "category": "normal",
+      "roles": "BDE",
+      "silhouette": "asymmetric drill chassis",
+      "features": {
+        "chassis": [
+          [
+            4,
+            5
+          ],
+          [
+            8,
+            7
+          ]
+        ],
+        "core": [
+          [
+            5,
+            6
+          ],
+          [
+            8,
+            6
+          ]
+        ],
+        "drill": [
+          [
+            14,
+            10
+          ],
+          [
+            15,
+            10
+          ]
+        ]
+      },
+      "grid": [
+        "................",
+        "................",
+        "....BB..........",
+        "...BDBB.........",
+        "..BDDDDB........",
+        ".BBDDDDDDB......",
+        "BBDDEEEEDDDB....",
+        ".BBDDDDDDBBBE...",
+        "...BDDDDB..BEE..",
+        "....BDBB....BE..",
+        "....BB.......BEB",
+        "..............B.",
+        "................",
+        "................",
+        "................",
+        "................"
+      ],
+      "anim_delta": [
+        [
+          13,
+          7,
+          "E"
+        ]
+      ]
+    },
+    {
+      "id": "coral_bastion",
+      "grid_name": "aps044_coral_bastion_preview",
+      "category": "boss",
+      "roles": "ABCF",
+      "silhouette": "coral spires, turret and reactor",
+      "features": {
+        "spires": [
+          [
+            2,
+            0
+          ],
+          [
+            8,
+            0
+          ]
+        ],
+        "turret": [
+          [
+            5,
+            3
+          ],
+          [
+            10,
+            3
+          ]
+        ],
+        "reactor": [
+          [
+            6,
+            6
+          ],
+          [
+            8,
+            8
+          ]
+        ],
+        "slit": [
+          [
+            7,
+            7
+          ]
+        ]
+      },
+      "grid": [
+        "..B.....B.......",
+        ".BAB...BAB......",
+        ".BAAB.BAAAB.....",
+        "BAAAABAAAAAB....",
+        "BBAAAAAAAAABB...",
+        ".BAAFFAAAFAAB...",
+        "BAAAACCCAAAAB...",
+        "BBAAACFCAAABB...",
+        ".BAAACCCAAAAB...",
+        "..BAAAAAAAAB....",
+        ".BBAABBAABB.....",
+        "BAAAB..BAAAB....",
+        "BAAB....BAAB....",
+        ".BB......BB.....",
+        ".B..............",
+        "................"
+      ],
+      "anim_delta": [
+        [
+          2,
+          1,
+          "B"
+        ]
+      ]
+    },
+    {
+      "id": "amber_carrier",
+      "grid_name": "aps044_amber_carrier_preview",
+      "category": "boss",
+      "roles": "ABCF",
+      "silhouette": "bridge, nacelles and engines",
+      "features": {
+        "bridge": [
+          [
+            9,
+            5
+          ],
+          [
+            10,
+            5
+          ]
+        ],
+        "nacelle": [
+          [
+            1,
+            3
+          ],
+          [
+            10,
+            8
+          ]
+        ],
+        "engine": [
+          [
+            3,
+            5
+          ],
+          [
+            13,
+            6
+          ]
+        ]
+      },
+      "grid": [
+        "................",
+        ".......BB.......",
+        "..BB..BAAB......",
+        ".BAABBAAAAB.....",
+        "BBAAAAAAAAABB...",
+        "BAACCAAAFFAAB...",
+        ".BAAAAAAAAABCC..",
+        "BBAAABBAAABBB...",
+        ".BAAB..BAAB.....",
+        "..BB....BB......",
+        "...B....B.......",
+        "...B............",
+        "................",
+        "................",
+        "................",
+        "................"
+      ],
+      "anim_delta": [
+        [
+          7,
+          2,
+          "B"
+        ]
+      ]
+    },
+    {
+      "id": "violet_geode",
+      "grid_name": "aps044_violet_geode_preview",
+      "category": "boss",
+      "roles": "BDEF",
+      "silhouette": "offset facets, nucleus and fissure",
+      "features": {
+        "facet": [
+          [
+            6,
+            1
+          ],
+          [
+            3,
+            10
+          ]
+        ],
+        "nucleus": [
+          [
+            6,
+            7
+          ],
+          [
+            8,
+            8
+          ]
+        ],
+        "fissure": [
+          [
+            6,
+            4
+          ],
+          [
+            9,
+            9
+          ]
+        ]
+      },
+      "grid": [
+        "................",
+        "......BB........",
+        "....BBDDB.......",
+        "..BBDDDDDB......",
+        ".BDDDDEDDDB.....",
+        "BDDDDEEEEDDDB...",
+        "BDDDDEFFEDDDB...",
+        ".BDDDEFFFEDDB...",
+        "..BDEFFFEEDDB...",
+        "...BDEEEEDDDB...",
+        "...BBDDDDB......",
+        ".....BDDB.......",
+        "......BB........",
+        "......B.........",
+        "................",
+        "................"
+      ],
+      "anim_delta": [
+        [
+          6,
+          1,
+          "D"
+        ]
+      ]
+    }
+  ]
+}

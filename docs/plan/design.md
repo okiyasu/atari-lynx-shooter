@@ -25,6 +25,14 @@ Lynxの初期化では、TGI/ジョイスティック初期化と`CLI()`後に�
 
 ## 画面
 
+## APS-050 3ボス1x統一+当たり判定中心整列
+
+- 背景/ロジック/音声/サウンド契約はAPS-049の値を維持し、`assets/stages/stages.json`のboss visualのみを1xへ統一する。
+- `SPRITE_CONTRACTS`の`coral_bastion`/`amber_carrier`/`violet_geode`の`boss_visual_scale`を`1`へ固定。`draw_sprite()`側の分岐描画も`origin.scale = 1u`固定へ戻し、当たり判定中心の`collision`と`visual`の重心を`SPRITE_CONTRACTS`共有ルール＋`sprite_anchor()`で整列させる。
+- `scripts/verify-stage-visuals-gearlynx.py`は`boss`ごとの`boss_origin`で`boss_clipped_columns/rows`を算出し、`assert_sprite_not_clipped`で右端/下端クリップを停止位置起点で明示検証。全3ボスで`clipped=0`をPASS条件とし、`evidence/APS-050/runtime-sprite-gearlynx*.{json,png}`へ保存。
+- `tests/golden/sprite-data-v050.json`を新規追加し、`GAME_SPRITE_*` 13種のpreview/frames+anchorを`tests/test_stage_data.py`に固定（`v043/v045/v047/v049`は履歴として保全）。
+- ROM契約は`include/version.h`を`"0.50.0"`へ更新し、`tests/test_stage_data.py`/`scripts/verify-stage-visuals-gearlynx.py`のgolden参照をAPS-050に合わせる（`Makefile`の`SPRITE_GOLDEN`も更新）。
+
 - 0〜9行: 黒いHUD帯。3x5の自作文字で`S<stage> <phase><progress> <score> L<lives> W<weapon>`を一行表示し、Stage 1導入の進行もここへ集約する。
 - 10〜101行: HUD下端線で分離したプレイ領域。全戦闘物はこの領域へクリップする。
 - 最背面惑星: 8フレームに1px、遠景星: 4フレームに1px、近景星: 2フレームに1pxで左へ進む。惑星は192px、星は160pxでラップする。
@@ -379,6 +387,82 @@ amber carrierの薄い横長nacelle/bridge、violet geodeの非対称facet/nucle
 独立に意図しないgrid変更を拒否する。host C回帰は全26 frameのrun数、dense offset、寸法、role、
 3〜4色、20 run上限、frame差を固定する。JSON/hash/parserはROMへ入れず、runtime描画とAABBは不変である。
 
+## APS-041 タイトルvoice完了後の静止待機
+
+タイトル開始voiceの全sample再生と`title_voice_stop()`後もTITLEを保持し、Stage 1へ遷移する前に
+75 Hz描画tick基準で38 tick静止する。0.5秒は37.5 tickなので短縮せず`ceil(0.5 * 75) = 38`へ
+切り上げ、実時間は`38 / 75 = 0.506666...`秒とする。公開定数
+`GAME_TITLE_POST_VOICE_WAIT_TICKS`を38とし、TITLE開始gateの既存1-byte fieldsを待機状態と残りtick数に再利用する。
+GameStateのレイアウトとGearlynx検証器の既存offsetは変更しない。
+
+`game_title_voice_complete()`はvoice pendingを待機状態へ変えて残り38 tickを設定するが、
+`game_start()`は呼ばない。300 Hzの`game_update_logic()`は待機中の全FIREを無視して状態を進めず、
+main loopが4 logic updateの後に各outer draw frameで一度だけ呼ぶ既存`game_sound_tick()`だけが
+残数を減らす。最初の37回はTITLE、BGM停止、player/enemy/bullet/score/Stage timer凍結を維持し、
+38回目だけが`game_start()`を一度呼んでStage 1 INTROとBGMを開始する。voice開始失敗時もmainの
+既存complete経路から同じ待機へ入る。boot TITLEのrelease→press、voice中FIRE無視、GAME OVERの
+voice/release→press TITLE復帰、ALL CLEAR再開始、Timer 3/queue/IRQ/DAC、A/C BGMとB SFXは不変とする。
+
+## APS-042 固定sprite高解像度化
+
+rendererと固定horizontal-run RLE（`x0,x1,y,color`）は変更せず、`GameSpriteDefinition`のvisual
+canvasだけを自機12x10、通常敵9種12x12へ拡大する。既存`GameRect.x/y`をvisual左上anchorとし、
+追加pixelは右/下側へ描く。collisionは自機8x6・通常敵8x8、bossは従来どおり24x16 / 28x14 /
+24x24であり、AABB、移動境界、spawn、発射、難易度、攻撃、drop、boss scriptは変更しない。
+class別run上限はplayer 16、normal enemy 18、boss 28、全26frame合計上限524とする。
+
+| sprite | visual / collision | palette roleとStage背景からの分離 | 左scroll時の輪郭・2frame差 | run(frame 0/1) |
+|---|---|---|---|---:|
+| player | 12x10 / 8x6 | `9`深青outline、`8`珊瑚hull、`7`淡青canopy/flare | 右向き機首と後部keel、flare/翼端位置を交互化 | 7/7 |
+| scout | 12x12 / 8x8 | `B`暗褐outline、`A`琥珀胴、`C`黄sensor | 進行側visorと後端灯、翼tip/sensorを交互化 | 10/10 |
+| saucer | 12x12 / 8x8 | `B`rim、`A`dome、`C`beacon | 横長rimを維持しbeacon/prong位置を交互化 | 9/9 |
+| dropper | 12x12 / 8x8 | `B`claw、`A`cargo body、`C`core | 上部sensorと下向きclaw、claw開閉を交互化 | 12/12 |
+| fighter | 12x12 / 8x8 | `B`尾翼、`A`hull、`C`cockpit/engine | 右向き長い機首、上下bank位置を交互化 | 9/9 |
+| bomber | 12x12 / 8x8 | `B`pod/bay、`A`重装胴、`C`engine | 幅広胴と左右pod、flare/bay間隔を交互化 | 10/10 |
+| supply | 12x12 / 8x8 | `B`container rim、`A`cargo、`C`識別灯 | 縦長containerと吊下部、antenna/beaconを交互化 | 10/10 |
+| cave_bat | 12x12 / 8x8 | `B`翼outline、`D`紫膜、`E`青緑eye | 左右翼のdownstroke/upstrokeを大きく切替 | 9/9 |
+| rock_worm | 12x12 / 8x8 | `B`seam、`D`紫鉱体、`E`青緑facet | 右端headから続くS字の節曲がりを交互化 | 8/8 |
+| mining_drone | 12x12 / 8x8 | `B`drill/arm、`D`装甲、`E`採掘core | 中央drillとside arm/core位置を交互化 | 8/8 |
+| coral_bastion | 24x16 / 24x16 | `B`装甲、`A`shell、`C`reactor、`F`slit | 高い要塞輪郭、reactor幅/slit位置を交互化 | 15/15 |
+| amber_carrier | 28x14 / 28x14 | `B`nacelle、`A`hull、`C`engine、`F`signal | 薄い横長carrier、左右engine/signalを交互化 | 14/14 |
+| violet_geode | 24x24 / 24x24 | `B`edge、`D`plate、`E`fissure、`F`nucleus | 非対称facetのoffsetとnucleus幅を交互化 | 20/20 |
+
+実run総数は282でAPS-040から不変。authoring実値の通常画面worst-caseはplayer 7 + 4 enemies x 12 =
+55 calls/draw、boss画面はplayer 7 + boss 20 = 27 calls/draw。class上限での予算88/44以内でもある。
+`tests/golden/sprite-data-v042.json`が
+全13 sprite/26 frameのcanonical authoring SHA-256を固定する。host generator/testはvisual canvasと
+collision定数を別契約として検査し、全runのcanvas内、固定role、2frame差、dense offsetを検証する。
+JSON/hash/parser、raster展開buffer、動的確保、runtime圧縮解除はROMへ追加しない。
+
+## APS-043 固定sprite密度化
+
+APS-042のvisual/collision分離、左上anchor、fixed horizontal-run RLEを維持し、全13種・2 frameを
+外周だけではない密度ある1px dot artへ再設計する。visualはplayer 12x10、通常敵12x12、boss
+24x16 / 28x14 / 24x24、collisionは8x6 / 8x8 / boss同寸法のままとする。各frameは3〜4 roleを使い、
+outlineとshadowの暗部、主面、highlightまたは発光機能部を行ごとの1px輪郭変化で分ける。
+
+| sprite | visual / collision | cells(frame 0/1) | 使用色・silhouette / outline / highlight / shadow / 構造 | 2frame差・左scroll識別 | run |
+|---|---|---:|---|---|---:|
+| player | 12x10 / 8x6 | 55/55 | `9`上下/側面outlineとshadow、`8`hull/翼面、`7`canopy highlight。右端まで伸びる機首と段差keel | 上面outlineを1px右へ移し、右端の長い機首を維持 | 7/7 |
+| scout | 12x12 / 8x8 | 49/49 | `B`sensor外殻/shadow、`A`装甲面、`C`進行側visor highlight。左右非対称の偵察艇 | B/A/Cの前後を反転し、scroll中のvisor blinkを明示 | 10/10 |
+| saucer | 12x12 / 8x8 | 50/50 | `B`dome/rim outline、`A`上下殻、`C`発光rim。B/A/Bで囲む横長円盤 | domeと上下殻を反転し中央rimを固定 | 9/9 |
+| dropper | 12x12 / 8x8 | 50/50 | `B`claw/外殻shadow、`A`cargo胴、`C`core/投下口highlight。B/A/Bの中央pod | C/Bの上下位置を反転し、下側投下口をblink | 12/12 |
+| fighter | 12x12 / 8x8 | 50/50 | `B`尾翼/outline、`A`細長hull、`C`canopy/engine highlight。右向き非対称bank翼 | silhouetteを左右へ2px振り、長い進行側機首を維持 | 9/9 |
+| bomber | 12x12 / 8x8 | 64/68 | `B`上下面pod/shadow、`A`重装hull、`C`bay/engine highlight。6層の幅広胴 | B/Cの前後位置と外形幅を交互化 | 10/10 |
+| supply | 12x12 / 8x8 | 49/49 | `B`container rim/shadow、`A`cargo面、`C`識別灯/lock highlight。左右非対称の輸送箱 | B/C端部を反転し、scroll中の識別灯をblink | 10/10 |
+| cave_bat | 12x12 / 8x8 | 48/48 | `B`翼端outline/body shadow、`D`紫翼膜、`E`青緑内膜highlight。左右分離した翼端 | split wingを2px gapから4px gapへ広げるstroke差 | 9/9 |
+| rock_worm | 12x12 / 8x8 | 55/55 | `B`節seam/head shadow、`D`紫鉱殻、`E`青緑facet。斜行する6層segment | B/D/Eの左右headを反転し、帯状の節を識別 | 8/8 |
+| mining_drone | 12x12 / 8x8 | 52/52 | `B`外殻/drill shadow、`D`装甲、`E`採掘core highlight。先端を絞ったdrill body | 上下を反転しdrill tipとcore面を交互化 | 8/8 |
+| coral_bastion | 24x16 / 24x16 | 134/134 | `B`砲郭outline、`A`珊瑚shell/shadow、`C`reactor highlight、`F`command slit。B/A/F/A/B中央砲塔 | C reactorとF slitを左右へずらし、上下砲郭を維持 | 15/15 |
+| amber_carrier | 28x14 / 28x14 | 154/154 | `B`nacelle/bridge outline、`A`hull面/shadow、`C`engine highlight、`F`signal。薄い大型母艦 | C engineとF bridgeを左右へずらし、長いhullを維持 | 14/14 |
+| violet_geode | 24x24 / 24x24 | 144/144 | `B`facet edge、`D`紫plate/shadow、`E`青緑fissure、`F`nucleus highlight。B/D/E/F/E/D/B多層結晶 | 上部facetを左右へずらし、中央nucleusと裂け目を固定識別点にする | 20/20 |
+
+run列は`7/7,10/10,9/9,12/12,9/9,10/10,10/10,9/9,8/8,8/8,15/15,14/14,20/20`、
+合計282でAPS-042と同一とする。通常画面worst-case 55、boss画面27 draw call/drawも不変である。
+`tests/golden/sprite-data-v043.json`のcanonical SHA-256とhost generator/C testで、ID、visual/collision、
+run数、3〜4 role、上表cell下限、canvas内run、2frame差、dense offsetを固定する。runtime renderer、
+GameState、AABB、stage/formation/boss/environment/palette、sound/voice/cartは変更しない。
+
 GUI editorは対象外で、後続実装に残す要件は、schema-aware form/grid編集、ID rename時の参照一括更新、
 palette role preview、2-frame onion-skin、run数/rect/rangeの入力中表示、formationとenvironment timeline、
 生成前validation結果のpath付き表示、canonical JSONの安定した整形とatomic保存である。GUIがJSON以外の
@@ -390,3 +474,180 @@ Gearlynx headless表示回帰は、TITLE到達をpollしてpauseし、`GameState
 swapを完了してから、Stage 1〜3のNORMAL/BOSS、`boss.active`、生成32-byte palette、front
 buffer PNGを検査する。host固定sleepをphase判定に使わない。これは状態注入地点からの遷移・
 描画回帰であり、Stage 1開始からStage 3までの連続playthroughや通常phase全尺の代替ではない。
+
+## APS-044 自機16x16単体A/Bプレビュー
+
+APS-043のplayerを変更せず、採用判断だけに使うpreview正本を
+`assets/previews/aps044-player-preview.json`へ分離する。A/Bとも16x16・右向き・単一frameで、
+hardware role `9=#334488`（outline/shadow）、`8=#FF6644`（hull）、
+`7=#99FFEE`（canopy）、`C=#FFDD55`（engine）のみを使う。外部素材、生成画像、
+`assets/stages/stages.json`からの流用、runtime/ROMへの取込みは行わない。
+
+### A: delta-wing
+
+```text
+................
+................
+.....999........
+....98889.......
+...98888899.....
+..9888887779....
+C988888977789...
+C9.8888988889...
+.9.88888988889..
+..9..8888988889.
+...9...888998889
+....9....88889..
+.....99....99...
+................
+................
+................
+```
+
+- 94 cells（`9=32, 8=54, 7=6, C=2`）、外接16x11、fill 53.4%、44 horizontal run。
+- 上下段差を持つdelta主翼、1pxの右端機首、3x2 canopy、左端1x2 flare、後部切り欠き。
+- 原寸判読性: 3x2 canopyと細い機首を固定識別点とする。右向き: 右端3列の着色数4/2/1。
+- 部位分離: canopy/engine/nose/main wing/nozzle notchの5点をhostで検査。背景耐性: 透明と
+  `#111122`の両方で同じ94 foreground pixelを照合する。
+- 12x10移植概算: 直接縮約では約58〜62 cells・27〜31 run。player上限16 runへ収めるには、
+  採用後に翼内shadowと下側段差を統合する別authoringが必要。
+- 既存fighterとの差: player固有の淡青canopy/黄engine、幅広delta主翼、下側keelを持ち、
+  `A/B/C`色の細いbank fighterや左側engine表現のない敵silhouetteと分離する。
+
+### B: twin-boom-heavy
+
+```text
+................
+................
+....999.........
+...988899.......
+..9888888999....
+.988888997799...
+CC988889877889..
+CC9.8889888899..
+.9..8889..88889.
+..9.88899.888889
+...988898..889..
+....98899...9...
+.....999...9....
+......9.........
+................
+................
+```
+
+- 100 cells（`9=41, 8=51, 7=4, C=4`）、外接16x12、fill 52.1%、49 horizontal run。
+- 上側主胴と下側boomを透明gapで分離した重装輪郭、1px機首、2x2 canopy、左端2x2 flare、
+  下側垂直尾翼。上下非対称をAより強くする。
+- 原寸判読性: 2x2 canopy、2x2 flare、中央gapを固定識別点とする。右向き: 右端3列の
+  着色数5/2/1。部位分離と背景耐性はAと同じpixel単位検査を使う。
+- 12x10移植概算: 直接縮約では約62〜66 cells・30〜35 run。player上限16 runへ収めるには、
+  採用後に上下boomの内部色分割を減らす別authoringが必要。
+- 既存fighterとの差: twin-boom、2x2 engine、下側垂直尾翼による重装量感とplayer paletteで、
+  単胴・bank翼・敵paletteのfighterから分離する。
+
+評価対象は原寸での人間の判読性とA/B選択である。host検証は16x16、palette、4 role、
+同色hull run最大6、3種以上のrow span、右端taper、機尾notch、上下非対称、5部位、PNG RGBA、
+透明/暗色背景、8x nearest-neighbor、全pixel、SHA-256、独立一時directoryへの再生成byte一致までを
+保証する。ゲーム画面、Gearlynx、ROM/LNX、runtime性能、12x10での最終見栄えは本課題の保証外とする。
+
+### APS-044 v002 敵9種・boss3種16x16比較sheet
+
+自機A/Bの正本・generator・既存8 PNGを変更せず、敵9種とboss3種のpreview専用正本を
+`assets/previews/aps044-enemy-preview.json`へ分離する。全12体は16x16・単一frameで、ゲーム正本
+`assets/stages/stages.json`のgridを参照・変換・流用しない。Stage 1/2通常敵は`B/A/C`、Stage 3通常敵は
+`B/D/E`、coral/amber bossは`B/A/C/F`、violet bossは`B/D/E/F`の既存hardware palette roleだけを使う。
+各gridは輪郭/暗部、主面、機種固有機能部、highlightを1px単位で分け、着色row span 3種以上、外形taper
+または切り欠き、上下非対称、同色run 12px未満、bbox fill 85%以下を固定契約とする。
+
+| ID / grid name | Cells / role cells | 1px silhouette・機能部・陰影 | normal sheet | boss sheet | all sheet |
+|---|---:|---|---:|---:|---:|
+| `scout` / `aps044_scout_preview` | 73 / `A40 B30 C3` | sensor wedge、前端sensor、段階taper、B shadow | 0,0 | - | 0,2 |
+| `saucer` / `aps044_saucer_preview` | 65 / `A28 B27 C10` | offset dome、黄rim、下側B shadow/tail | 0,1 | - | 0,3 |
+| `dropper` / `aps044_dropper_preview` | 65 / `A29 B33 C3` | cargo pod、C投下口、左右長の異なるclaw | 0,2 | - | 1,0 |
+| `fighter` / `aps044_fighter_preview` | 68 / `A39 B27 C2` | bank wing、長い右nose、左下nozzle/keel shadow | 1,0 | - | 1,1 |
+| `bomber` / `aps044_bomber_preview` | 92 / `A47 B41 C4` | 上部armored pod、C bomb bay、段差装甲shadow | 1,1 | - | 1,2 |
+| `supply` / `aps044_supply_preview` | 69 / `A32 B34 C3` | cargo frame、中央C lock、非対称antenna/foot | 1,2 | - | 1,3 |
+| `cave_bat` / `aps044_cave_bat_preview` | 53 / `B23 D22 E8` | swept split wing、D membrane、E body/eye、片側尾 | 2,0 | - | 2,0 |
+| `rock_worm` / `aps044_rock_worm_preview` | 47 / `B24 D11 E12` | 斜行segment、B seam、E drill、屈曲shadow | 2,1 | - | 2,1 |
+| `mining_drone` / `aps044_mining_drone_preview` | 66 / `B30 D27 E9` | asymmetric chassis、E core、右伸長drill、下部shadow | 2,2 | - | 2,2 |
+| `coral_bastion` / `aps044_coral_bastion_preview` | 135 / `A75 B48 C8 F4` | coral spires、中央turret、C reactor/F slit、下部砲郭shadow | - | 0,0 | 2,3 |
+| `amber_carrier` / `aps044_amber_carrier_preview` | 85 / `A43 B36 C4 F2` | offset bridge、上下nacelle、C engine、帯状でない段差hull | - | 0,1 | 3,0 |
+| `violet_geode` / `aps044_violet_geode_preview` | 98 / `B28 D46 E16 F8` | offset facet、F nucleus、E fissure、B下端shadow | - | 0,2 | 3,1 |
+
+sheet cellはrow,columnの0始まりである。`normal-enemies-sheet.png`は3x3・432x456、
+`bosses-sheet.png`は3体横並び・432x152、`all-characters-sheet.png`はplayer A/Bを先頭にした14体の
+4x4比較配置・576x608（末尾2 cellは背景のみ）とする。各tileは144x152、sprite boxはtile内
+`x=8..135,y=8..135`、labelは3x5 bitmapを2倍した高さ10pxで`y=138..147`へ置き、spriteと重ねない。
+全spriteは原寸gridを各source pixel 8x8 blockへ複製するnearest-neighborだけで拡大し、背景はexact
+`#111122`、labelは白だけを使う。host validatorは12 ID/寸法/role/run/fill/span/非矩形/非対称/feature、
+3 sheetの構成・寸法・全pixel・label領域・8x block、独立再生成byte一致に加え、v001正本/generator/8 PNGの
+固定SHA-256とpixelを同時検証する。人間の16x16原寸判読性、実機LCD残像、採用後の12x10 runtime再設計・
+run予算・2frame化は未確認であり、previewをゲームへ取り込まない。
+
+### APS-044 v004 player/sheet検証の所有境界
+
+v002で同じ`evidence/APS-044/`へ3 sheetを追加したため、player generatorがdirectory内PNGを
+8枚だけに限定する検証は成立しない。player `--check`の所有対象を明示8 player PNGへ限定し、
+他所有者の3 sheetとsheet generator所有の共有READMEは許容する。8 PNGについては存在、全pixel、
+SHA-256、独立temporary directory再生成のbyte一致を従来どおり維持する。sheet generatorはplayer
+generatorをPNG codec/raster helperとしてimportする前にsource hashを固定検証するため、その固定値だけを
+新hashへ追従する。依存方向はsheet→playerの一方向であり、player側からsheet正本・generator・PNGを参照しない。
+
+- `scripts/generate-aps044-player-preview.py`: `6209bc1e86e725232613c8b2b6dcb905dc3b5390bc9a437ce40f1e106ecab45b`
+- `scripts/generate-aps044-character-sheets.py`: `6e7a4c0c0493d5ff6c86475dfbd3ed20f1ad82c4da84161ec5619d145fca40e4`
+
+全11 PNGの固定SHA-256は以下で、v002からpixel/byteとも不変とする。
+
+| Artifact | SHA-256 |
+|---|---|
+| `a-dark-8x.png` | `579e14a45713807261e025ae50b11e0008489a14fc61f0cd2a492aae68dcd9e1` |
+| `a-dark.png` | `4dea3d93f42883368b6b1e28eaaba1e971906f2e0c669ccd0e4980c221b43926` |
+| `a-transparent-8x.png` | `db9f98b72cb92c4622bcf9762d81d487001a84d6e8a9e40367b4d7720f37881d` |
+| `a-transparent.png` | `429bd28826eab556f03f5e2e2263a1d3f1f89551169189f63d61ad35a86dbc01` |
+| `b-dark-8x.png` | `6d31169b439aa5104655d72adf6608e3d9b39709e06c59ba0defb7f4d0daa613` |
+| `b-dark.png` | `d37ca7ad659673ac0faa6469b9c58b28a5c4eceb050a21b8b4ab30db37ace7e5` |
+| `b-transparent-8x.png` | `e06db89085ec0656ee065e1e98ae21ebbd4c6aca58f71fc8e1a9002830d7b078` |
+| `b-transparent.png` | `89cd83951a3b9428db061a8a9ba740bcb401eec29c734219ccf040a5ff4a3523` |
+| `normal-enemies-sheet.png` | `59ebddfaa534a8ea527d0f7a6864ac27da9f7d8758b40c648bf03ffc359dd01c` |
+| `bosses-sheet.png` | `a5273b14231c43c3b0b239b256e2ec88c57c97b8116649dbfa341e3642fff66d` |
+| `all-characters-sheet.png` | `c83f80e8b57052816ae7bb46a2a057b4eb9f81acc454845938798ff21326866b` |
+
+## APS-045 承認previewの固定runtime canvas再authoring
+
+APS-044の自機A案と敵9種・boss3種の16x16 previewを概念・配色・部位分離の正本とし、縮小変換を使わず、既存runtime canvasへ1px単位で手作業再authoringする。visual/collisionはplayer `12x10 / 8x6`、normal enemy `12x12 / 8x8`、boss `24x16 / 24x16`・`28x14 / 28x14`・`24x24 / 24x24`、左上anchorのまま。runtime renderer、AABB、移動、spawn、発射、難度、stage/boss config/script、state、sound/voice/cartを変更しない。
+
+| sprite | cells(frame 0/1) / role cells | APS-044から固定する識別部位 | 2frame差 | run |
+|---|---|---|---|---:|
+| player | 50/50; `7=5/5 8=37/36 9=8/9` | A案の右向きdelta wing、先細りnose、上面canopy、下側keel、左engine | canopy/outline/keelを右へ1px移動 | 7/7 |
+| scout | 49/49; `A25 B15 C9` | sensor wedge、前後sensor、段階shadow | sensor/wedgeの向きを左右反転 | 10/10 |
+| saucer | 51/51; `A19 B21 C11` | offset dome、中央に切れ目を持つrim、下側shadow | dome/rim/tailを左右反転 | 9/9 |
+| dropper | 50/50; `A36 B11 C3` | cargo pod、左右非対称claw、C drop port | claw/port位置を左右反転 | 12/12 |
+| fighter | 48/48; `A27 B17 C4` | bank wing、長いnose、下側nozzle | bank/nozzle/noseを左右反転 | 9/9 |
+| bomber | 64/64; `A35 B21 C8` | armored pod、分離bay、段差shadow | armor/bay/podを左右反転 | 10/10 |
+| supply | 48/48; `A27 B16 C5` | cargo frame、C lock、非対称antenna | lock/cargo張出しを左右移動 | 10/10 |
+| cave_bat | 54/54; `B20 D24 E10` | split swept wing、D membrane、E eye | wing gapを左右反転 | 9/9 |
+| rock_worm | 52/52; `B18/19 D21/19 E13/14` | diagonal segment、B seam、E drill | 節列を逆傾斜へ変更 | 8/8 |
+| mining_drone | 52/52; `B15 D23 E14` | asymmetric chassis、E core、伸長drill | drillを下側右端から上側右端へ移動 | 8/8 |
+| coral_bastion | 149/149; `A83 B33 C19 F14` | 3 spire、分離turret、C reactor、F slit | 全部位を右へ1px移動 | 15/15 |
+| amber_carrier | 145/145; `A84 B38 C19 F4` | bridge、分離nacelle、3 engine、段差hull | bridge/nacelle/engineを右へ移動 | 14/14 |
+| violet_geode | 148/146; `B21 D101/99 E15 F11` | 3 facet、F nucleus、3条E fissure、段階plate | facet/nucleus/fissureを右へ1px移動 | 20/20 |
+
+`scripts/generate-stage-data.py`は全13 ID、canvas、role、frame差、cell下限、run列と合計282に加え、上表のnose/canopy/engine/keel、sensor/wedge、dome/rim、claw/port、wing/nozzle、armor/bay、cargo/lock、split wing/membrane/eye、segment/seam/drill、boss spire/reactor/slit・bridge/nacelle/engine・facet/nucleus/fissureのframe別pixel座標を検査する。`tests/golden/sprite-data-v045.json`のsprites-only canonical SHA-256が残り全pixelを固定する。rendered pixelはGearlynxのhardware palette/front bufferと照合し、run/data容量はAPS-043と同一に保つ。
+
+## APS-046 8体基準frame pacing・combatant上限
+
+`GAME_MAX_ENEMIES=8`をruntime capacity、`GAME_STAGE_ACTIVE_ENEMIES=4`を既存Stageのauthoring/respawn数とする。combatantはNORMALの`active && rect.x < GAME_SCREEN_WIDTH`通常敵とBOSSのactive bossだけで、player、弾、environment、画面外pre-spawnは含めない。通常敵+bossの注入契約は8以下であり、8 normalまたは7 normal+1 bossを許可し、9を拒否する。Stage JSONはroot `combatant_limit=8`と各Stage `boss_coexists_with_normal_enemies=false`を持ち、既存formationは4枠のままなので難度/goldenを変えない。
+
+Lynx側は8個の`GameEnemy` backingを静的BSSへ分離し、`GameState`はpointerだけを保持する。`GameEnemy`からstage dataで導出可能なfire interval/drop flagを除き、寸法固定のenemy bullet/power/environmentは`GamePosition`と外部定数でAABBを計算する。このpackingによりenemy capacityを倍増してもBSSは`0x4ED`を維持し、後続state fieldがcc65の256-byte境界を越えて生成codeを膨張させる問題も避ける。hostでは最初の4枠と追加4枠を分割inline保持し、`game_enemy_at()`で同じ8枠契約を検査する。動的確保は使わない。
+
+各製品frameは入力1回、`4/1`ロジック、sound tick/MIKEY反映、draw/voice処理の後、`GAME_FRAME_END_WAIT(tgi_busy())`でhardware frame完了を待つ。`tgi_setframerate(75u)`だけをtiming sourceとし、敵数が少ないときの余剰をframe終端waitへ吸収する。8体時に処理が超過してもwaitが短縮または即完了するだけでlogic/input/soundをskipしない。75 Hzの理論間隔は13,333.333 us、12,000〜15,000 us wall-clockはadvisoryであり、hardware completionを合否基準とする。Gearlynx verifierは終端wait直後のmarkerを0/4/8体で各75回停止し、Timer 0/2状態、活動数readback、9体拒否をJSONへ保存する。
+
+## APS-047 重み付き容量・75 Hz cadence・runtime sprite実証
+
+APS-046の単純な頭数契約を重み付き容量へ置換する。公開定数はnormal=1、boss=4、limit=8で、通常敵は`active && rect.x < GAME_SCREEN_WIDTH`、bossは`active`だけを数える。player、弾、environment、画面外pre-spawnは非算入。4 normal+boss=8と8 normalを受理し、5 normal+boss=9、8 normal+boss=12、9 normalを拒否する。JSON rootの3定数と各Stageのcoexistence指定をgeneratorが同じ式で検査し、生成headerの値とruntime公開定数はpreprocessorで一致させる。既存Stageは4 normalのままなので難度・spawn・respawn・boss scriptを変えない。
+
+製品loopの順序は`input poll -> logic x4 -> sound tick/hardware apply -> previous display completion sync -> draw -> display request`とする。Lynx TGI driverの`SWAPREQUEST`は`tgi_updatedisplay()`で立ち、VBLANKで解消されるため、前回swap pending中にinput/logic/soundを進め、completed back bufferを再利用する直前だけ`GAME_DISPLAY_READY_WAIT(tgi_busy())`で同期する。APS-046のframe終端waitと容量補償意図は撤去し、delay、logic/input/sound skip、敵数別更新数を持たない。`game_input_poll`、各logic、`game_sound_tick`、`game_display_sync_complete`、`game_display_request`をGearlynx breakpointで直接数え、0/4/8 normalと4 normal+bossの各75 drawで75/300/75/75/75を要求する。4 normal+bossはNORMALとBOSSを各75 draw測り、player +8px、bullet +16px、normal -4px、boss +2px/attack timer +4を同じcadenceとして固定する。MCP往復を含むwall-clockはadvisoryで、Timer 0/2とhardware event列を合否正本とする。
+
+全13 sprite・26 frameはAPS-044 previewの識別部位を既存canvasへ1px単位で再authoringする。playerは12x10内に1px nose、canopy、テーパー/非連続delta wing、keel/notch、engine flareをrole別に持ち、旧stripe mutationを拒否する。通常敵9種とboss3種もwedge、dome/rim、claw/port、wing/nozzle、armor/bay、cargo/lock、split wing、segment/drill、asymmetric chassis、spire/reactor、bridge/nacelle、facet/nucleus/fissureを固定する。run列は`12/12,8/8,8/8,10/10,8/8,11/11,9/9,9/9,9/9,9/9,14/14,15/15,15/15`、合計274/予算524。各runを3 bytesへpackし、sprite RODATAを`0x3AB`に収める。
+
+生成Cの`game_sprite_visit_runs()`をhost testと製品`draw_sprite()`が共有し、packed run decode、座標translation、color、frame、type→sprite、appearance→boss spriteを同じ経路で検査する。Gearlynx verifierは最終ROMからrun 822 bytes、definition 104 bytes、enemy/boss mappingを直接読み、JSONから再packしたcanonical値と照合する。その後にTITLEでAをrelease→pressしてStage 1 NORMALへ入った実プレイ画面、およびStage 1〜3 NORMAL/CAST/BOSSをheadless/GUIでcaptureし、GameState readbackとhardware palette framebuffer pixelを照合する。sync marker時点のGameStateは直前front bufferよりlogic 1 draw分先行し得るため、実プレイの移動敵だけはreadback originから±4pxを探索し、実際に一致したrender originを証跡へ併記する。これはstate injectionやpreview照合の代替ではない。

@@ -1,0 +1,151 @@
+{
+  "aps": "APS-049",
+  "conclusion": {
+    "display_request_cadence_matches_vblank_hardware": false,
+    "total_ticks_deterministic_low_frequency": false,
+    "total_ticks_inflated_by_round_trip_density": false,
+    "total_ticks_linear_in_instruction_count": true
+  },
+  "frequency_sensitivity": {
+    "chopped_delta_ticks": 3516,
+    "chopped_round_trips": 11,
+    "chopped_segment_size_nops": 38,
+    "expected_cycles": 776,
+    "inflation_ratio": 1.0,
+    "n_nops": 388,
+    "single_shot_delta_ticks": 3516,
+    "single_shot_round_trips": 1
+  },
+  "linearity_and_repeatability": [
+    {
+      "expected_cycles": 100,
+      "identical_across_repeats": false,
+      "n_nops": 50,
+      "single_shot_deltas": [
+        454,
+        453,
+        453
+      ],
+      "ticks_per_nop": [
+        9.08,
+        9.06,
+        9.06
+      ]
+    },
+    {
+      "expected_cycles": 200,
+      "identical_across_repeats": true,
+      "n_nops": 100,
+      "single_shot_deltas": [
+        906,
+        906,
+        906
+      ],
+      "ticks_per_nop": [
+        9.06,
+        9.06,
+        9.06
+      ]
+    },
+    {
+      "expected_cycles": 400,
+      "identical_across_repeats": true,
+      "n_nops": 200,
+      "single_shot_deltas": [
+        1812,
+        1812,
+        1812
+      ],
+      "ticks_per_nop": [
+        9.06,
+        9.06,
+        9.06
+      ]
+    },
+    {
+      "expected_cycles": 776,
+      "identical_across_repeats": true,
+      "n_nops": 388,
+      "single_shot_deltas": [
+        3516,
+        3516,
+        3516
+      ],
+      "ticks_per_nop": [
+        9.061856,
+        9.061856,
+        9.061856
+      ]
+    }
+  ],
+  "probe": {
+    "irqs_disabled_during_probe": true,
+    "opcode": "EA (NOP, 2 cycles on 65C02)",
+    "terminator": "60 (RTS, breakpoint set on its address, never executed)"
+  },
+  "purpose": "contract g calibration: is total_ticks a faithful, round-trip-frequency-independent CPU cycle counter",
+  "scratch_ram": {
+    "address": "B6B3",
+    "free_bytes_this_build": 389,
+    "source": "build/asteroid-patrol.map"
+  },
+  "stress_frequency_sensitivity": {
+    "last_run_vs_single_shot_ratio": 1.0,
+    "round_trips_per_run": 388,
+    "runs": [
+      {
+        "delta_ticks": 3516,
+        "round_trips": 388,
+        "wall_seconds": 35.962
+      },
+      {
+        "delta_ticks": 3516,
+        "round_trips": 388,
+        "wall_seconds": 36.049
+      },
+      {
+        "delta_ticks": 3516,
+        "round_trips": 388,
+        "wall_seconds": 35.808
+      },
+      {
+        "delta_ticks": 3516,
+        "round_trips": 388,
+        "wall_seconds": 35.991
+      }
+    ],
+    "segment_size_nops": 1
+  },
+  "vblank_cross_check": {
+    "display_request_breakpoint_deltas": [
+      524649,
+      530475,
+      553403,
+      553373,
+      552855,
+      553411,
+      553362,
+      553350,
+      553372,
+      552849,
+      553402
+    ],
+    "display_request_median_ticks": 553362,
+    "matches_within_1pct": false,
+    "ratio": 2.9995,
+    "timer2_vblank_irq_deltas": [
+      184201,
+      184528,
+      184482,
+      184267,
+      184516,
+      184511,
+      184259,
+      184496,
+      184500,
+      184222,
+      184480
+    ],
+    "timer2_vblank_irq_median_ticks": 184482
+  }
+}

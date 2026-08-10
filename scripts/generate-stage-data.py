@@ -14,7 +14,9 @@ FIXED_PALETTE_ROLES = [
     "842", "FD5", "84D", "3CB", "FFF",
 ]
 ROOT_KEYS = {
-    "format_version", "themes", "sprites", "enemy_types", "formations",
+    "format_version", "normal_combatant_weight", "boss_combatant_weight",
+    "combatant_limit", "themes", "sprites",
+    "enemy_types", "formations",
     "boss_appearances", "boss_scripts", "bosses", "environments", "stages",
 }
 ENGINE_TYPES = [
@@ -29,12 +31,49 @@ SHOTS = {
 }
 ENVIRONMENT_KINDS = {"asteroids": 0, "wind": 1, "rockfall": 2}
 SPRITE_ROLES = {
-    "player": set("789"),
+    "player": set("789C"),
     "enemy": set("ABC"),
     "mineral": set("BDE"),
     "boss": set("ABCF"),
     "mineral_boss": set("BDEF"),
 }
+# sprite_id -> (kind, collision_width, collision_height, boss_visual_scale)
+# APS-049: visual canvas is now the 16x16 preview grid for every sprite
+# (assets/previews/aps044-*-preview.json is the single visual source).
+# Collision rectangles are unchanged from APS-042/047. boss_visual_scale
+# is the integer factor applied when drawing each sprite (1..2); it does not
+# affect collision, RODATA size, or run authoring, only the on-screen draw
+# call.
+SPRITE_CONTRACTS = {
+    "player": ("player", 8, 6, 1),
+    "scout": ("enemy", 8, 8, 1),
+    "saucer": ("enemy", 8, 8, 1),
+    "dropper": ("enemy", 8, 8, 1),
+    "fighter": ("enemy", 8, 8, 1),
+    "bomber": ("enemy", 8, 8, 1),
+    "supply": ("enemy", 8, 8, 1),
+    "cave_bat": ("mineral", 8, 8, 1),
+    "rock_worm": ("mineral", 8, 8, 1),
+    "mining_drone": ("mineral", 8, 8, 1),
+    # APS-050: all bosses unified to 1x draw to restore collision-center
+    # alignment and avoid screen-edge clipping at configured stop_x.
+    "coral_bastion": ("boss", 24, 16, 1),
+    "amber_carrier": ("boss", 28, 14, 1),
+    "violet_geode": ("mineral_boss", 24, 24, 1),
+}
+PREVIEW_CANVAS = 16
+PLAYER_PREVIEW_PATH = Path("assets/previews/aps044-player-preview.json")
+ENEMY_PREVIEW_PATH = Path("assets/previews/aps044-enemy-preview.json")
+PLAYER_VARIANT_ID = "a"
+# 2-bytes/run encoding budget: every sprite canvas is fixed at 16x16, so a
+# generous ceiling on frame-0 run count keeps RODATA/BSS bounded; the real
+# gate is the linked RAM residual checked by tests/test_stage_data.py and
+# reported in evidence/APS-049 (APS-046 baseline requires >=11 bytes free).
+SPRITE_FRAME0_RUN_BUDGET_TOTAL = 620
+SPRITE_FRAME1_DELTA_BUDGET_PER_SPRITE = 6
+COMBATANT_LIMIT = 8
+NORMAL_COMBATANT_WEIGHT = 1
+BOSS_COMBATANT_WEIGHT = 4
 IDENTIFIER_RE = re.compile(r"^[a-z][a-z0-9_]*$")
 COLOR_RE = re.compile(r"^[0-9A-F]{3}$")
 
@@ -150,6 +189,30 @@ def count_runs(rows):
     return count
 
 
+def maximum_role_run(rows):
+    maximum = 0
+    for row in rows:
+        start = 0
+        while start < len(row):
+            if row[start] == ".":
+                start += 1
+                continue
+            end = start + 1
+            while end < len(row) and row[end] == row[start]:
+                end += 1
+            maximum = max(maximum, end - start)
+            start = end
+    return maximum
+
+
+def complex_row_count(rows):
+    count = 0
+    for row in rows:
+        if count_runs([row]) >= 3:
+            count += 1
+    return count
+
+
 def sprite_runs(rows):
     runs = []
     for y, row in enumerate(rows):
@@ -167,9 +230,146 @@ def sprite_runs(rows):
     return runs
 
 
-def validate(document):
+def pack_sprite_run(run):
+    """APS-049 2-bytes/run encoding: every sprite canvas is a fixed 16x16
+    preview grid, so y, x0, run length and color role all fit in 4 bits
+    each (byte0 = y<<4|x0, byte1 = length<<4|color). This halves the
+    previous 3-bytes/run cost, which is required to keep the larger
+    16x16-authored run counts inside the linked RAM residual budget."""
+    y, x0, x1, color = run
+    length = x1 - x0
+    if not (0 <= y <= 15 and 0 <= x0 <= 15 and 0 <= length <= 15 and
+            0 <= color <= 15):
+        fail("sprite runs",
+             "run %r exceeds the 16x16 2-byte encoding range" % (run,))
+    return ((y << 4) | x0, (length << 4) | color)
+
+
+def preview_bbox(grid, canvas=PREVIEW_CANVAS):
+    xs = [x for y in range(canvas) for x in range(canvas)
+          if grid[y][x] != "."]
+    ys = [y for y in range(canvas) for x in range(canvas)
+          if grid[y][x] != "."]
+    if not xs:
+        fail("preview grid", "grid has no colored cells")
+    return min(xs), max(xs), min(ys), max(ys)
+
+
+def sprite_anchor(grid, collision_width, collision_height, scale,
+                  canvas=PREVIEW_CANVAS):
+    """(dx, dy) = collision rect center - visual bbox center, decided
+    deterministically from the preview grid's colored bounding box so the
+    generator (not hand authoring) owns the runtime draw offset."""
+    min_x, max_x, min_y, max_y = preview_bbox(grid, canvas)
+    bbox_center_x = (min_x + max_x + 1) / 2.0 * scale
+    bbox_center_y = (min_y + max_y + 1) / 2.0 * scale
+    dx = round(collision_width / 2.0 - bbox_center_x)
+    dy = round(collision_height / 2.0 - bbox_center_y)
+    if not (-8 <= dx <= 7 and -8 <= dy <= 7):
+        fail("sprite anchor",
+             "anchor (%d,%d) exceeds the packed 4-bit signed range" %
+             (dx, dy))
+    return dx, dy
+
+
+def pack_sprite_anchor(dx, dy):
+    """Bias dx/dy by +8 into 0..15 so the C decoder is a plain subtract
+    (no branch/sign-extend), trimming CODE size on the 6502 target."""
+    return (((dx + 8) & 0x0F) << 4) | ((dy + 8) & 0x0F)
+
+
+def load_previews(player_path=PLAYER_PREVIEW_PATH,
+                  enemy_path=ENEMY_PREVIEW_PATH,
+                  player_variant=PLAYER_VARIANT_ID):
+    player_doc = load_json(player_path)
+    enemy_doc = load_json(enemy_path)
+    object_keys(player_doc, {"format_version", "width", "height", "scale",
+                             "background", "palette", "variants"}, (),
+               "player preview")
+    variants = {variant["id"]: variant for variant in player_doc["variants"]}
+    if player_variant not in variants:
+        fail("player preview", "unknown player variant %r" % player_variant)
+    variant = variants[player_variant]
+    previews = {
+        "player": {
+            "grid": variant["grid"],
+            "anim_delta": variant.get("anim_delta", []),
+            "features": {},
+            "roles": "".join(sorted(SPRITE_ROLES["player"])),
+        },
+    }
+    object_keys(enemy_doc, {"format_version", "width", "height", "scale",
+                            "background", "palette", "characters"}, (),
+               "enemy preview")
+    for character in enemy_doc["characters"]:
+        previews[character["id"]] = {
+            "grid": character["grid"],
+            "anim_delta": character.get("anim_delta", []),
+            "features": character.get("features", {}),
+            "roles": character["roles"],
+        }
+    return previews, player_doc, enemy_doc
+
+
+def apply_anim_delta(grid, delta, roles, path, canvas=PREVIEW_CANVAS):
+    grid_rows = [list(row) for row in grid]
+    if len(delta) < 1 or len(delta) > 6:
+        fail(path, "anim_delta must declare 1..6 cells, got %d" % len(delta))
+    seen = set()
+    for index, entry in enumerate(delta):
+        entry_path = "%s[%d]" % (path, index)
+        if (not isinstance(entry, list) or len(entry) != 3):
+            fail(entry_path, "must be a [x, y, role] triple")
+        x, y, role = entry
+        x = integer(x, entry_path + "[0]", 0, canvas - 1)
+        y = integer(y, entry_path + "[1]", 0, canvas - 1)
+        if (x, y) in seen:
+            fail(entry_path, "duplicate delta cell (%d,%d)" % (x, y))
+        seen.add((x, y))
+        if not isinstance(role, str) or role not in roles:
+            fail(entry_path, "role %r is not authored for this sprite" % role)
+        if grid_rows[y][x] == role:
+            fail(entry_path,
+                 "delta must add or recolor, not repeat the frame 0 role")
+        grid_rows[y][x] = role
+    return ["".join(row) for row in grid_rows]
+
+
+def weighted_combatant_count(normal_enemies, boss_count):
+    return (normal_enemies * NORMAL_COMBATANT_WEIGHT +
+            boss_count * BOSS_COMBATANT_WEIGHT)
+
+
+def validate_combatant_mix(normal_enemies, boss_count, path):
+    if normal_enemies < 0 or normal_enemies > COMBATANT_LIMIT:
+        fail(path, "normal enemy count must be in range 0..8")
+    if boss_count < 0 or boss_count > 1:
+        fail(path, "boss count must be zero or one")
+    weighted = weighted_combatant_count(normal_enemies, boss_count)
+    if weighted > COMBATANT_LIMIT:
+        fail(path, "weighted combatants %d exceed limit %d" %
+             (weighted, COMBATANT_LIMIT))
+    return weighted
+
+
+def validate(document, previews=None):
     object_keys(document, ROOT_KEYS, (), "root")
     integer(document["format_version"], "format_version", 1, 1)
+    normal_weight = integer(document["normal_combatant_weight"],
+                            "normal_combatant_weight", 1, COMBATANT_LIMIT)
+    boss_weight = integer(document["boss_combatant_weight"],
+                          "boss_combatant_weight", 1, COMBATANT_LIMIT)
+    if normal_weight != NORMAL_COMBATANT_WEIGHT:
+        fail("normal_combatant_weight",
+             "APS-047 requires normal combatant weight one")
+    if boss_weight != BOSS_COMBATANT_WEIGHT:
+        fail("boss_combatant_weight",
+             "APS-047 requires boss combatant weight four")
+    combatant_limit = integer(
+        document["combatant_limit"], "combatant_limit", 1, COMBATANT_LIMIT
+    )
+    if combatant_limit != COMBATANT_LIMIT:
+        fail("combatant_limit", "APS-047 requires exactly eight weighted combatants")
 
     themes = indexed(document["themes"], "themes", {"id", "colors"})
     if len(themes) != 3:
@@ -181,37 +381,79 @@ def validate(document):
                 fail("themes.%s.colors[%d]" % (theme_id, index),
                      "three uppercase hexadecimal digits required")
 
+    # APS-049: stages.json only owns the sprite id/kind/collision contract.
+    # The single visual source of truth is the 16x16 preview authoring in
+    # assets/previews/aps044-*-preview.json (see load_previews()); frame 0
+    # must match the preview grid verbatim and frame 1 is preview frame 0
+    # plus the preview's declared anim_delta overlay cells.
     sprites = indexed(
-        document["sprites"], "sprites",
-        {"id", "kind", "width", "height", "frames"},
+        document["sprites"], "sprites", {"id", "kind", "width", "height"},
     )
+    if set(sprites) != set(SPRITE_CONTRACTS):
+        fail("sprites", "APS-049 requires the fixed thirteen sprite ids")
+    if previews is None:
+        previews, _, _ = load_previews()
+    total_frame0_runs = 0
     for sprite_id, sprite in sprites.items():
         kind = string(sprite["kind"], "sprites.%s.kind" % sprite_id,
                       SPRITE_ROLES)
         width = integer(sprite["width"], "sprites.%s.width" % sprite_id, 1, 32)
         height = integer(sprite["height"], "sprites.%s.height" % sprite_id, 1, 32)
-        frames = array(sprite["frames"], "sprites.%s.frames" % sprite_id, 2)
-        if frames[0] == frames[1]:
-            fail("sprites.%s.frames" % sprite_id, "two distinct frames required")
-        for frame_index, rows in enumerate(frames):
-            frame_path = "sprites.%s.frames[%d]" % (sprite_id, frame_index)
-            array(rows, frame_path, height)
-            colors = set()
-            for row_index, row in enumerate(rows):
-                if not isinstance(row, str) or len(row) != width:
-                    fail("%s[%d]" % (frame_path, row_index),
-                         "grid row width must equal %d" % width)
-                for cell in row:
-                    if cell != "." and cell not in SPRITE_ROLES[kind]:
-                        fail("%s[%d]" % (frame_path, row_index),
-                             "invalid palette role %r for %s" % (cell, kind))
-                    if cell != ".":
-                        colors.add(cell)
-            if len(colors) < 3 or len(colors) > 4:
-                fail(frame_path, "each frame must use three or four colors")
-            runs = count_runs(rows)
-            if runs > 20:
-                fail(frame_path, "horizontal run count %d exceeds 20" % runs)
+        contract_kind, collision_width, collision_height, _boss_scale = \
+            SPRITE_CONTRACTS[sprite_id]
+        if kind != contract_kind:
+            fail("sprites.%s.kind" % sprite_id,
+                 "kind must remain %s" % contract_kind)
+        if (width, height) != (collision_width, collision_height):
+            fail("sprites.%s" % sprite_id,
+                 "APS-049 collision rectangle must be %dx%d" %
+                 (collision_width, collision_height))
+        if sprite_id not in previews:
+            fail("previews", "sprite %r has no preview authoring" % sprite_id)
+        preview = previews[sprite_id]
+        roles = SPRITE_ROLES[kind]
+        preview_roles = set(preview["roles"])
+        if not preview_roles <= roles:
+            fail("previews.%s.roles" % sprite_id,
+                 "preview roles %r exceed the %s role set" %
+                 (preview["roles"], kind))
+        frame0 = array(preview["grid"], "previews.%s.grid" % sprite_id,
+                       PREVIEW_CANVAS)
+        colors_used = set()
+        for row_index, row in enumerate(frame0):
+            row_path = "previews.%s.grid[%d]" % (sprite_id, row_index)
+            if not isinstance(row, str) or len(row) != PREVIEW_CANVAS:
+                fail(row_path, "preview grid row width must be 16")
+            for cell in row:
+                if cell != "." and cell not in roles:
+                    fail(row_path,
+                         "invalid palette role %r for %s" % (cell, kind))
+                if cell != ".":
+                    colors_used.add(cell)
+        if len(colors_used) < 3 or len(colors_used) > 4:
+            fail("previews.%s.grid" % sprite_id,
+                 "each sprite must use three or four colors")
+        apply_anim_delta(frame0, preview["anim_delta"], roles,
+                         "previews.%s.anim_delta" % sprite_id)
+        for feature, points in preview["features"].items():
+            for point_index, point in enumerate(points):
+                feature_path = "previews.%s.features.%s[%d]" % (
+                    sprite_id, feature, point_index)
+                if not isinstance(point, list) or len(point) != 2:
+                    fail(feature_path, "feature point must be [x, y]")
+                fx = integer(point[0], feature_path + "[0]", 0,
+                            PREVIEW_CANVAS - 1)
+                fy = integer(point[1], feature_path + "[1]", 0,
+                            PREVIEW_CANVAS - 1)
+                if frame0[fy][fx] == ".":
+                    fail(feature_path,
+                         "feature coordinate (%d,%d) must be colored" %
+                         (fx, fy))
+        total_frame0_runs += len(sprite_runs(frame0))
+    if total_frame0_runs > SPRITE_FRAME0_RUN_BUDGET_TOTAL:
+        fail("sprites",
+             "frame-0 run total %d exceeds the RAM-linked budget %d" %
+             (total_frame0_runs, SPRITE_FRAME0_RUN_BUDGET_TOTAL))
 
     enemy_types = indexed(
         document["enemy_types"], "enemy_types",
@@ -243,7 +485,13 @@ def validate(document):
     used_enemy_types = set()
     for formation_id, formation in formations.items():
         slots = array(formation["slots"],
-                      "formations.%s.slots" % formation_id, 4)
+                      "formations.%s.slots" % formation_id, nonempty=True)
+        if len(slots) > combatant_limit:
+            fail("formations.%s.slots" % formation_id,
+                 "active normal enemies exceed combatant_limit")
+        if len(slots) != 4:
+            fail("formations.%s.slots" % formation_id,
+                 "existing stage difficulty requires exactly four active slots")
         for slot_index, slot in enumerate(slots):
             slot_path = "formations.%s.slots[%d]" % (formation_id, slot_index)
             object_keys(slot, {"x", "y", "enemy", "movement",
@@ -266,8 +514,8 @@ def validate(document):
                               "fixed_type", "fire_phase_spacing"}, (), respawn_path)
         respawn_x = integer(respawn["x"], respawn_path + ".x", 0, 255)
         spacing = integer(respawn["spacing"], respawn_path + ".spacing", 0, 255)
-        if respawn_x + 3 * spacing > 255:
-            fail(respawn_path, "slot 3 respawn x would wrap unsigned char")
+        if respawn_x + (len(slots) - 1) * spacing > 255:
+            fail(respawn_path, "last active slot respawn x would wrap unsigned char")
         min_y = integer(respawn["min_y"], respawn_path + ".min_y", 11, 94)
         y_range = integer(respawn["y_range"], respawn_path + ".y_range", 1, 255)
         if min_y + y_range - 1 > 94:
@@ -339,12 +587,12 @@ def validate(document):
         used_scripts.add(script_id)
         if appearance_id in appearances:
             sprite_id = appearances[appearance_id]["sprite"]
-            if sprite_id in sprites and (
-                sprites[sprite_id]["width"] != width or
-                sprites[sprite_id]["height"] != height
+            if sprite_id in SPRITE_CONTRACTS and (
+                SPRITE_CONTRACTS[sprite_id][1] != width or
+                SPRITE_CONTRACTS[sprite_id][2] != height
             ):
                 fail(boss_path + ".appearance",
-                     "appearance sprite dimensions must equal boss collision box")
+                     "boss collision box differs from its sprite contract")
 
     environments = indexed(
         document["environments"], "environments", {"id", "kind", "events"}
@@ -389,11 +637,22 @@ def validate(document):
     used_bosses = set()
     for index, stage in enumerate(stages):
         stage_path = "stages[%d]" % index
-        object_keys(stage, {"id", "theme", "formation", "environment", "boss"},
+        object_keys(stage, {"id", "theme", "formation", "environment", "boss",
+                            "boss_coexists_with_normal_enemies"},
                     (), stage_path)
+        coexist = stage["boss_coexists_with_normal_enemies"]
+        if not isinstance(coexist, bool):
+            fail(stage_path + ".boss_coexists_with_normal_enemies",
+                 "boolean required")
+        formation_id = identifier(stage["formation"],
+                                  stage_path + ".formation")
+        if coexist and formation_id in formations:
+            validate_combatant_mix(len(formations[formation_id]["slots"]), 1,
+                                   stage_path +
+                                   ".boss_coexists_with_normal_enemies")
         stage_ids.append(integer(stage["id"], stage_path + ".id", 1, 3))
         used_themes.add(identifier(stage["theme"], stage_path + ".theme"))
-        used_formations.add(identifier(stage["formation"], stage_path + ".formation"))
+        used_formations.add(formation_id)
         used_environments.add(identifier(stage["environment"], stage_path + ".environment"))
         used_bosses.add(identifier(stage["boss"], stage_path + ".boss"))
     if stage_ids != [1, 2, 3]:
@@ -438,6 +697,11 @@ def render_stage_header(document):
         "#ifndef STAGE_DATA_H", "#define STAGE_DATA_H", "",
         "/* Generated by scripts/generate-stage-data.py. Do not edit. */",
         "#define GAME_STAGE_COUNT 3u",
+        "#define GAME_STAGE_NORMAL_COMBATANT_WEIGHT %du" %
+        document["normal_combatant_weight"],
+        "#define GAME_STAGE_BOSS_COMBATANT_WEIGHT %du" %
+        document["boss_combatant_weight"],
+        "#define GAME_STAGE_COMBATANT_LIMIT %du" % document["combatant_limit"],
     ]
     groups = [
         ("GAME_BACKGROUND_THEME_", document["themes"], 0),
@@ -503,8 +767,8 @@ def render_stage_source(document):
         "/* Generated by scripts/generate-stage-data.py. Do not edit. */", "",
     ]
     for formation in document["formations"]:
-        lines.append("static const GameEnemyFormationSlot formation_%s_slots[4] = {" %
-                     formation["id"])
+        lines.append("static const GameEnemyFormationSlot formation_%s_slots[%d] = {" %
+                     (formation["id"], len(formation["slots"])))
         for slot in formation["slots"]:
             lines.append("    { %s, %s, %s, %s, %s, %s }," % (
                 c_u8(slot["x"]), c_u8(slot["y"]), c_u8(enemy_ids[slot["enemy"]]),
@@ -588,37 +852,55 @@ def render_stage_source(document):
     return "\n".join(lines)
 
 
-def render_sprite_header(document):
+def render_sprite_header(document, previews):
     lines = [
         "#ifndef SPRITE_DATA_H", "#define SPRITE_DATA_H", "",
         "/* Generated by scripts/generate-stage-data.py. Do not edit. */",
-        "#define GAME_SPRITE_MAX_RUNS_PER_FRAME 20u",
+        "#define GAME_SPRITE_CANVAS 16u",
+        "#define GAME_SPRITE_FRAME0_RUN_BUDGET %du" %
+            SPRITE_FRAME0_RUN_BUDGET_TOTAL,
     ]
     for index, sprite in enumerate(document["sprites"]):
         lines.append("#define GAME_SPRITE_%s %du" % (macro(sprite["id"]), index))
     lines.extend([
         "#define GAME_SPRITE_COUNT %du" % len(document["sprites"]),
         "#define GAME_SPRITE_INVALID 0xffu", "",
-        "typedef struct GameSpriteRun {",
-        "    unsigned char y;", "    unsigned char x0;",
-        "    unsigned char x1;", "    unsigned char color;",
-        "} GameSpriteRun;", "",
-        "typedef struct GameSpriteFrame {",
-        "    unsigned int run_offset;", "    unsigned char run_count;",
-        "} GameSpriteFrame;", "",
+        "/* APS-050: single-source preview authoring. Frame 0 is the",
+        " * assets/previews/aps044-*-preview.json grid verbatim (16x16,",
+        " * 2 bytes/run: byte0 = y<<4|x0, byte1 = length<<4|color). Frame 1",
+        " * is an *overlay delta* of 1..6 runs stored immediately after",
+        " * frame 0's runs and applied on top of frame 0 by the caller (see",
+        " * game_sprite_visit_runs callers in main.c), not a second full",
+        " * frame -- this keeps RODATA/RAM within budget, as does folding",
+        " * frame_offset/frame_count into one definition (frame 1 has no",
+        " * offset field: it starts right after frame 0's run_count runs).",
+        " * Visual canvas is always 16x16 (GAME_SPRITE_CANVAS) so",
+        " * width/height are not stored per sprite; anchor is packed into",
+        " * one byte ((dx+8) in the high nibble, (dy+8) in the low nibble,",
+        " * range -8..7) and boss draw scale is derived from SPRITE_CONTRACTS",
+        " * at runtime (all bosses are 1x in APS-050) rather than stored,",
+        " * to keep the linked RAM budget. */",
         "typedef struct GameSpriteDefinition {",
-        "    unsigned char width;", "    unsigned char height;",
-        "    GameSpriteFrame frames[2];", "} GameSpriteDefinition;", "",
-        "extern const GameSpriteRun game_sprite_runs[];",
+        "    unsigned char anchor;",
+        "    unsigned int frame0_offset;",
+        "    unsigned char frame0_count;",
+        "    unsigned char frame1_count;",
+        "} GameSpriteDefinition;", "",
+        "typedef void (*GameSpriteRunVisitor)(int x0, int x1, int y,",
+        "    unsigned char color, void* context);", "",
+        "extern const unsigned char game_sprite_run_data[];",
         "extern const GameSpriteDefinition game_sprite_definitions[GAME_SPRITE_COUNT];",
         "extern const unsigned char game_enemy_sprite_ids[9];",
         "extern const unsigned char game_boss_sprite_ids[4];",
+        "unsigned char game_sprite_visit_runs(int x, int y,",
+        "    unsigned char sprite_id, unsigned char animation_frame,",
+        "    GameSpriteRunVisitor visitor, void* context);",
         "", "#endif", "",
     ])
     return "\n".join(lines)
 
 
-def render_sprite_source(document):
+def render_sprite_source(document, previews):
     sprite_ids = ordered_index(document["sprites"])
     enemy_by_engine = sorted(document["enemy_types"],
                              key=lambda item: ENGINE_TYPES.index(item["engine_type"]))
@@ -629,33 +911,44 @@ def render_sprite_source(document):
         boss_sprite_ids[appearance_ids[appearance["id"]]] = sprite_ids[appearance["sprite"]]
 
     frame_meta = []
+    anchors = []
     all_runs = []
     for sprite in document["sprites"]:
+        sprite_id = sprite["id"]
+        preview = previews[sprite_id]
+        _kind, collision_w, collision_h, scale = SPRITE_CONTRACTS[sprite_id]
+        frame0 = preview["grid"]
+        frame0_runs = sprite_runs(frame0)
+        delta_runs = [(y, x, x, int(role, 16))
+                     for x, y, role in preview["anim_delta"]]
         frames = []
-        for rows in sprite["frames"]:
-            runs = sprite_runs(rows)
+        for runs in (frame0_runs, delta_runs):
             frames.append((len(all_runs), len(runs)))
             all_runs.extend(runs)
         frame_meta.append(frames)
+        anchors.append(sprite_anchor(frame0, collision_w, collision_h, scale))
     if len(all_runs) > 65535:
         fail("sprites", "flattened sprite run offset exceeds unsigned int")
 
     lines = [
         '#include "sprite_data.h"', "",
         "/* Generated by scripts/generate-stage-data.py. Do not edit. */", "",
-        "const GameSpriteRun game_sprite_runs[] = {",
+        "const unsigned char game_sprite_run_data[] = {",
     ]
-    for y, x0, x1, color in all_runs:
-        lines.append("    { %s, %s, %s, %s }," %
-                     (c_u8(y), c_u8(x0), c_u8(x1), c_u8(color)))
+    for run in all_runs:
+        packed = pack_sprite_run(run)
+        lines.append("    %s, %s," % (c_u8(packed[0]), c_u8(packed[1])))
     lines.extend(["};", ""])
     lines.append("const GameSpriteDefinition game_sprite_definitions[GAME_SPRITE_COUNT] = {")
-    for sprite, frames in zip(document["sprites"], frame_meta):
-        lines.append("    { %s, %s, { { %s, %s }, { %s, %s } } }," % (
-            c_u8(sprite["width"]), c_u8(sprite["height"]),
-            c_u8(frames[0][0]), c_u8(frames[0][1]),
-            c_u8(frames[1][0]), c_u8(frames[1][1]),
-        ))
+    for sprite, frames, anchor in zip(document["sprites"], frame_meta, anchors):
+        dx, dy = anchor
+        assert frames[1][0] == frames[0][0] + frames[0][1], (
+            "frame 1 delta runs must immediately follow frame 0's runs")
+        lines.append(
+            "    { %s, %s, %s, %s }," % (
+                c_u8(pack_sprite_anchor(dx, dy)),
+                c_u8(frames[0][0]), c_u8(frames[0][1]), c_u8(frames[1][1]),
+            ))
     lines.extend(["};", ""])
     lines.append("const unsigned char game_enemy_sprite_ids[9] = {")
     lines.append("    " + ", ".join(c_u8(sprite_ids[item["sprite"]])
@@ -664,26 +957,76 @@ def render_sprite_source(document):
     lines.append("const unsigned char game_boss_sprite_ids[4] = {")
     lines.append("    " + ", ".join(c_u8(value) for value in boss_sprite_ids))
     lines.extend(["};", ""])
+    lines.extend([
+        "unsigned char game_sprite_visit_runs(int x, int y,",
+        "    unsigned char sprite_id, unsigned char animation_frame,",
+        "    GameSpriteRunVisitor visitor, void* context)",
+        "{",
+        "    const GameSpriteDefinition* def;",
+        "    unsigned int offset;",
+        "    unsigned char count;",
+        "    unsigned char first;",
+        "    unsigned char second;",
+        "    unsigned char i;",
+        "",
+        "    if (sprite_id >= GAME_SPRITE_COUNT || animation_frame > 1u ||",
+        "        visitor == (GameSpriteRunVisitor)0) {",
+        "        return 0u;",
+        "    }",
+        "    def = &game_sprite_definitions[sprite_id];",
+        "    if (animation_frame == 0u) {",
+        "        offset = def->frame0_offset * 2u;",
+        "        count = def->frame0_count;",
+        "    } else {",
+        "        offset = (def->frame0_offset + def->frame0_count) * 2u;",
+        "        count = def->frame1_count;",
+        "    }",
+        "    for (i = 0u; i < count; ++i) {",
+        "        first = game_sprite_run_data[offset];",
+        "        second = game_sprite_run_data[offset + 1u];",
+        "        visitor(x + (int)(first & 0x0fu),",
+        "            x + (int)(first & 0x0fu) + (int)(second >> 4),",
+        "            y + (int)(first >> 4),",
+        "            (unsigned char)(second & 0x0fu),",
+        "            context);",
+        "        offset += 2u;",
+        "    }",
+        "    return count;",
+        "}", "",
+    ])
     return "\n".join(lines)
 
 
 def golden_snapshot(document):
     keys = ["enemy_types", "formations", "boss_appearances", "boss_scripts",
-            "bosses", "environments", "stages"]
-    return {key: document[key] for key in keys}
+            "bosses", "environments"]
+    snapshot = {key: document[key] for key in keys}
+    snapshot["stages"] = [
+        {key: value for key, value in stage.items()
+         if key != "boss_coexists_with_normal_enemies"}
+        for stage in document["stages"]
+    ]
+    return snapshot
 
 
-def sprite_authoring_snapshot(document):
-    return {"sprites": document["sprites"]}
+def sprite_authoring_snapshot(document, previews=None):
+    """APS-050 contract a: fixes the preview JSON (player variant 'a' plus
+    all twelve enemy/boss characters) as the sprite authoring golden,
+    alongside the stages.json id/kind/collision contract it must satisfy."""
+    if previews is None:
+        previews, _, _ = load_previews()
+    return {"sprites": document["sprites"], "previews": previews}
 
 
-def generate(document, output_dir):
+def generate(document, output_dir, previews=None):
+    if previews is None:
+        previews, _, _ = load_previews()
     output_dir.mkdir(parents=True, exist_ok=True)
     outputs = {
         "stage_data.h": render_stage_header(document),
         "stage_data.c": render_stage_source(document),
-        "sprite_data.h": render_sprite_header(document),
-        "sprite_data.c": render_sprite_source(document),
+        "sprite_data.h": render_sprite_header(document, previews),
+        "sprite_data.c": render_sprite_source(document, previews),
     }
     for name, content in outputs.items():
         (output_dir / name).write_text(content, encoding="utf-8")
@@ -702,19 +1045,20 @@ def verify_golden(document, golden_path):
         fail("golden", "generated stage/formation/boss/event tables differ from v0.34.0")
 
 
-def verify_sprite_golden(document, golden_path):
+def verify_sprite_golden(document, golden_path, previews=None):
     golden = load_json(golden_path)
     object_keys(golden, {"snapshot_sha256"}, (), "sprite golden")
     expected = string(
         golden["snapshot_sha256"], "sprite golden.snapshot_sha256"
     )
     payload = json.dumps(
-        sprite_authoring_snapshot(document), sort_keys=True,
+        sprite_authoring_snapshot(document, previews), sort_keys=True,
         separators=(",", ":"), ensure_ascii=True,
     ).encode("utf-8")
     actual = hashlib.sha256(payload).hexdigest()
     if actual != expected:
-        fail("sprite golden", "sprite authoring data differ from v0.40.0")
+        fail("sprite golden",
+             "sprite/preview authoring data differ from v0.49.0")
 
 
 def main():
@@ -725,16 +1069,21 @@ def main():
     parser.add_argument("--output-dir", type=Path, default=Path("build/gen"))
     parser.add_argument("--golden", type=Path)
     parser.add_argument("--sprite-golden", type=Path)
+    parser.add_argument("--player-preview", type=Path,
+                        default=PLAYER_PREVIEW_PATH)
+    parser.add_argument("--enemy-preview", type=Path,
+                        default=ENEMY_PREVIEW_PATH)
     args = parser.parse_args()
     try:
         document = load_json(args.input)
-        validate(document)
+        previews, _, _ = load_previews(args.player_preview, args.enemy_preview)
+        validate(document, previews)
         if args.golden is not None:
             verify_golden(document, args.golden)
         if args.sprite_golden is not None:
-            verify_sprite_golden(document, args.sprite_golden)
+            verify_sprite_golden(document, args.sprite_golden, previews)
         if args.command == "generate":
-            generate(document, args.output_dir)
+            generate(document, args.output_dir, previews)
             print("generated stage and sprite C tables: %s" % args.output_dir)
         elif args.command == "snapshot":
             print(json.dumps(golden_snapshot(document), indent=2, ensure_ascii=False))

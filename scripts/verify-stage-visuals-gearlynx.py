@@ -1,5 +1,15 @@
 #!/usr/bin/env python3
-"""Capture and verify normal, enemy cast, and boss visuals for all stages."""
+"""APS-050 contract f: capture and verify normal, enemy cast, and boss
+visuals for all stages against the preview-authored sprite source of
+truth (assets/previews/*.json), not the collision-only stages.json
+sprite entries. Expected pixels are derived the same way main.c's
+draw_sprite()/draw_sprite_run_scaled() render them: each preview grid
+cell maps to a scale x scale block on screen, offset by the generator-
+computed per-sprite anchor (scripts/generate-stage-data.py's
+sprite_anchor()). All sprites draw at 1x scale in APS-050. ROM run/
+definition byte identity is contract e's job (scripts/verify-sprite-rom-
+bytes.py) and is not duplicated here.
+"""
 
 import argparse
 import base64
@@ -23,31 +33,37 @@ HEADERS = {
     "Accept": "application/json, text/event-stream",
     "MCP-Protocol-Version": "2025-11-25",
 }
-GAME_OFFSET_IN_MAIN_BSS = 12
-GAME_OFFSET_PLAYER = 0
-GAME_OFFSET_ENEMIES = 4
-GAME_ENEMY_SIZE = 14
-GAME_MAX_ENEMIES = 4
-GAME_OFFSET_BULLETS = 60
+GAME_OFFSET_PLAYER = 2
+GAME_ENEMY_SIZE = 12
+GAME_MAX_ENEMIES = 8
+GAME_OFFSET_BULLETS = 6
 GAME_BULLET_SIZE = 5
 GAME_MAX_BULLETS = 12
-GAME_OFFSET_ENEMY_BULLETS = 120
-GAME_ENEMY_BULLET_SIZE = 7
+GAME_OFFSET_ENEMY_BULLETS = 66
+GAME_ENEMY_BULLET_SIZE = 5
 GAME_MAX_ENEMY_BULLETS = 16
-GAME_OFFSET_POWER_ITEM = 232
-GAME_OFFSET_GAME_OVER = 287
-GAME_OFFSET_TITLE_VOICE_PENDING = 290
-GAME_OFFSET_DYING = 293
-GAME_OFFSET_ANIMATION_FRAME = 304
-GAME_OFFSET_STAGE = 305
-GAME_OFFSET_PHASE = 306
-GAME_OFFSET_PHASE_TIMER = 307
-GAME_OFFSET_BOSS_ACTIVE = 242
+GAME_OFFSET_POWER_ITEM = 146
+GAME_OFFSET_BOSS = 150
+GAME_OFFSET_GAME_OVER = 191
+GAME_OFFSET_TITLE_VOICE_PENDING = 194
+GAME_OFFSET_DYING = 197
+GAME_OFFSET_ANIMATION_FRAME = 207
+GAME_OFFSET_STAGE = 209
+GAME_OFFSET_PHASE = 210
+GAME_OFFSET_PHASE_TIMER = 211
+GAME_OFFSET_BOSS_ACTIVE = 154
 GAME_PHASE_STAGE_INTRO = 0
 GAME_PHASE_NORMAL = 1
 GAME_PHASE_WARNING = 2
 GAME_PHASE_BOSS = 3
 CAST_RECTS = ((40, 24, 8, 8), (80, 47, 8, 8), (120, 70, 8, 8))
+PLAYER_COLLISION_SIZE = (8, 6)
+ENEMY_COLLISION_SIZE = (8, 8)
+BOSS_TARGETS = (
+    ("coral_bastion", (24, 16)),
+    ("amber_carrier", (28, 14)),
+    ("violet_geode", (24, 24)),
+)
 CASTS = (
     ((0, "SCOUT", "scout"), (1, "SAUCER", "saucer"),
      (2, "DROPPER", "dropper")),
@@ -83,19 +99,6 @@ def tool(name, arguments=None, request_id=1):
     return json.loads(content["text"])
 
 
-def main_bss_game_address(map_path):
-    text = map_path.read_text(encoding="utf-8")
-    segment = re.search(r"^BSS\s+([0-9A-F]{6})\s", text, re.MULTILINE)
-    module = re.search(
-        r"^main\.o:\n(?:.*\n)*?\s+BSS\s+Offs=([0-9A-F]{6})\s+",
-        text, re.MULTILINE,
-    )
-    if segment is None or module is None:
-        raise RuntimeError("cannot locate main.o BSS in linker map")
-    return (int(segment.group(1), 16) + int(module.group(1), 16) +
-            GAME_OFFSET_IN_MAIN_BSS)
-
-
 def symbol_address(symbols_path, symbol):
     text = symbols_path.read_text(encoding="utf-8")
     match = re.search(
@@ -110,15 +113,19 @@ def symbol_address(symbols_path, symbol):
     return address
 
 
-def generated_palettes(input_path):
+def load_generator():
     generator_path = Path(__file__).resolve().with_name("generate-stage-data.py")
     spec = importlib.util.spec_from_file_location("stage_generator", generator_path)
     generator = importlib.util.module_from_spec(spec)
     spec.loader.exec_module(generator)
-    document = generator.load_json(input_path)
-    generator.validate(document)
+    return generator
+
+
+def generated_palettes(gen, input_path):
+    document = gen.load_json(input_path)
+    gen.validate(document)
     themes = {theme["id"]: theme for theme in document["themes"]}
-    return [generator.palette_bytes(themes[stage["theme"]]["colors"])
+    return [gen.palette_bytes(themes[stage["theme"]]["colors"])
             for stage in document["stages"]]
 
 
@@ -139,9 +146,52 @@ def frame_run_signature(rows):
     return tuple(runs)
 
 
-def validate_cast_sprite_data(input_path):
+def load_sprite_visuals(gen, input_path):
+    """Build the contract f expected-pixel source of truth: each sprite's
+    frame 0/1 role grids (preview verbatim + anim_delta overlay), its
+    generator-computed anchor, and its boss draw scale -- exactly what
+    main.c's draw_sprite() consumes at runtime."""
     document = json.loads(input_path.read_text(encoding="utf-8"))
-    sprites = {sprite["id"]: sprite for sprite in document["sprites"]}
+    stage_sprites = {sprite["id"]: sprite for sprite in document["sprites"]}
+    if set(stage_sprites) != set(gen.SPRITE_CONTRACTS):
+        raise RuntimeError(
+            "APS-049 sprite id set mismatch between stages.json and "
+            "generate-stage-data.py SPRITE_CONTRACTS"
+        )
+    previews, _, _ = gen.load_previews()
+    if set(previews) != set(gen.SPRITE_CONTRACTS):
+        raise RuntimeError(
+            "APS-049 sprite id set mismatch between preview JSON and "
+            "SPRITE_CONTRACTS"
+        )
+    sprites = {}
+    for sprite_id, (kind, collision_w, collision_h, scale) in gen.SPRITE_CONTRACTS.items():
+        stage_sprite = stage_sprites[sprite_id]
+        if (stage_sprite["width"], stage_sprite["height"]) != (collision_w, collision_h):
+            raise RuntimeError(
+                "%s collision size mismatch: stages.json=%dx%d contract=%dx%d" %
+                (sprite_id, stage_sprite["width"], stage_sprite["height"],
+                 collision_w, collision_h)
+            )
+        preview = previews[sprite_id]
+        frame0 = preview["grid"]
+        frame1 = gen.apply_anim_delta(
+            frame0, preview["anim_delta"], set(preview["roles"]),
+            "contract-f/%s/anim_delta" % sprite_id,
+        )
+        anchor = gen.sprite_anchor(frame0, collision_w, collision_h, scale)
+        sprites[sprite_id] = {
+            "kind": kind,
+            "scale": scale,
+            "anchor": anchor,
+            "frame0": frame0,
+            "frame1": frame1,
+            "frames": (frame0, frame1),
+        }
+    return sprites, document
+
+
+def validate_cast_and_boss_mapping(sprites, document):
     enemy_types = document["enemy_types"]
     if len(enemy_types) != 9:
         raise RuntimeError("enemy sprite mapping count mismatch: %d" %
@@ -156,36 +206,64 @@ def validate_cast_sprite_data(input_path):
                     "stage %d type %d sprite mapping mismatch: %r" %
                     (stage_index + 1, enemy_type, mapping)
                 )
-            sprite = sprites[sprite_id]
-            if sprite["width"] != 8 or sprite["height"] != 8:
-                raise RuntimeError(
-                    "stage %d type %d sprite rect mismatch: %dx%d" %
-                    (stage_index + 1, enemy_type,
-                     sprite["width"], sprite["height"])
-                )
             signatures.append(tuple(frame_run_signature(frame)
-                                    for frame in sprite["frames"]))
+                                    for frame in sprites[sprite_id]["frames"]))
         if len(set(signatures)) != 3:
             raise RuntimeError(
                 "stage %d cast does not use three distinct run/color sets" %
                 (stage_index + 1)
             )
-    return sprites
+    appearances = {item["id"]: item["sprite"]
+                   for item in document["boss_appearances"]}
+    for stage_index, (sprite_id, collision_size) in enumerate(BOSS_TARGETS):
+        boss = document["bosses"][stage_index]
+        mapped = appearances[boss["appearance"]]
+        if mapped != sprite_id or (boss["width"], boss["height"]) != collision_size:
+            raise RuntimeError(
+                "stage %d boss visual/collision mapping mismatch: sprite=%s "
+                "collision=%dx%d" %
+                (stage_index + 1, mapped, boss["width"], boss["height"])
+            )
 
 
 def validate_game_enemy_layout():
-    # include/game.h uses only one-byte fields through GamePowerItem. These
-    # equations independently meet the existing boss.active map offset and
-    # prevent a guessed GameEnemy stride from reaching emulator memory.
-    enemies_end = GAME_OFFSET_ENEMIES + GAME_MAX_ENEMIES * GAME_ENEMY_SIZE
     bullets_end = GAME_OFFSET_BULLETS + GAME_MAX_BULLETS * GAME_BULLET_SIZE
     enemy_bullets_end = (GAME_OFFSET_ENEMY_BULLETS +
                          GAME_MAX_ENEMY_BULLETS * GAME_ENEMY_BULLET_SIZE)
-    if (enemies_end != GAME_OFFSET_BULLETS or
-            bullets_end != GAME_OFFSET_ENEMY_BULLETS or
+    if (bullets_end != GAME_OFFSET_ENEMY_BULLETS or
             enemy_bullets_end != GAME_OFFSET_POWER_ITEM or
-            GAME_OFFSET_POWER_ITEM + 6 + 4 != GAME_OFFSET_BOSS_ACTIVE):
+            GAME_OFFSET_POWER_ITEM + 4 + 4 != GAME_OFFSET_BOSS_ACTIVE):
         raise RuntimeError("GameEnemy/GameState layout invariant mismatch")
+    if any(rect[2:] != ENEMY_COLLISION_SIZE for rect in CAST_RECTS):
+        raise RuntimeError("cast enemy collision size is not 8x8")
+
+
+def sprite_origin(sprites, sprite_id, rect_xy):
+    dx, dy = sprites[sprite_id]["anchor"]
+    return (rect_xy[0] + dx, rect_xy[1] + dy)
+
+
+def sprite_size(sprites, sprite_id):
+    scale = sprites[sprite_id]["scale"]
+    return (16 * scale, 16 * scale)
+
+
+def sprite_render_clip_counts(sprites, sprite_id, rect_xy):
+    x, y = sprite_origin(sprites, sprite_id, rect_xy)
+    width, height = sprite_size(sprites, sprite_id)
+    clip_x = max(0, -x) + max(0, x + width - 160)
+    clip_y = max(0, -y) + max(0, y + height - 102)
+    return clip_x, clip_y
+
+
+def assert_sprite_not_clipped(sprites, sprite_id, rect_xy, label):
+    clip_x, clip_y = sprite_render_clip_counts(sprites, sprite_id, rect_xy)
+    if clip_x != 0 or clip_y != 0:
+        raise RuntimeError(
+            "%s sprite rendered clipped: sprite=%s origin=%r clip_x=%d clip_y=%d" %
+            (label, sprite_id, sprite_origin(sprites, sprite_id, rect_xy),
+             clip_x, clip_y)
+        )
 
 
 def read_bytes(address, size, request_id):
@@ -297,11 +375,146 @@ def decode_png_rgba(data):
     return rows
 
 
+def png_chunk(kind, payload):
+    return (struct.pack(">I", len(payload)) + kind + payload +
+            struct.pack(">I", zlib.crc32(kind + payload) & 0xFFFFFFFF))
+
+
+def encode_png_rgba(rows, width, height):
+    raw = b"".join(b"\x00" + bytes(row) for row in rows)
+    return (b"\x89PNG\r\n\x1a\n" +
+            png_chunk(b"IHDR", struct.pack(">IIBBBBB", width, height,
+                                             8, 6, 0, 0, 0)) +
+            png_chunk(b"IDAT", zlib.compress(raw, 9)) +
+            png_chunk(b"IEND", b""))
+
+
+def write_sprite_capture(png_data, origin, size, output_path, gui):
+    """Crop the sprite's native-resolution capture. If the anchor-computed
+    origin pushes part of the sprite past the 160x102 framebuffer edge
+    (matching draw_clipped_hline()'s real clamp/drop behaviour), the
+    off-screen columns/rows are padded black in the saved PNG and the
+    clipped pixel count is returned alongside the hash so callers can
+    surface it as evidence instead of silently losing the fact that a
+    boundary clip happened."""
+    source = decode_png_rgba(png_data)
+    x, y = origin
+    width, height = size
+    clipped_columns = max(0, -x) + max(0, x + width - 160)
+    clipped_rows = max(0, -y) + max(0, y + height - 102)
+    cropped = []
+    for row_index in range(height):
+        source_y = y + row_index
+        row = bytearray(width * 4)
+        if 0 <= source_y < 102:
+            source_row = source[source_y]
+            for col_index in range(width):
+                source_x = x + col_index
+                if 0 <= source_x < 160:
+                    row[col_index * 4:col_index * 4 + 4] = \
+                        source_row[source_x * 4:source_x * 4 + 4]
+        cropped.append(row)
+    data = encode_png_rgba(cropped, width, height)
+    output_path.write_bytes(data)
+    if gui:
+        verify_gui_matches_headless(output_path, data)
+    return hashlib.sha256(data).hexdigest(), clipped_columns, clipped_rows
+
+
 def palette_rgb(palette, index):
     green = palette[index] & 0x0F
     blue_red = palette[16 + index]
     return ((blue_red & 0x0F) * 17, green * 17,
             ((blue_red >> 4) & 0x0F) * 17)
+
+
+def sprite_frame_mismatch(rows, sprite_id, origin, grid, scale, palette,
+                          candidate_frame):
+    """Pixels that fall outside the 160x102 framebuffer are skipped, not
+    failed: draw_clipped_hline() in main.c clamps x to [0, GAME_SCREEN_
+    WIDTH) per hline and drops the row entirely if y is out of range,
+    exactly like a real Lynx would -- there is no pixel to compare there,
+    on hardware or in the emulator capture."""
+    checked = 0
+    clipped = 0
+    for gy, row in enumerate(grid):
+        for gx, role in enumerate(row):
+            if role == ".":
+                continue
+            expected = palette_rgb(palette, int(role, 16))
+            for ry in range(scale):
+                for rx in range(scale):
+                    px = origin[0] + gx * scale + rx
+                    py = origin[1] + gy * scale + ry
+                    if px < 0 or py < 0 or px >= 160 or py >= 102:
+                        clipped += 1
+                        continue
+                    pixel_offset = px * 4
+                    actual = tuple(rows[py][pixel_offset:pixel_offset + 3])
+                    if actual != expected:
+                        return ("frame=%d sprite=%s origin=%r pixel=(%d,%d) "
+                                "actual=%r expected=%r role=%s" %
+                                (candidate_frame, sprite_id, origin, px, py,
+                                 actual, expected, role))
+                    checked += 1
+    if checked == 0:
+        return "frame=%d sprite=%s has no rendered pixels (clipped=%d)" % (
+            candidate_frame, sprite_id, clipped,
+        )
+    return None
+
+
+def verify_sprite_pixels(png_data, sprite_id, rect_xy, sprites, palette):
+    rows = decode_png_rgba(png_data)
+    origin = sprite_origin(sprites, sprite_id, rect_xy)
+    scale = sprites[sprite_id]["scale"]
+    mismatches = []
+    for candidate_frame, grid in enumerate((sprites[sprite_id]["frame0"],
+                                            sprites[sprite_id]["frame1"])):
+        mismatch = sprite_frame_mismatch(
+            rows, sprite_id, origin, grid, scale, palette, candidate_frame,
+        )
+        if mismatch is None:
+            return candidate_frame
+        mismatches.append(mismatch)
+    raise RuntimeError("sprite framebuffer mismatch: %s" %
+                       "; ".join(mismatches))
+
+
+def locate_sprite_pixels(png_data, sprite_id, expected_rect_xy, sprites,
+                         palette, radius):
+    """Search near the anchor-computed origin. Candidates are not rejected
+    for extending past the framebuffer edge -- sprite_frame_mismatch skips
+    clipped pixels the same way draw_clipped_hline() drops them on real
+    hardware -- but the origin itself must keep at least one grid cell of
+    the sprite's *top-left* on screen, or every candidate would vacuously
+    "match" with zero checked pixels."""
+    rows = decode_png_rgba(png_data)
+    expected_origin = sprite_origin(sprites, sprite_id, expected_rect_xy)
+    scale = sprites[sprite_id]["scale"]
+    for distance in range(radius + 1):
+        for y_delta in range(-distance, distance + 1):
+            for x_delta in range(-distance, distance + 1):
+                if max(abs(x_delta), abs(y_delta)) != distance:
+                    continue
+                origin = (expected_origin[0] + x_delta,
+                          expected_origin[1] + y_delta)
+                if origin[0] >= 160 or origin[1] >= 102:
+                    continue
+                for candidate_frame, grid in enumerate(
+                        (sprites[sprite_id]["frame0"],
+                         sprites[sprite_id]["frame1"])):
+                    mismatch = sprite_frame_mismatch(
+                        rows, sprite_id, origin, grid, scale, palette,
+                        candidate_frame,
+                    )
+                    if mismatch is None:
+                        return candidate_frame, origin
+    raise RuntimeError(
+        "cannot locate %s within %d pixels of expected anchor origin %r "
+        "(collision rect %r)" %
+        (sprite_id, radius, expected_origin, expected_rect_xy)
+    )
 
 
 def verify_cast_pixels(png_data, stage, animation_frame, sprites, palette):
@@ -315,34 +528,14 @@ def verify_cast_pixels(png_data, stage, animation_frame, sprites, palette):
         for slot, cast in enumerate(CASTS[stage - 1]):
             enemy_type, _, sprite_id = cast
             rect = CAST_RECTS[slot]
-            grid = sprites[sprite_id]["frames"][candidate_frame]
-            checked = 0
-            for y, row in enumerate(grid):
-                for x, role in enumerate(row):
-                    if role == ".":
-                        continue
-                    expected = palette_rgb(palette, int(role, 16))
-                    pixel_offset = (rect[0] + x) * 4
-                    actual = tuple(
-                        rows[rect[1] + y][pixel_offset:pixel_offset + 3]
-                    )
-                    if actual != expected:
-                        mismatch = (
-                            "frame=%d type=%d rect=%r pixel=(%d,%d) "
-                            "actual=%r expected=%r role=%s" %
-                            (candidate_frame, enemy_type, rect,
-                             rect[0] + x, rect[1] + y, actual, expected, role)
-                        )
-                        break
-                    checked += 1
-                if mismatch is not None:
-                    break
+            origin = sprite_origin(sprites, sprite_id, rect[:2])
+            scale = sprites[sprite_id]["scale"]
+            grid = (sprites[sprite_id]["frame0"] if candidate_frame == 0
+                   else sprites[sprite_id]["frame1"])
+            mismatch = sprite_frame_mismatch(
+                rows, sprite_id, origin, grid, scale, palette, candidate_frame,
+            )
             if mismatch is not None:
-                break
-            if checked == 0:
-                mismatch = "frame=%d type=%d has no rendered pixels" % (
-                    candidate_frame, enemy_type,
-                )
                 break
         if mismatch is None:
             return candidate_frame
@@ -363,9 +556,8 @@ def set_transition_state(game_address, stage, phase, timer, request_id):
 
 def cast_enemy_record(enemy_type, rect):
     x, y, width, height = rect
-    drops_power = 1 if enemy_type in (2, 5, 8) else 0
     return [x, y, width, height, 1, enemy_type, 0, y,
-            0, 0, 1, 255, 0, drops_power]
+            0, 0, 1, 0]
 
 
 def assert_no_transient_gameplay(game_address, request_id, stage):
@@ -381,13 +573,13 @@ def assert_no_transient_gameplay(game_address, request_id, stage):
             )
     enemy_base = GAME_OFFSET_ENEMY_BULLETS - GAME_OFFSET_BULLETS
     for slot in range(GAME_MAX_ENEMY_BULLETS):
-        active = state[enemy_base + slot * GAME_ENEMY_BULLET_SIZE + 4]
+        active = state[enemy_base + slot * GAME_ENEMY_BULLET_SIZE + 2]
         if active != 0:
             raise RuntimeError(
                 "stage %d cast enemy bullet %d active=%d" %
                 (stage, slot, active)
             )
-    power_active = state[GAME_OFFSET_POWER_ITEM - GAME_OFFSET_BULLETS + 4]
+    power_active = state[GAME_OFFSET_POWER_ITEM - GAME_OFFSET_BULLETS + 2]
     if power_active != 0:
         raise RuntimeError("stage %d cast power item active=%d" %
                            (stage, power_active))
@@ -401,8 +593,40 @@ def rectangles_overlap(left, right):
             right[1] < left[1] + left[3])
 
 
-def verify_cast_readback(game_address, stage, request_id):
-    enemies = read_bytes(game_address + GAME_OFFSET_ENEMIES,
+def read_visible_player(game_address, request_id, stage):
+    player = tuple(read_bytes(game_address + GAME_OFFSET_PLAYER, 4,
+                              request_id))
+    request_id += 1
+    visibility = read_bytes(game_address + GAME_OFFSET_DYING, 3, request_id)
+    request_id += 1
+    if (player[2:] != PLAYER_COLLISION_SIZE or
+            player[0] + PLAYER_COLLISION_SIZE[0] > 160 or
+            player[1] < 10 or player[1] + PLAYER_COLLISION_SIZE[1] > 102 or
+            visibility[0] != 0 or visibility[2] != 0):
+        raise RuntimeError(
+            "stage %d player collision/visibility mismatch: rect=%r "
+            "dying=%d invincibility=%d" %
+            (stage, player, visibility[0], visibility[2])
+        )
+    return request_id, player
+
+
+def read_active_boss(game_address, stage, request_id):
+    record = read_bytes(game_address + GAME_OFFSET_BOSS, 5, request_id)
+    request_id += 1
+    rect = tuple(record[:4])
+    expected_size = BOSS_TARGETS[stage - 1][1]
+    if record[4] != 1 or rect[2:] != expected_size:
+        raise RuntimeError(
+            "stage %d boss collision readback mismatch: active=%d rect=%r "
+            "expected_size=%r" %
+            (stage, record[4], rect, expected_size)
+        )
+    return request_id, rect
+
+
+def verify_cast_readback(game_address, enemy_address, stage, request_id):
+    enemies = read_bytes(enemy_address,
                          GAME_MAX_ENEMIES * GAME_ENEMY_SIZE, request_id)
     request_id += 1
     actual = []
@@ -421,19 +645,7 @@ def verify_cast_readback(game_address, stage, request_id):
     if enemies[3 * GAME_ENEMY_SIZE + 4] != 0:
         raise RuntimeError("stage %d cast enemy slot 3 remained active" % stage)
 
-    player = tuple(read_bytes(game_address + GAME_OFFSET_PLAYER, 4,
-                              request_id))
-    request_id += 1
-    visibility = read_bytes(game_address + GAME_OFFSET_DYING, 3, request_id)
-    request_id += 1
-    if (player[2:] != (8, 6) or player[0] + player[2] > 160 or
-            player[1] < 10 or player[1] + player[3] > 102 or
-            visibility[0] != 0 or visibility[2] != 0):
-        raise RuntimeError(
-            "stage %d cast player not normally visible: rect=%r "
-            "dying=%d invincibility=%d" %
-            (stage, player, visibility[0], visibility[2])
-        )
+    request_id, player = read_visible_player(game_address, request_id, stage)
     if any(rectangles_overlap(player, rect) for _, rect in actual):
         raise RuntimeError("stage %d cast overlaps player rect=%r cast=%r" %
                            (stage, player, actual))
@@ -441,7 +653,7 @@ def verify_cast_readback(game_address, stage, request_id):
     return request_id, actual
 
 
-def inject_and_synchronize_cast(game_address, logic_address, sound_address,
+def inject_and_synchronize_cast(game_address, enemy_address, logic_address, sound_address,
                                 stage, request_id):
     request_id = assert_no_transient_gameplay(game_address, request_id, stage)
     sound_hex = "%04X" % sound_address
@@ -457,7 +669,7 @@ def inject_and_synchronize_cast(game_address, logic_address, sound_address,
         tool("set_breakpoint", {"address": sound_hex}, request_id)
         request_id += 1
         request_id = continue_to_breakpoint(request_id, "cast pre-draw sound")
-        write_bytes(game_address + GAME_OFFSET_ENEMIES, records, request_id)
+        write_bytes(enemy_address, records, request_id)
         request_id += 1
         tool("remove_breakpoint", {"address": sound_hex}, request_id)
         request_id += 1
@@ -471,7 +683,7 @@ def inject_and_synchronize_cast(game_address, logic_address, sound_address,
     if state != bytes([stage, GAME_PHASE_NORMAL]):
         raise RuntimeError("stage %d cast left NORMAL: state=%r" %
                            (stage, state))
-    return verify_cast_readback(game_address, stage, request_id)
+    return verify_cast_readback(game_address, enemy_address, stage, request_id)
 
 
 def wait_for_breakpoint(request_id, description):
@@ -492,20 +704,67 @@ def continue_to_breakpoint(request_id, description):
     return wait_for_breakpoint(request_id + 1, description)
 
 
-def synchronize_completed_draw(game_address, logic_address, stage, phase,
-                               require_boss, request_id):
+def enter_stage_one_with_real_input(game_address, logic_address,
+                                    sound_address, request_id):
+    tool("controller_macro", {"commands": [{"release": "a"}]}, request_id)
+    request_id += 1
+    tool("controller_macro", {"commands": [{"press": "a"}]}, request_id)
+    request_id += 1
+    tool("debug_continue", request_id=request_id)
+    request_id += 1
+    deadline = time.monotonic() + 15.0
+    released = False
+    latest = None
+    while time.monotonic() < deadline:
+        latest = read_bytes(game_address + GAME_OFFSET_STAGE, 2, request_id)
+        request_id += 1
+        if not released:
+            pending = read_bytes(
+                game_address + GAME_OFFSET_TITLE_VOICE_PENDING, 1, request_id,
+            )[0]
+            request_id += 1
+            if pending != 0:
+                tool("controller_macro", {
+                    "commands": [{"release": "a"}],
+                }, request_id)
+                request_id += 1
+                released = True
+        if latest == bytes([1, GAME_PHASE_NORMAL]):
+            break
+        time.sleep(0.005)
+    else:
+        raise RuntimeError("real TITLE input did not reach Stage 1 NORMAL: %r" %
+                           (latest,))
+    tool("debug_pause", request_id=request_id)
+    request_id += 1
+    request_id = synchronize_completed_draw(
+        game_address, logic_address, sound_address, 1,
+        GAME_PHASE_NORMAL, False, request_id,
+    )
+    return request_id
+
+
+def synchronize_completed_draw(game_address, logic_address, sound_address,
+                               stage, phase, require_boss, request_id):
     logic_hex = "%04X" % logic_address
-    tool("set_breakpoint", {"address": logic_hex}, request_id)
-    request_id += 1
-    # The injected timer boundary changes phase in one of the four logic calls
-    # per draw.  Eight subsequent game_update_logic entries guarantee one full
-    # target-phase draw plus the following double-buffer display swap,
-    # regardless of which call in the current draw frame received the state.
-    for _ in range(8):
+    sound_hex = "%04X" % sound_address
+    # Synchronize at the post-logic/pre-draw sound call, then wait for the next
+    # logic entry after draw_game and tgi_busy have completed the front-buffer
+    # handoff. Repeat once so GUI and headless capture the same fully rendered
+    # target state instead of a valid GameState with a stale front buffer.
+    for _ in range(2):
+        tool("set_breakpoint", {"address": sound_hex}, request_id)
+        request_id += 1
         request_id = continue_to_breakpoint(request_id,
-                                            "post-transition logic")
-    tool("remove_breakpoint", {"address": logic_hex}, request_id)
-    request_id += 1
+                                            "post-transition pre-draw sound")
+        tool("remove_breakpoint", {"address": sound_hex}, request_id)
+        request_id += 1
+        tool("set_breakpoint", {"address": logic_hex}, request_id)
+        request_id += 1
+        request_id = continue_to_breakpoint(request_id,
+                                            "post-transition completed draw")
+        tool("remove_breakpoint", {"address": logic_hex}, request_id)
+        request_id += 1
     state = read_bytes(game_address + GAME_OFFSET_STAGE, 4, request_id)
     request_id += 1
     boss_active = None
@@ -522,7 +781,7 @@ def synchronize_completed_draw(game_address, logic_address, stage, phase,
     return request_id
 
 
-def transition_and_synchronize(game_address, logic_address, stage,
+def transition_and_synchronize(game_address, logic_address, sound_address, stage,
                                source_phase, source_timer, target_phase,
                                require_boss, request_id):
     set_transition_state(game_address, stage, source_phase, source_timer,
@@ -544,7 +803,7 @@ def transition_and_synchronize(game_address, logic_address, stage,
             (stage, target_phase, state)
         )
     return synchronize_completed_draw(
-        game_address, logic_address, stage, target_phase, require_boss,
+        game_address, logic_address, sound_address, stage, target_phase, require_boss,
         request_id,
     )
 
@@ -555,7 +814,7 @@ def main():
     parser.add_argument("--symbols", type=Path, default=Path("build/asteroid-patrol.lbl"))
     parser.add_argument("--map", type=Path, default=Path("build/asteroid-patrol.map"))
     parser.add_argument("--input", type=Path, default=Path("assets/stages/stages.json"))
-    parser.add_argument("--output-dir", type=Path, default=Path("evidence/APS-034"))
+    parser.add_argument("--output-dir", type=Path, default=Path("evidence/APS-050"))
     parser.add_argument("--gui", action="store_true",
                         help="launch the Gearlynx GUI while running the same checks")
     args = parser.parse_args()
@@ -563,12 +822,15 @@ def main():
     if not Path(GEARLYNX).is_file():
         print("Gearlynx executable not found", file=sys.stderr)
         return 1
-    game_address = main_bss_game_address(args.map)
+    game_address = symbol_address(args.symbols, "_game")
+    enemy_address = symbol_address(args.symbols, "_game_enemies")
     logic_address = symbol_address(args.symbols, "_game_update_logic")
     sound_address = symbol_address(args.symbols, "_game_sound_tick")
     validate_game_enemy_layout()
-    cast_sprites = validate_cast_sprite_data(args.input)
-    palettes = generated_palettes(args.input)
+    gen = load_generator()
+    sprites, document = load_sprite_visuals(gen, args.input)
+    validate_cast_and_boss_mapping(sprites, document)
+    palettes = generated_palettes(gen, args.input)
     args.output_dir.mkdir(parents=True, exist_ok=True)
     command = [GEARLYNX]
     if not args.gui:
@@ -585,7 +847,7 @@ def main():
             try:
                 call("initialize", {
                     "protocolVersion": "2024-11-05", "capabilities": {},
-                    "clientInfo": {"name": "aps034-visuals", "version": "1"},
+                    "clientInfo": {"name": "aps050-visuals", "version": "1"},
                 })
                 break
             except Exception:
@@ -617,9 +879,78 @@ def main():
         if initial != bytes([1, 6]):
             raise RuntimeError("computed GameState address failed title check")
 
+        request_id = enter_stage_one_with_real_input(
+            game_address, logic_address, sound_address, request_id,
+        )
+        actual_palette = read_palette(request_id)
+        request_id += 1
+        if actual_palette != bytes(palettes[0]):
+            raise RuntimeError("actual-play Stage 1 palette mismatch")
+        request_id, actual_player_rect = read_visible_player(
+            game_address, request_id, 1,
+        )
+        actual_enemies = read_bytes(
+            enemy_address, GAME_MAX_ENEMIES * GAME_ENEMY_SIZE, request_id,
+        )
+        request_id += 1
+        actual_enemy = actual_enemies[:GAME_ENEMY_SIZE]
+        if (actual_enemy[4] != 1 or actual_enemy[5] != 0 or
+                actual_enemy[0] >= 160):
+            raise RuntimeError("actual-play Stage 1 scout readback mismatch: %r" %
+                               (actual_enemy,))
+        actual_path = args.output_dir / "actual-play-stage1.png"
+        actual_png = capture(actual_path, request_id)
+        request_id += 1
+        if args.gui:
+            verify_gui_matches_headless(actual_path, actual_png)
+        actual_player_frame = verify_sprite_pixels(
+            actual_png, "player", actual_player_rect[:2], sprites,
+            actual_palette,
+        )
+        actual_scout_frame, actual_scout_origin = locate_sprite_pixels(
+            actual_png, "scout", tuple(actual_enemy[:2]), sprites,
+            actual_palette, 4,
+        )
+        evidence = {
+            "aps": "APS-050",
+            "contract": "f",
+            "mode": "gui" if args.gui else "headless",
+            "expected_pixel_source": "assets/previews/*.json (frame 0 "
+                "verbatim + anim_delta overlay for frame 1), offset by "
+                "scripts/generate-stage-data.py sprite_anchor() and drawn "
+                "at each sprite's 1x scale -- rom byte identity is "
+                "contract e (scripts/verify-sprite-rom-bytes.py).",
+            "sprite_geometry": {
+                sprite_id: {
+                    "scale": entry["scale"],
+                    "anchor": list(entry["anchor"]),
+                    "visual_size": list(sprite_size(sprites, sprite_id)),
+                }
+                for sprite_id, entry in sprites.items()
+            },
+            "actual_play": {
+                "path": actual_path.name,
+                "entry": "TITLE release/press A to Stage 1 NORMAL",
+                "stage": 1,
+                "phase": GAME_PHASE_NORMAL,
+                "player_rect": list(actual_player_rect),
+                "player_frame": actual_player_frame,
+                "enemy_slot": 0,
+                "enemy_type": int(actual_enemy[5]),
+                "enemy_sprite": "scout",
+                "enemy_rect": list(actual_enemy[:4]),
+                "enemy_frame": actual_scout_frame,
+                "enemy_rendered_origin": list(actual_scout_origin),
+                "png_sha256": hashlib.sha256(actual_png).hexdigest(),
+            },
+            "injected_paths": [],
+        }
+
+        target_hashes = {}
         for stage in range(1, 4):
             request_id = transition_and_synchronize(
-                game_address, logic_address, stage, GAME_PHASE_STAGE_INTRO,
+                game_address, logic_address, sound_address, stage,
+                GAME_PHASE_STAGE_INTRO,
                 89, GAME_PHASE_NORMAL, False, request_id,
             )
             palette = read_palette(request_id)
@@ -630,13 +961,28 @@ def main():
                     (stage, palette.hex(), bytes(palettes[stage - 1]).hex())
                 )
             normal_path = args.output_dir / ("stage%d-normal.png" % stage)
+            request_id, player_rect = read_visible_player(
+                game_address, request_id, stage,
+            )
             normal_png = capture(normal_path, request_id)
             request_id += 1
             if args.gui:
                 verify_gui_matches_headless(normal_path, normal_png)
+            player_frame = verify_sprite_pixels(
+                normal_png, "player", player_rect[:2], sprites, palette,
+            )
+            if stage == 1:
+                player_path = args.output_dir / "player.png"
+                sha256, clip_x, clip_y = write_sprite_capture(
+                    normal_png, sprite_origin(sprites, "player", player_rect[:2]),
+                    sprite_size(sprites, "player"), player_path, args.gui,
+                )
+                target_hashes["player"] = {"sha256": sha256,
+                                           "clipped_columns": clip_x,
+                                           "clipped_rows": clip_y}
 
             request_id, cast_readback = inject_and_synchronize_cast(
-                game_address, logic_address, sound_address, stage, request_id,
+                game_address, enemy_address, logic_address, sound_address, stage, request_id,
             )
             cast_palette = read_palette(request_id)
             request_id += 1
@@ -654,22 +1000,100 @@ def main():
             cast_png = capture(cast_path, request_id)
             request_id += 1
             rendered_frame = verify_cast_pixels(
-                cast_png, stage, animation_frame, cast_sprites, cast_palette,
+                cast_png, stage, animation_frame, sprites, cast_palette,
             )
             if args.gui:
                 verify_gui_matches_headless(cast_path, cast_png)
+            for slot, (_, _, sprite_id) in enumerate(CASTS[stage - 1]):
+                sprite_path = args.output_dir / (sprite_id.replace("_", "-") +
+                                                 ".png")
+                sha256, clip_x, clip_y = write_sprite_capture(
+                    cast_png, sprite_origin(sprites, sprite_id, CAST_RECTS[slot][:2]),
+                    sprite_size(sprites, sprite_id), sprite_path, args.gui,
+                )
+                target_hashes[sprite_id] = {"sha256": sha256,
+                                            "clipped_columns": clip_x,
+                                            "clipped_rows": clip_y}
 
             request_id = transition_and_synchronize(
-                game_address, logic_address, stage, GAME_PHASE_WARNING,
+                game_address, logic_address, sound_address, stage,
+                GAME_PHASE_WARNING,
                 119, GAME_PHASE_BOSS, True, request_id,
             )
             boss_path = args.output_dir / ("stage%d-boss.png" % stage)
+            request_id, boss_rect = read_active_boss(
+                game_address, stage, request_id,
+            )
             boss_png = capture(boss_path, request_id)
             request_id += 1
             if args.gui:
                 verify_gui_matches_headless(boss_path, boss_png)
-            print("stage %d NORMAL/CAST/BOSS palette OK cast=%r frame=%d" %
-                  (stage, cast_readback, rendered_frame))
+            boss_id = BOSS_TARGETS[stage - 1][0]
+            boss_frame, boss_origin = locate_sprite_pixels(
+                boss_png, boss_id, boss_rect[:2], sprites, palette, 4,
+            )
+            boss_target_path = args.output_dir / (
+                boss_id.replace("_", "-") + ".png"
+            )
+            sha256, clip_x, clip_y = write_sprite_capture(
+                boss_png, boss_origin, sprite_size(sprites, boss_id),
+                boss_target_path, args.gui,
+            )
+            assert_sprite_not_clipped(
+                sprites, boss_id, boss_rect[:2],
+                "stage %d boss at stop_x=%d" % (stage, boss_rect[0]),
+            )
+            target_hashes[boss_id] = {"sha256": sha256,
+                                      "clipped_columns": clip_x,
+                                      "clipped_rows": clip_y}
+            if clip_x != 0 or clip_y != 0:
+                raise RuntimeError(
+                    "stage %d boss stop_x=%d produced clip columns=%d rows=%d" %
+                    (stage, boss_rect[0], clip_x, clip_y)
+                )
+            print("stage %d NORMAL/CAST/BOSS palette OK player_frame=%d "
+                  "cast=%r cast_frame=%d boss_frame=%d boss_origin=%r "
+                  "boss_clipped_columns=%d boss_clipped_rows=%d" %
+                  (stage, player_frame, cast_readback, rendered_frame,
+                   boss_frame, boss_origin, clip_x, clip_y))
+            evidence["injected_paths"].append({
+                "stage": stage,
+                "normal": {
+                    "path": normal_path.name,
+                    "player_rect": list(player_rect),
+                    "player_frame": player_frame,
+                    "png_sha256": hashlib.sha256(normal_png).hexdigest(),
+                },
+                "cast": {
+                    "path": cast_path.name,
+                    "readback": [[enemy_type, list(rect)]
+                                 for enemy_type, rect in cast_readback],
+                    "animation_frame": rendered_frame,
+                    "png_sha256": hashlib.sha256(cast_png).hexdigest(),
+                },
+                "boss": {
+                    "path": boss_path.name,
+                    "appearance": boss_id,
+                    "rect": list(boss_rect),
+                    "animation_frame": boss_frame,
+                    "origin": list(boss_origin),
+                    "png_sha256": hashlib.sha256(boss_png).hexdigest(),
+                },
+            })
+        if set(target_hashes) != set(sprites):
+            raise RuntimeError("not all thirteen sprite captures were written")
+        for sprite_id in sprites:
+            entry = target_hashes[sprite_id]
+            print("capture %s sha256=%s clipped_columns=%d clipped_rows=%d" %
+                  (sprite_id, entry["sha256"], entry["clipped_columns"],
+                   entry["clipped_rows"]))
+        evidence["individual_sprite_sha256"] = target_hashes
+        metadata_name = ("runtime-sprite-gearlynx-gui.json" if args.gui else
+                         "runtime-sprite-gearlynx.json")
+        (args.output_dir / metadata_name).write_text(
+            json.dumps(evidence, indent=2, sort_keys=True) + "\n",
+            encoding="utf-8",
+        )
         return 0
     finally:
         process.terminate()

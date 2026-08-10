@@ -80,10 +80,17 @@ static void clear_game_state(GameState* game)
     unsigned char* bytes;
     unsigned int i;
 
+#ifdef __CC65__
+    bytes = (unsigned char*)&game->player;
+    for (i = 0u; i < sizeof(*game) - sizeof(game->enemies); ++i) {
+        bytes[i] = 0u;
+    }
+#else
     bytes = (unsigned char*)game;
     for (i = 0u; i < sizeof(*game); ++i) {
         bytes[i] = 0u;
     }
+#endif
 }
 
 const GameStageConfig* game_get_stage_config(unsigned char stage)
@@ -98,7 +105,7 @@ const GameEnemyFormationSlot* game_get_enemy_formation_slot(
     unsigned char formation_id, unsigned char slot)
 {
     if (formation_id >= GAME_ENEMY_FORMATION_COUNT ||
-        slot >= GAME_MAX_ENEMIES) {
+        slot >= GAME_STAGE_ACTIVE_ENEMIES) {
         return (const GameEnemyFormationSlot*)0;
     }
     return &game_enemy_formation_configs[formation_id].slots[slot];
@@ -149,7 +156,7 @@ static void clear_enemies(GameState* game)
     unsigned char i;
 
     for (i = 0u; i < GAME_MAX_ENEMIES; ++i) {
-        game->enemies[i].active = 0u;
+        game_enemy_at(game, i)->active = 0u;
     }
 }
 
@@ -208,7 +215,7 @@ static const unsigned char enemy_fire_intervals[GAME_ENEMY_TYPE_COUNT] = {
     ENEMY_MINING_DRONE_FIRE_INTERVAL
 };
 
-static unsigned char enemy_fire_interval(unsigned char type)
+unsigned char game_enemy_fire_interval(unsigned char type)
 {
     if (type >= GAME_ENEMY_TYPE_COUNT) {
         return ENEMY_MINING_DRONE_FIRE_INTERVAL;
@@ -216,7 +223,7 @@ static unsigned char enemy_fire_interval(unsigned char type)
     return enemy_fire_intervals[type];
 }
 
-static unsigned char enemy_drops_power(unsigned char type)
+unsigned char game_enemy_drops_power(unsigned char type)
 {
     return (unsigned char)(type == GAME_ENEMY_TYPE_DROPPER ||
         type == GAME_ENEMY_TYPE_SUPPLY ||
@@ -256,9 +263,7 @@ static void configure_enemy(GameEnemy* enemy, unsigned char type,
         enemy->phase = 0u;
     }
     enemy->rect.y = clamp_enemy_y(base_y);
-    enemy->fire_interval = fire_interval;
     enemy->fire_counter = (unsigned char)(fire_phase % fire_interval);
-    enemy->drops_power = enemy_drops_power(type);
 }
 
 static void reset_enemy_formation(GameState* game)
@@ -270,7 +275,7 @@ static void reset_enemy_formation(GameState* game)
     stage_config = &game_stage_configs[game->stage - 1u];
     formation = &game_enemy_formation_configs[stage_config->enemy_formation_id];
     game->respawn_sequence = 0u;
-    for (i = 0u; i < GAME_MAX_ENEMIES; ++i) {
+    for (i = 0u; i < GAME_STAGE_ACTIVE_ENEMIES; ++i) {
         const GameEnemyFormationSlot* slot_config;
 
         slot_config = &formation->slots[i];
@@ -291,9 +296,13 @@ static void respawn_enemy(GameState* game, unsigned char slot)
 
     stage_config = &game_stage_configs[game->stage - 1u];
     formation = &game_enemy_formation_configs[stage_config->enemy_formation_id];
+    if (slot >= GAME_STAGE_ACTIVE_ENEMIES) {
+        game_enemy_at(game, slot)->active = 0u;
+        return;
+    }
     game->respawn_sequence = (unsigned char)(game->respawn_sequence + 1u);
     seed = (unsigned int)game->respawn_sequence + slot;
-    enemy = &game->enemies[slot];
+    enemy = game_enemy_at(game, slot);
     enemy->rect.x = (unsigned char)(formation->respawn_x +
         (unsigned int)slot * formation->respawn_spacing);
     type = slot == 3u ? formation->fixed_type :
@@ -304,7 +313,7 @@ static void respawn_enemy(GameState* game, unsigned char slot)
         (unsigned char)(formation->respawn_min_y +
             (seed * formation->respawn_y_multiplier) %
                 formation->respawn_y_range),
-        enemy_fire_interval(type),
+        game_enemy_fire_interval(type),
         (unsigned char)((unsigned int)slot *
             formation->fire_phase_spacing));
 }
@@ -479,6 +488,16 @@ static unsigned char fire_player_bullets(GameState* game)
     return 0u;
 }
 
+static unsigned char rect_intersects_position(const GameRect* rect,
+    const GamePosition* position, unsigned char width, unsigned char height)
+{
+    return (unsigned char)(
+        (unsigned int)rect->x < (unsigned int)position->x + width &&
+        (unsigned int)rect->x + rect->width > (unsigned int)position->x &&
+        (unsigned int)rect->y < (unsigned int)position->y + height &&
+        (unsigned int)rect->y + rect->height > (unsigned int)position->y);
+}
+
 static unsigned char spawn_power_item(GameState* game,
     const GameEnemy* enemy)
 {
@@ -512,8 +531,8 @@ static unsigned char update_power_item(GameState* game)
         }
         --game->power_item.rect.x;
     }
-    if (game_aabb_intersects(&game->player,
-        &game->power_item.rect) != 0u) {
+    if (rect_intersects_position(&game->player, &game->power_item.rect,
+        GAME_POWER_ITEM_WIDTH, GAME_POWER_ITEM_HEIGHT) != 0u) {
         if (game->weapon_level < GAME_WEAPON_LEVEL_MAX) {
             ++game->weapon_level;
         }
@@ -840,8 +859,8 @@ void game_init(GameState* game)
     sound_init(&game->sound);
 
     for (i = 0u; i < GAME_MAX_ENEMIES; ++i) {
-        game->enemies[i].rect.width = GAME_ENEMY_WIDTH;
-        game->enemies[i].rect.height = GAME_ENEMY_HEIGHT;
+        game_enemy_at(game, i)->rect.width = GAME_ENEMY_WIDTH;
+        game_enemy_at(game, i)->rect.height = GAME_ENEMY_HEIGHT;
     }
     reset_enemy_formation(game);
     clear_enemies(game);
@@ -856,27 +875,17 @@ void game_init(GameState* game)
         game->enemy_bullets[i].active = 0u;
         game->enemy_bullets[i].rect.x = 0u;
         game->enemy_bullets[i].rect.y = 0u;
-        game->enemy_bullets[i].rect.width = GAME_ENEMY_BULLET_WIDTH;
-        game->enemy_bullets[i].rect.height = GAME_ENEMY_BULLET_HEIGHT;
         game->enemy_bullets[i].velocity_x = (signed char)-2;
         game->enemy_bullets[i].velocity_y = (signed char)0;
     }
     game->power_item.rect.x = 0u;
     game->power_item.rect.y = 0u;
-    game->power_item.rect.width = GAME_POWER_ITEM_WIDTH;
-    game->power_item.rect.height = GAME_POWER_ITEM_HEIGHT;
     clear_power_item(game);
     game->boss.rect.x = 0u;
     game->boss.rect.y = 0u;
     game->boss.rect.width = 0u;
     game->boss.rect.height = 0u;
     clear_boss(game);
-    for (i = 0u; i < GAME_MAX_ENVIRONMENT_OBJECTS; ++i) {
-        game->asteroids[i].rect.width = GAME_ENVIRONMENT_OBJECT_WIDTH;
-        game->asteroids[i].rect.height = GAME_ENVIRONMENT_OBJECT_HEIGHT;
-        game->falling_rocks[i].rect.width = GAME_ENVIRONMENT_OBJECT_WIDTH;
-        game->falling_rocks[i].rect.height = GAME_ENVIRONMENT_OBJECT_HEIGHT;
-    }
     reset_environment(game);
     sound_stop_all(&game->sound);
 }
@@ -891,8 +900,9 @@ void game_start(GameState* game)
 void game_title_voice_complete(GameState* game)
 {
     if (game->phase == GAME_PHASE_TITLE &&
-        game->title_voice_pending != 0u) {
-        game_start(game);
+        game->title_voice_pending == GAME_TITLE_VOICE_PENDING) {
+        game->title_voice_pending = GAME_TITLE_POST_VOICE_WAITING;
+        game->title_start_armed = GAME_TITLE_POST_VOICE_WAIT_TICKS;
     }
 }
 
@@ -919,6 +929,26 @@ unsigned char game_aabb_intersects(const GameRect* a, const GameRect* b)
         (unsigned int)a->y < (unsigned int)b->y + b->height &&
         (unsigned int)a->y + a->height > (unsigned int)b->y);
 }
+
+#ifdef GAME_COMBATANT_INSTRUMENT
+unsigned char game_active_combatant_count(const GameState* game)
+{
+    unsigned char count;
+    unsigned char i;
+
+    count = (unsigned char)(game->boss.active != 0u ?
+        GAME_BOSS_COMBATANT_WEIGHT : 0u);
+    for (i = 0u; i < GAME_MAX_ENEMIES; ++i) {
+        const GameEnemy* enemy;
+
+        enemy = game_enemy_at(game, i);
+        if (enemy->active != 0u && enemy->rect.x < GAME_SCREEN_WIDTH) {
+            count = (unsigned char)(count + GAME_NORMAL_COMBATANT_WEIGHT);
+        }
+    }
+    return count;
+}
+#endif
 
 unsigned char game_player_is_visible(const GameState* game)
 {
@@ -972,20 +1002,22 @@ static unsigned char update_player_bullets_normal(GameState* game,
             continue;
         }
         for (j = 0u; j < GAME_MAX_ENEMIES; ++j) {
+            GameEnemy* enemy;
+
             GAME_PERF_COUNT(enemy_collision_slots);
-            if (game->enemies[j].active != 0u &&
-                game->enemies[j].rect.x < GAME_SCREEN_WIDTH &&
+            enemy = game_enemy_at(game, j);
+            if (enemy->active != 0u &&
+                enemy->rect.x < GAME_SCREEN_WIDTH &&
                 hit_enemies[j] == 0u &&
                 game_aabb_intersects(&game->bullets[i].rect,
-                    &game->enemies[j].rect) != 0u) {
+                    &enemy->rect) != 0u) {
                 game->bullets[i].active = 0u;
                 game->score += 100ul;
-                if (game->enemies[j].drops_power != 0u) {
+                if (game_enemy_drops_power(enemy->type) != 0u) {
 #ifdef GAME_PERF_LEGACY_HIT_RESCAN
-                    power_item_created = spawn_power_item(game,
-                        &game->enemies[j]);
+                    power_item_created = spawn_power_item(game, enemy);
 #else
-                    if (spawn_power_item(game, &game->enemies[j]) != 0u) {
+                    if (spawn_power_item(game, enemy) != 0u) {
                         result |= PLAYER_BULLET_RESULT_POWER_ITEM;
                     } else {
                         result = (unsigned char)(result &
@@ -1159,8 +1191,10 @@ static unsigned char hit_asteroids_with_player_bullets(GameState* game,
         }
         for (j = 0u; j < GAME_MAX_ENVIRONMENT_OBJECTS; ++j) {
             if (j != new_slot && game->asteroids[j].active != 0u &&
-                game_aabb_intersects(&game->bullets[i].rect,
-                    &game->asteroids[j].rect) != 0u) {
+                rect_intersects_position(&game->bullets[i].rect,
+                    &game->asteroids[j].rect,
+                    GAME_ENVIRONMENT_OBJECT_WIDTH,
+                    GAME_ENVIRONMENT_OBJECT_HEIGHT) != 0u) {
                 game->bullets[i].active = 0u;
                 game->asteroids[j].active = 0u;
                 game->score += ASTEROID_SCORE;
@@ -1186,8 +1220,10 @@ static void update_asteroids(GameState* game, unsigned char new_slot,
             continue;
         }
         --game->asteroids[i].rect.x;
-        if (game_aabb_intersects(&game->player,
-            &game->asteroids[i].rect) != 0u) {
+        if (rect_intersects_position(&game->player,
+            &game->asteroids[i].rect,
+            GAME_ENVIRONMENT_OBJECT_WIDTH,
+            GAME_ENVIRONMENT_OBJECT_HEIGHT) != 0u) {
             game->asteroids[i].active = 0u;
             *damage = 1u;
         }
@@ -1220,7 +1256,9 @@ static void update_falling_rocks(GameState* game, unsigned char new_slot,
                 rock->rect.y = next_y > ROCK_LANDING_Y ?
                     ROCK_LANDING_Y : (unsigned char)next_y;
             }
-            if (game_aabb_intersects(&game->player, &rock->rect) != 0u) {
+            if (rect_intersects_position(&game->player, &rock->rect,
+                GAME_ENVIRONMENT_OBJECT_WIDTH,
+                GAME_ENVIRONMENT_OBJECT_HEIGHT) != 0u) {
                 *damage = 1u;
                 rock->state = GAME_ROCK_STATE_IMPACT;
                 rock->timer = GAME_ROCK_IMPACT_FRAMES;
@@ -1303,7 +1341,7 @@ static void update_normal(GameState* game, unsigned char input,
         GameEnemy* enemy;
         unsigned char interval;
 
-        enemy = &game->enemies[i];
+        enemy = game_enemy_at(game, i);
         if (enemy->active == 0u || hit_enemies[i] != 0u) {
             continue;
         }
@@ -1312,7 +1350,7 @@ static void update_normal(GameState* game, unsigned char input,
             continue;
         }
         update_enemy_movement(enemy);
-        interval = enemy->fire_interval;
+        interval = game_enemy_fire_interval(enemy->type);
         ++enemy->fire_counter;
         if (enemy->fire_counter == interval) {
             enemy->fire_counter = 0u;
@@ -1328,19 +1366,24 @@ static void update_normal(GameState* game, unsigned char input,
 
     damage = 0u;
     for (i = 0u; i < GAME_MAX_ENEMIES; ++i) {
-        if (game->enemies[i].active != 0u && hit_enemies[i] == 0u &&
-            game->enemies[i].rect.x < GAME_SCREEN_WIDTH &&
-            (game->enemies[i].rect.x == 0u ||
+        GameEnemy* enemy;
+
+        enemy = game_enemy_at(game, i);
+        if (enemy->active != 0u && hit_enemies[i] == 0u &&
+            enemy->rect.x < GAME_SCREEN_WIDTH &&
+            (enemy->rect.x == 0u ||
             game_aabb_intersects(&game->player,
-                &game->enemies[i].rect) != 0u)) {
+                &enemy->rect) != 0u)) {
             damage = 1u;
         }
     }
     for (i = 0u; i < GAME_MAX_ENEMY_BULLETS; ++i) {
         GAME_PERF_COUNT(enemy_bullet_slots);
         if (game->enemy_bullets[i].active != 0u &&
-            game_aabb_intersects(&game->player,
-                &game->enemy_bullets[i].rect) != 0u) {
+            rect_intersects_position(&game->player,
+                &game->enemy_bullets[i].rect,
+                GAME_ENEMY_BULLET_WIDTH,
+                GAME_ENEMY_BULLET_HEIGHT) != 0u) {
             game->enemy_bullets[i].active = 0u;
             damage = 1u;
         }
@@ -1416,8 +1459,10 @@ static void update_boss(GameState* game, unsigned char input,
         game_aabb_intersects(&game->player, &game->boss.rect) != 0u);
     for (i = 0u; i < GAME_MAX_ENEMY_BULLETS; ++i) {
         if (game->enemy_bullets[i].active != 0u &&
-            game_aabb_intersects(&game->player,
-                &game->enemy_bullets[i].rect) != 0u) {
+            rect_intersects_position(&game->player,
+                &game->enemy_bullets[i].rect,
+                GAME_ENEMY_BULLET_WIDTH,
+                GAME_ENEMY_BULLET_HEIGHT) != 0u) {
             game->enemy_bullets[i].active = 0u;
             damage = 1u;
         }
@@ -1450,7 +1495,7 @@ void game_update_logic(GameState* game, unsigned char input)
             game->title_start_armed = 1u;
         } else if (game->title_start_armed != 0u) {
             game->title_start_armed = 0u;
-            game->title_voice_pending = 1u;
+            game->title_voice_pending = GAME_TITLE_VOICE_PENDING;
         }
         return;
     }
@@ -1528,6 +1573,10 @@ void game_sound_tick(GameState* game)
 {
     unsigned char freeze_bgm;
 
+    if (game->title_voice_pending == GAME_TITLE_POST_VOICE_WAITING &&
+        --game->title_start_armed == 0u) {
+        game_start(game);
+    }
     freeze_bgm = game->dying;
     sound_tick(&game->sound, freeze_bgm);
 }

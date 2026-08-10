@@ -1,0 +1,10 @@
+{
+  "aps": "APS-049",
+  "contract": "e",
+  "rom_path": "/Users/mammycloud-m4/Documents/develop-m4/atari-lynx-shooter/dist/asteroid-patrol.lnx",
+  "rom_sha256": "36382798f4c289e76e42f1ed3bd4e53927a6da64946491a2277fa361ef225992",
+  "rom_size_bytes": 60078,
+  "sprite_payload_bytes": 1051,
+  "sprite_payload_offset_in_rom": 43155,
+  "sprite_payload_sha256": "4343744bce19faf4ca5b26e29d27c248626ae072aa6f709eda82b9200f04d8f5"
+}

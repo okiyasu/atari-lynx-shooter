@@ -18,7 +18,12 @@
 #define GAME_ENEMY_BULLET_HEIGHT 2u
 #define GAME_POWER_ITEM_WIDTH 4u
 #define GAME_POWER_ITEM_HEIGHT 4u
-#define GAME_MAX_ENEMIES 4u
+#define GAME_NORMAL_COMBATANT_WEIGHT 1u
+#define GAME_BOSS_COMBATANT_WEIGHT 4u
+#define GAME_COMBATANT_WEIGHT_LIMIT 8u
+#define GAME_MAX_COMBATANTS GAME_COMBATANT_WEIGHT_LIMIT
+#define GAME_MAX_ENEMIES 8u
+#define GAME_STAGE_ACTIVE_ENEMIES 4u
 #define GAME_MAX_ENEMY_BULLETS 16u
 #define GAME_WEAPON_LEVEL_MIN 1u
 #define GAME_WEAPON_LEVEL_MAX 3u
@@ -38,8 +43,18 @@
 #define GAME_NORMAL_FRAMES 1125u
 #define GAME_WARNING_FRAMES 120u
 #define GAME_STAGE_CLEAR_FRAMES 120u
+#define GAME_TITLE_POST_VOICE_WAIT_TICKS 38u
+#define GAME_DRAW_HZ 75u
+#define GAME_FRAME_INTERVAL_MIN_US 12000ul
+#define GAME_FRAME_INTERVAL_MAX_US 15000ul
 #define GAME_LOGIC_UPDATES_NUMERATOR 4u
 #define GAME_LOGIC_UPDATES_DENOMINATOR 1u
+
+#define GAME_DISPLAY_READY_WAIT(busy_expression) \
+    do { while ((busy_expression) != 0u) { } } while (0)
+
+#define GAME_TITLE_VOICE_PENDING 1u
+#define GAME_TITLE_POST_VOICE_WAITING 2u
 
 #define GAME_PHASE_STAGE_INTRO 0u
 #define GAME_PHASE_NORMAL 1u
@@ -106,13 +121,18 @@ typedef struct GameRect {
     unsigned char height;
 } GameRect;
 
+typedef struct GamePosition {
+    unsigned char x;
+    unsigned char y;
+} GamePosition;
+
 typedef struct GameBullet {
     GameRect rect;
     unsigned char active;
 } GameBullet;
 
 typedef struct GameEnemyBullet {
-    GameRect rect;
+    GamePosition rect;
     unsigned char active;
     signed char velocity_x;
     signed char velocity_y;
@@ -127,13 +147,11 @@ typedef struct GameEnemy {
     unsigned char move_counter;
     unsigned char phase;
     unsigned char direction;
-    unsigned char fire_interval;
     unsigned char fire_counter;
-    unsigned char drops_power;
 } GameEnemy;
 
 typedef struct GamePowerItem {
-    GameRect rect;
+    GamePosition rect;
     unsigned char active;
     unsigned char move_counter;
 } GamePowerItem;
@@ -153,12 +171,12 @@ typedef struct GameBoss {
 } GameBoss;
 
 typedef struct GameAsteroid {
-    GameRect rect;
+    GamePosition rect;
     unsigned char active;
 } GameAsteroid;
 
 typedef struct GameFallingRock {
-    GameRect rect;
+    GamePosition rect;
     unsigned char state;
     unsigned char timer;
 } GameFallingRock;
@@ -234,9 +252,24 @@ typedef struct GameEnvironmentConfig {
 
 #include "stage_data.h"
 
+#if GAME_STAGE_NORMAL_COMBATANT_WEIGHT != GAME_NORMAL_COMBATANT_WEIGHT
+#error Stage normal combatant weight differs from runtime contract
+#endif
+#if GAME_STAGE_BOSS_COMBATANT_WEIGHT != GAME_BOSS_COMBATANT_WEIGHT
+#error Stage boss combatant weight differs from runtime contract
+#endif
+#if GAME_STAGE_COMBATANT_LIMIT != GAME_COMBATANT_WEIGHT_LIMIT
+#error Stage combatant limit differs from runtime contract
+#endif
+
 typedef struct GameState {
+#ifdef __CC65__
+    GameEnemy* enemies;
+#endif
     GameRect player;
-    GameEnemy enemies[GAME_MAX_ENEMIES];
+#ifndef __CC65__
+    GameEnemy enemies[GAME_STAGE_ACTIVE_ENEMIES];
+#endif
     GameBullet bullets[GAME_MAX_PLAYER_BULLETS];
     GameEnemyBullet enemy_bullets[GAME_MAX_ENEMY_BULLETS];
     GamePowerItem power_item;
@@ -271,7 +304,19 @@ typedef struct GameState {
     unsigned char phase;
     unsigned int phase_timer;
     SoundState sound;
+#ifndef __CC65__
+    GameEnemy capacity_enemies[
+        GAME_MAX_ENEMIES - GAME_STAGE_ACTIVE_ENEMIES];
+#endif
 } GameState;
+
+#ifdef __CC65__
+#define game_enemy_at(game, slot) (&(game)->enemies[(slot)])
+#else
+#define game_enemy_at(game, slot) ((slot) < GAME_STAGE_ACTIVE_ENEMIES ? \
+    &(game)->enemies[(slot)] : \
+    &(game)->capacity_enemies[(slot) - GAME_STAGE_ACTIVE_ENEMIES])
+#endif
 
 #ifdef GAME_PERF_INSTRUMENT
 /* Host-only counters. Normal ROM builds do not include these or their state. */
@@ -297,6 +342,17 @@ void game_update_logic(GameState* game, unsigned char input);
 void game_sound_tick(GameState* game);
 void game_update(GameState* game, unsigned char input);
 unsigned char game_aabb_intersects(const GameRect* a, const GameRect* b);
+#ifdef GAME_COMBATANT_INSTRUMENT
+unsigned char game_active_combatant_count(const GameState* game);
+#endif
+#define game_combatant_injection_is_valid(normal_enemies, boss_active) \
+    ((unsigned char)((normal_enemies) <= GAME_MAX_ENEMIES && \
+        (boss_active) <= 1u && \
+        (normal_enemies) * GAME_NORMAL_COMBATANT_WEIGHT + \
+        (boss_active) * GAME_BOSS_COMBATANT_WEIGHT <= \
+            GAME_COMBATANT_WEIGHT_LIMIT))
+unsigned char game_enemy_fire_interval(unsigned char type);
+unsigned char game_enemy_drops_power(unsigned char type);
 unsigned char game_player_is_visible(const GameState* game);
 const GameStageConfig* game_get_stage_config(unsigned char stage);
 const GameEnemyFormationSlot* game_get_enemy_formation_slot(

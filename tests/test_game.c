@@ -54,7 +54,7 @@ static void init_normal(GameState* game)
     game_start(game);
     game->phase = GAME_PHASE_NORMAL;
     game->phase_timer = 0u;
-    for (i = 0u; i < GAME_MAX_ENEMIES; ++i) {
+    for (i = 0u; i < GAME_STAGE_ACTIVE_ENEMIES; ++i) {
         game->enemies[i].active = 1u;
     }
 }
@@ -73,17 +73,20 @@ static void disable_enemies_except(GameState* game, unsigned char slot)
     unsigned char i;
 
     for (i = 0u; i < GAME_MAX_ENEMIES; ++i) {
-        game->enemies[i].active = (unsigned char)(i == slot);
+        game_enemy_at(game, i)->active = (unsigned char)(i == slot);
     }
 }
 
 static void place_player_bullet_hit(GameState* game, unsigned char bullet,
     unsigned char enemy)
 {
+    const GameEnemy* target;
+
+    target = game_enemy_at(game, enemy);
     game->bullets[bullet].active = 1u;
     game->bullets[bullet].rect.x =
-        (unsigned char)(game->enemies[enemy].rect.x - 4u);
-    game->bullets[bullet].rect.y = game->enemies[enemy].rect.y;
+        (unsigned char)(target->rect.x - 4u);
+    game->bullets[bullet].rect.y = target->rect.y;
 }
 
 static unsigned char count_player_bullets(const GameState* game)
@@ -127,21 +130,21 @@ static void test_stage_one_configuration(void)
 {
     const GameStageConfig* stage_config;
     const GameEnemyFormationSlot* slot;
-    static const unsigned char xs[GAME_MAX_ENEMIES] = {
+    static const unsigned char xs[GAME_STAGE_ACTIVE_ENEMIES] = {
         140u, 170u, 200u, 230u
     };
-    static const unsigned char ys[GAME_MAX_ENEMIES] = {
+    static const unsigned char ys[GAME_STAGE_ACTIVE_ENEMIES] = {
         47u, 23u, 70u, 38u
     };
-    static const unsigned char types[GAME_MAX_ENEMIES] = {
+    static const unsigned char types[GAME_STAGE_ACTIVE_ENEMIES] = {
         GAME_ENEMY_TYPE_SCOUT, GAME_ENEMY_TYPE_SAUCER,
         GAME_ENEMY_TYPE_SCOUT, GAME_ENEMY_TYPE_DROPPER
     };
-    static const unsigned char patterns[GAME_MAX_ENEMIES] = {
+    static const unsigned char patterns[GAME_STAGE_ACTIVE_ENEMIES] = {
         GAME_ENEMY_PATTERN_STRAIGHT, GAME_ENEMY_PATTERN_WAVE,
         GAME_ENEMY_PATTERN_DIVE, GAME_ENEMY_PATTERN_STRAIGHT
     };
-    static const unsigned char intervals[GAME_MAX_ENEMIES] = {
+    static const unsigned char intervals[GAME_STAGE_ACTIVE_ENEMIES] = {
         90u, 60u, 90u, 75u
     };
     unsigned char i;
@@ -175,7 +178,7 @@ static void test_stage_one_configuration(void)
         stage_config->environment_id == GAME_ENVIRONMENT_ROCKFALL,
         "stage three selects CAVE formation and ROCK_GUARDIAN IDs");
 
-    for (i = 0u; i < GAME_MAX_ENEMIES; ++i) {
+    for (i = 0u; i < GAME_STAGE_ACTIVE_ENEMIES; ++i) {
         slot = game_get_enemy_formation_slot(GAME_ENEMY_FORMATION_SPACE, i);
         expect(slot != (const GameEnemyFormationSlot*)0 &&
             slot->x == xs[i] && slot->y == ys[i] &&
@@ -195,26 +198,26 @@ static void test_stage_three_configuration_and_cave_formation(void)
 {
     GameState game;
     const GameEnemyFormationSlot* slot;
-    static const unsigned char xs[GAME_MAX_ENEMIES] = {
+    static const unsigned char xs[GAME_STAGE_ACTIVE_ENEMIES] = {
         148u, 184u, 216u, 248u
     };
-    static const unsigned char ys[GAME_MAX_ENEMIES] = {
+    static const unsigned char ys[GAME_STAGE_ACTIVE_ENEMIES] = {
         22u, 72u, 44u, 82u
     };
-    static const unsigned char types[GAME_MAX_ENEMIES] = {
+    static const unsigned char types[GAME_STAGE_ACTIVE_ENEMIES] = {
         GAME_ENEMY_TYPE_CAVE_BAT, GAME_ENEMY_TYPE_ROCK_WORM,
         GAME_ENEMY_TYPE_CAVE_BAT, GAME_ENEMY_TYPE_MINING_DRONE
     };
-    static const unsigned char patterns[GAME_MAX_ENEMIES] = {
+    static const unsigned char patterns[GAME_STAGE_ACTIVE_ENEMIES] = {
         GAME_ENEMY_PATTERN_WAVE, GAME_ENEMY_PATTERN_DIVE,
         GAME_ENEMY_PATTERN_STRAIGHT, GAME_ENEMY_PATTERN_WAVE
     };
-    static const unsigned char intervals[GAME_MAX_ENEMIES] = {
+    static const unsigned char intervals[GAME_STAGE_ACTIVE_ENEMIES] = {
         66u, 84u, 66u, 78u
     };
     unsigned char i;
 
-    for (i = 0u; i < GAME_MAX_ENEMIES; ++i) {
+    for (i = 0u; i < GAME_STAGE_ACTIVE_ENEMIES; ++i) {
         slot = game_get_enemy_formation_slot(GAME_ENEMY_FORMATION_CAVE, i);
         expect(slot != (const GameEnemyFormationSlot*)0 &&
             slot->x == xs[i] && slot->y == ys[i] &&
@@ -225,19 +228,19 @@ static void test_stage_three_configuration_and_cave_formation(void)
     }
 
     init_normal_stage(&game, 3u);
-    for (i = 0u; i < GAME_MAX_ENEMIES; ++i) {
+    for (i = 0u; i < GAME_STAGE_ACTIVE_ENEMIES; ++i) {
         expect(game.enemies[i].rect.x == xs[i] &&
             game.enemies[i].rect.y == ys[i] &&
             game.enemies[i].type == types[i] &&
             game.enemies[i].pattern == patterns[i] &&
-            game.enemies[i].fire_interval == intervals[i] &&
+            game_enemy_fire_interval(game.enemies[i].type) == intervals[i] &&
             game.enemies[i].fire_counter == (unsigned char)(i * 16u),
             "stage three normal entry initializes the CAVE formation");
     }
-    expect(game.enemies[0].drops_power == 0u &&
-        game.enemies[1].drops_power == 0u &&
-        game.enemies[2].drops_power == 0u &&
-        game.enemies[3].drops_power != 0u,
+    expect(game_enemy_drops_power(game.enemies[0].type) == 0u &&
+        game_enemy_drops_power(game.enemies[1].type) == 0u &&
+        game_enemy_drops_power(game.enemies[2].type) == 0u &&
+        game_enemy_drops_power(game.enemies[3].type) != 0u,
         "only the initial MINING_DRONE carries power-drop capability");
     game_update(&game, 0u);
     expect(game.enemies[0].rect.x == 147u &&
@@ -284,26 +287,26 @@ static void test_stage_two_configuration_and_air_formation(void)
 {
     GameState game;
     const GameEnemyFormationSlot* slot;
-    static const unsigned char xs[GAME_MAX_ENEMIES] = {
+    static const unsigned char xs[GAME_STAGE_ACTIVE_ENEMIES] = {
         144u, 180u, 212u, 244u
     };
-    static const unsigned char ys[GAME_MAX_ENEMIES] = {
+    static const unsigned char ys[GAME_STAGE_ACTIVE_ENEMIES] = {
         24u, 64u, 42u, 78u
     };
-    static const unsigned char types[GAME_MAX_ENEMIES] = {
+    static const unsigned char types[GAME_STAGE_ACTIVE_ENEMIES] = {
         GAME_ENEMY_TYPE_FIGHTER, GAME_ENEMY_TYPE_BOMBER,
         GAME_ENEMY_TYPE_FIGHTER, GAME_ENEMY_TYPE_SUPPLY
     };
-    static const unsigned char patterns[GAME_MAX_ENEMIES] = {
+    static const unsigned char patterns[GAME_STAGE_ACTIVE_ENEMIES] = {
         GAME_ENEMY_PATTERN_STRAIGHT, GAME_ENEMY_PATTERN_WAVE,
         GAME_ENEMY_PATTERN_DIVE, GAME_ENEMY_PATTERN_WAVE
     };
-    static const unsigned char intervals[GAME_MAX_ENEMIES] = {
+    static const unsigned char intervals[GAME_STAGE_ACTIVE_ENEMIES] = {
         72u, 96u, 72u, 84u
     };
     unsigned char i;
 
-    for (i = 0u; i < GAME_MAX_ENEMIES; ++i) {
+    for (i = 0u; i < GAME_STAGE_ACTIVE_ENEMIES; ++i) {
         slot = game_get_enemy_formation_slot(GAME_ENEMY_FORMATION_AIR, i);
         expect(slot != (const GameEnemyFormationSlot*)0 &&
             slot->x == xs[i] && slot->y == ys[i] &&
@@ -314,19 +317,19 @@ static void test_stage_two_configuration_and_air_formation(void)
     }
 
     init_normal_stage(&game, 2u);
-    for (i = 0u; i < GAME_MAX_ENEMIES; ++i) {
+    for (i = 0u; i < GAME_STAGE_ACTIVE_ENEMIES; ++i) {
         expect(game.enemies[i].rect.x == xs[i] &&
             game.enemies[i].rect.y == ys[i] &&
             game.enemies[i].type == types[i] &&
             game.enemies[i].pattern == patterns[i] &&
-            game.enemies[i].fire_interval == intervals[i] &&
+            game_enemy_fire_interval(game.enemies[i].type) == intervals[i] &&
             game.enemies[i].fire_counter == (unsigned char)(i * 18u),
             "stage two normal entry initializes the AIR formation");
     }
-    expect(game.enemies[0].drops_power == 0u &&
-        game.enemies[1].drops_power == 0u &&
-        game.enemies[2].drops_power == 0u &&
-        game.enemies[3].drops_power != 0u,
+    expect(game_enemy_drops_power(game.enemies[0].type) == 0u &&
+        game_enemy_drops_power(game.enemies[1].type) == 0u &&
+        game_enemy_drops_power(game.enemies[2].type) == 0u &&
+        game_enemy_drops_power(game.enemies[3].type) != 0u,
         "only the initial SUPPLY slot carries power-drop capability");
 
     game_update(&game, 0u);
@@ -385,7 +388,7 @@ static void test_stage_two_background_scroll(void)
     game.near_star_offset = 55u;
     game.near_star_counter = 1u;
     for (i = 1u; i < GAME_MAX_ENEMIES; ++i) {
-        game.enemies[i].active = 0u;
+        game_enemy_at(&game, i)->active = 0u;
     }
     game.enemies[0].rect.x = game.player.x;
     game.enemies[0].rect.y = game.player.y;
@@ -407,10 +410,10 @@ static void test_stage_two_background_scroll(void)
 static void test_initial_state(void)
 {
     GameState game;
-    static const unsigned char xs[GAME_MAX_ENEMIES] = {
+    static const unsigned char xs[GAME_STAGE_ACTIVE_ENEMIES] = {
         140u, 170u, 200u, 230u
     };
-    static const unsigned char ys[GAME_MAX_ENEMIES] = {
+    static const unsigned char ys[GAME_STAGE_ACTIVE_ENEMIES] = {
         47u, 23u, 70u, 38u
     };
     unsigned char i;
@@ -420,18 +423,16 @@ static void test_initial_state(void)
         "player starts at the fixed position");
     expect(game.lives == 3u && game.score == 0ul && game.game_over == 0u,
         "score lives and game over start clean");
-    expect(GAME_MAX_ENEMIES == 4u && GAME_MAX_ENEMY_BULLETS == 16u &&
+    expect(GAME_MAX_ENEMIES == 8u && GAME_MAX_COMBATANTS == 8u &&
+        GAME_MAX_ENEMY_BULLETS == 16u &&
         GAME_MAX_PLAYER_BULLETS == 12u,
         "all projectile and enemy arrays have fixed requested capacities");
-    for (i = 0u; i < GAME_MAX_ENEMIES; ++i) {
+    for (i = 0u; i < GAME_STAGE_ACTIVE_ENEMIES; ++i) {
         expect(game.enemies[i].active != 0u,
             "all initial enemy slots are active");
         expect(game.enemies[i].rect.x == xs[i] &&
             game.enemies[i].rect.y == ys[i],
             "initial enemy coordinates match formation");
-        expect(game.enemies[i].rect.width == GAME_ENEMY_WIDTH &&
-            game.enemies[i].rect.height == GAME_ENEMY_HEIGHT,
-            "enemy rectangle dimensions are initialized");
         expect(game.enemies[i].type == (i == 3u ?
             GAME_ENEMY_TYPE_DROPPER : (unsigned char)(i % 2u)) &&
             game.enemies[i].pattern == (unsigned char)(i % 3u),
@@ -445,12 +446,19 @@ static void test_initial_state(void)
                 (game.enemies[i].type == GAME_ENEMY_TYPE_SAUCER ?
                     60u : 75u))),
             "enemy fire counter has the slot phase");
-        expect(game.enemies[i].fire_interval ==
+        expect(game_enemy_fire_interval(game.enemies[i].type) ==
             (game.enemies[i].type == GAME_ENEMY_TYPE_SCOUT ? 90u :
                 (game.enemies[i].type == GAME_ENEMY_TYPE_SAUCER ?
                     60u : 75u)),
             "enemy stores its SPACE formation fire interval");
     }
+    for (i = GAME_STAGE_ACTIVE_ENEMIES; i < GAME_MAX_ENEMIES; ++i) {
+        expect(game_enemy_at(&game, i)->active == 0u,
+            "stage entry leaves capacity-only enemy slots inactive");
+    }
+    expect(sizeof(GameEnemy) == 12u && sizeof(GameBullet) == 5u &&
+        sizeof(GameEnemyBullet) == 5u && sizeof(GamePowerItem) == 4u,
+        "fixed-size combat objects omit derived collision dimensions");
     expect(game.enemies[0].phase == 0u && game.enemies[1].phase == 6u &&
         game.enemies[2].phase == 0u && game.enemies[3].phase == 0u,
         "movement phases match straight wave and dive starts");
@@ -458,9 +466,6 @@ static void test_initial_state(void)
         game.power_item.active == 0u &&
         game.power_item.move_counter == 0u,
         "weapon and power item start at clean values");
-    expect(game.power_item.rect.width == GAME_POWER_ITEM_WIDTH &&
-        game.power_item.rect.height == GAME_POWER_ITEM_HEIGHT,
-        "power item rectangle dimensions are initialized");
     expect(game.planet_offset == 0u && game.planet_counter == 0u &&
         game.far_star_offset == 0u && game.far_star_counter == 0u &&
         game.near_star_offset == 0u && game.near_star_counter == 0u,
@@ -469,16 +474,12 @@ static void test_initial_state(void)
         GAME_PLANET_SCROLL_PERIOD == 192u,
         "planet scrolling constants expose the fixed cadence and period");
     for (i = 0u; i < GAME_MAX_PLAYER_BULLETS; ++i) {
-        expect(game.bullets[i].active == 0u &&
-            game.bullets[i].rect.width == GAME_PLAYER_BULLET_WIDTH &&
-            game.bullets[i].rect.height == GAME_PLAYER_BULLET_HEIGHT,
-            "all player bullets start inactive with fixed dimensions");
+        expect(game.bullets[i].active == 0u,
+            "all player bullets start inactive");
     }
     for (i = 0u; i < GAME_MAX_ENEMY_BULLETS; ++i) {
-        expect(game.enemy_bullets[i].active == 0u &&
-            game.enemy_bullets[i].rect.width == 2u &&
-            game.enemy_bullets[i].rect.height == 2u,
-            "all enemy bullets start inactive with fixed dimensions");
+        expect(game.enemy_bullets[i].active == 0u,
+            "all enemy bullets start inactive");
     }
 }
 
@@ -486,6 +487,8 @@ static void test_boot_initialization_and_intro_input(void)
 {
     GameState first;
     GameState second;
+    unsigned char frame;
+    unsigned char update;
 
     memset(&first, 0x00, sizeof(first));
     memset(&second, 0xff, sizeof(second));
@@ -525,12 +528,55 @@ static void test_boot_initialization_and_intro_input(void)
         count_player_bullets(&first) == 0u,
         "held title fire cannot restart or skip queued voice");
     game_title_voice_complete(&first);
-    expect(first.phase == GAME_PHASE_STAGE_INTRO &&
-        first.title_voice_pending == 0u && first.phase_timer == 0u,
-        "voice completion starts intro exactly once");
+    expect(first.phase == GAME_PHASE_TITLE &&
+        first.title_voice_pending == GAME_TITLE_POST_VOICE_WAITING &&
+        first.title_start_armed == GAME_TITLE_POST_VOICE_WAIT_TICKS &&
+        first.phase_timer == 0u &&
+        first.sound.bgm_active == 0u,
+        "voice completion enters the silent 38 tick title wait");
     game_title_voice_complete(&first);
+    expect(first.phase == GAME_PHASE_TITLE &&
+        first.title_voice_pending == GAME_TITLE_POST_VOICE_WAITING &&
+        first.title_start_armed == GAME_TITLE_POST_VOICE_WAIT_TICKS &&
+        first.sound.bgm_active == 0u,
+        "duplicate voice completion cannot consume or restart the wait");
+    for (frame = 0u; frame < GAME_TITLE_POST_VOICE_WAIT_TICKS - 1u;
+        ++frame) {
+        for (update = 0u; update < GAME_LOGIC_UPDATES_NUMERATOR; ++update) {
+            game_update_logic(&first, GAME_INPUT_FIRE | GAME_INPUT_RIGHT);
+        }
+        game_sound_tick(&first);
+        expect(first.phase == GAME_PHASE_TITLE &&
+            first.title_start_armed ==
+                GAME_TITLE_POST_VOICE_WAIT_TICKS - frame - 1u &&
+            first.title_voice_pending == GAME_TITLE_POST_VOICE_WAITING &&
+            first.phase_timer == 0u &&
+            first.score == 0ul && first.player.x == 10u &&
+            first.player.y == 48u && first.enemies[0].active == 0u &&
+            first.enemies[1].active == 0u &&
+            first.enemies[2].active == 0u &&
+            first.enemies[3].active == 0u &&
+            count_player_bullets(&first) == 0u &&
+            count_enemy_bullets(&first) == 0u &&
+            first.sound.bgm_active == 0u &&
+            first.sound.output_bgm.active == 0u,
+            "the first 37 outer ticks freeze title gameplay BGM and FIRE");
+    }
+    for (update = 0u; update < GAME_LOGIC_UPDATES_NUMERATOR; ++update) {
+        game_update_logic(&first, GAME_INPUT_FIRE | GAME_INPUT_RIGHT);
+    }
+    expect(first.phase == GAME_PHASE_TITLE &&
+        first.title_start_armed == 1u && first.phase_timer == 0u &&
+        first.sound.bgm_active == 0u,
+        "four 300Hz logic updates cannot consume the final title wait tick");
+    game_sound_tick(&first);
+    expect(first.phase == GAME_PHASE_STAGE_INTRO &&
+        first.title_voice_pending == 0u && first.phase_timer == 0u &&
+        first.sound.bgm_active != 0u,
+        "the 38th outer tick starts intro and Stage 1 BGM exactly once");
+    game_sound_tick(&first);
     expect(first.phase == GAME_PHASE_STAGE_INTRO && first.phase_timer == 0u,
-        "duplicate voice completion cannot restart the intro");
+        "a later outer tick cannot restart the intro");
     game_update(&first, GAME_INPUT_FIRE | GAME_INPUT_RIGHT);
     expect(first.phase == GAME_PHASE_STAGE_INTRO && first.phase_timer == 1u &&
         first.player.x == 10u && first.player.y == 48u &&
@@ -972,7 +1018,7 @@ static void test_enemy_fire(void)
 
     init_normal(&game);
     for (i = 0u; i < GAME_MAX_ENEMIES; ++i) {
-        game.enemies[i].active = 0u;
+        game_enemy_at(&game, i)->active = 0u;
     }
     game.enemy_bullets[0].active = 1u;
     game.enemy_bullets[0].rect.x = 4u;
@@ -1132,8 +1178,8 @@ static void test_air_respawn_and_supply_drop(void)
         game.enemies[0].base_y == 33u &&
         game.enemies[0].type == GAME_ENEMY_TYPE_BOMBER &&
         game.enemies[0].pattern == GAME_ENEMY_PATTERN_WAVE &&
-        game.enemies[0].fire_interval == 96u &&
-        game.enemies[0].drops_power == 0u,
+        game_enemy_fire_interval(game.enemies[0].type) == 96u &&
+        game_enemy_drops_power(game.enemies[0].type) == 0u,
         "AIR slot zero uses its x y type movement and no-drop respawn formula");
 
     game.enemies[0].rect.x = 100u;
@@ -1144,7 +1190,7 @@ static void test_air_respawn_and_supply_drop(void)
         game.enemies[0].base_y == 52u &&
         game.enemies[0].type == GAME_ENEMY_TYPE_FIGHTER &&
         game.enemies[0].pattern == GAME_ENEMY_PATTERN_DIVE &&
-        game.enemies[0].fire_interval == 72u,
+        game_enemy_fire_interval(game.enemies[0].type) == 72u,
         "AIR ordinary slots cycle FIGHTER BOMBER and three movements");
 
     init_normal_stage(&game, 2u);
@@ -1159,14 +1205,14 @@ static void test_air_respawn_and_supply_drop(void)
         game.enemies[3].type == GAME_ENEMY_TYPE_SUPPLY &&
         game.enemies[3].base_y == 14u &&
         game.enemies[3].pattern == GAME_ENEMY_PATTERN_WAVE &&
-        game.enemies[3].fire_interval == 84u &&
+        game_enemy_fire_interval(game.enemies[3].type) == 84u &&
         game.enemies[3].fire_counter == 54u &&
-        game.enemies[3].drops_power != 0u,
+        game_enemy_drops_power(game.enemies[3].type) != 0u,
         "AIR slot three remains SUPPLY and alone creates the power item");
 
     init_normal(&game);
     expect(game.enemies[3].type == GAME_ENEMY_TYPE_DROPPER &&
-        game.enemies[3].drops_power != 0u,
+        game_enemy_drops_power(game.enemies[3].type) != 0u,
         "stage one Dropper retains data-driven power-drop capability");
 }
 
@@ -1185,8 +1231,8 @@ static void test_cave_respawn_and_drone_drop(void)
         game.enemies[0].base_y == 39u &&
         game.enemies[0].type == GAME_ENEMY_TYPE_ROCK_WORM &&
         game.enemies[0].pattern == GAME_ENEMY_PATTERN_WAVE &&
-        game.enemies[0].fire_interval == 84u &&
-        game.enemies[0].drops_power == 0u,
+        game_enemy_fire_interval(game.enemies[0].type) == 84u &&
+        game_enemy_drops_power(game.enemies[0].type) == 0u,
         "CAVE slot zero uses its first deterministic respawn formula");
 
     game.enemies[0].rect.x = 100u;
@@ -1197,7 +1243,7 @@ static void test_cave_respawn_and_drone_drop(void)
         game.enemies[0].base_y == 62u &&
         game.enemies[0].type == GAME_ENEMY_TYPE_CAVE_BAT &&
         game.enemies[0].pattern == GAME_ENEMY_PATTERN_DIVE &&
-        game.enemies[0].fire_interval == 66u,
+        game_enemy_fire_interval(game.enemies[0].type) == 66u,
         "CAVE ordinary slots cycle BAT WORM and three movements");
 
     init_normal_stage(&game, 3u);
@@ -1215,18 +1261,18 @@ static void test_cave_respawn_and_drone_drop(void)
     expect(game.enemies[3].base_y == 34u &&
         game.enemies[3].pattern == GAME_ENEMY_PATTERN_WAVE,
         "CAVE slot three uses deterministic y and movement");
-    expect(game.enemies[3].fire_interval == 78u &&
+    expect(game_enemy_fire_interval(game.enemies[3].type) == 78u &&
         game.enemies[3].fire_counter == 48u &&
-        game.enemies[3].drops_power != 0u,
+        game_enemy_drops_power(game.enemies[3].type) != 0u,
         "respawned MINING_DRONE keeps fire phase and drop capability");
 
     init_normal(&game);
     expect(game.enemies[3].type == GAME_ENEMY_TYPE_DROPPER &&
-        game.enemies[3].drops_power != 0u,
+        game_enemy_drops_power(game.enemies[3].type) != 0u,
         "CAVE integration preserves stage one Dropper power drops");
     init_normal_stage(&game, 2u);
     expect(game.enemies[3].type == GAME_ENEMY_TYPE_SUPPLY &&
-        game.enemies[3].drops_power != 0u,
+        game_enemy_drops_power(game.enemies[3].type) != 0u,
         "CAVE integration preserves stage two SUPPLY power drops");
 }
 
@@ -1274,16 +1320,14 @@ static int frozen_state_matches(const GameState* game,
         const GameEnemy* a;
         const GameEnemy* b;
 
-        a = &game->enemies[i];
-        b = &frozen->enemies[i];
+        a = game_enemy_at(game, i);
+        b = game_enemy_at(frozen, i);
         if (a->rect.x != b->rect.x || a->rect.y != b->rect.y ||
             a->active != b->active || a->type != b->type ||
             a->pattern != b->pattern || a->base_y != b->base_y ||
             a->move_counter != b->move_counter || a->phase != b->phase ||
             a->direction != b->direction ||
-            a->fire_interval != b->fire_interval ||
-            a->fire_counter != b->fire_counter ||
-            a->drops_power != b->drops_power) {
+            a->fire_counter != b->fire_counter) {
             return 0;
         }
     }
@@ -1614,9 +1658,16 @@ static void test_game_over_and_restart(void)
         game.lives == 3u && game.score == 0ul,
         "a title fire press queues restart voice");
     game_title_voice_complete(&game);
+    expect(game.phase == GAME_PHASE_TITLE && game.game_over == 0u &&
+        game.title_voice_pending == GAME_TITLE_POST_VOICE_WAITING &&
+        game.title_start_armed == GAME_TITLE_POST_VOICE_WAIT_TICKS,
+        "restart voice completion enters the title wait");
+    for (i = 0u; i < GAME_TITLE_POST_VOICE_WAIT_TICKS; ++i) {
+        game_sound_tick(&game);
+    }
     expect(game.phase == GAME_PHASE_STAGE_INTRO && game.game_over == 0u &&
-        game.title_voice_pending == 0u,
-        "restart voice completion performs complete restart");
+        game.title_voice_pending == 0u && game.sound.bgm_active != 0u,
+        "restart wait completion performs complete restart");
     expect(game.player.x == 10u && game.player.y == 48u &&
         game.respawn_sequence == 0u && game.fire_cooldown == 0u,
         "title restart restores player sequence and cooldown");
@@ -1668,7 +1719,7 @@ static void test_stage_phase_machine(void)
         game.phase_timer == GAME_STAGE_INTRO_FRAMES - 1u,
         "intro remains active immediately before update ninety");
     for (i = 0u; i < GAME_MAX_ENEMIES; ++i) {
-        expect(game.enemies[i].active == 0u,
+        expect(game_enemy_at(&game, i)->active == 0u,
             "intro keeps every normal enemy inactive");
     }
     game_update(&game, GAME_INPUT_FIRE);
@@ -1677,8 +1728,9 @@ static void test_stage_phase_machine(void)
     expect(count_player_bullets(&game) == 0u,
         "intro transition fire input does not create a player bullet");
     for (i = 0u; i < GAME_MAX_ENEMIES; ++i) {
-        expect(game.enemies[i].active != 0u,
-            "normal entry initializes every enemy slot");
+        expect(game_enemy_at(&game, i)->active ==
+            (unsigned char)(i < GAME_STAGE_ACTIVE_ENEMIES),
+            "normal entry activates four authored slots within capacity eight");
     }
 
     game.phase_timer = GAME_NORMAL_FRAMES - 2u;
@@ -1697,7 +1749,7 @@ static void test_stage_phase_machine(void)
         game.power_item.active == 0u && game.boss.active == 0u,
         "normal boundary clears bullets item and boss state");
     for (i = 0u; i < GAME_MAX_ENEMIES; ++i) {
-        expect(game.enemies[i].active == 0u,
+        expect(game_enemy_at(&game, i)->active == 0u,
             "warning entry clears every normal enemy");
     }
 
@@ -2376,7 +2428,7 @@ static void test_stage_one_asteroids(void)
     game.enemies[0].active = 1u;
     game.enemies[0].rect.x = 50u;
     game.enemies[0].rect.y = 40u;
-    game.enemies[0].drops_power = 0u;
+    game.enemies[0].type = GAME_ENEMY_TYPE_SCOUT;
     game.asteroids[0].active = 1u;
     game.asteroids[0].rect.x = 50u;
     game.asteroids[0].rect.y = 40u;
@@ -2666,11 +2718,8 @@ static void test_environment_phase_boundaries_and_restart(void)
     game_start(&game);
     for (i = 0u; i < GAME_MAX_ENVIRONMENT_OBJECTS; ++i) {
         expect(game.asteroids[i].active == 0u &&
-            game.falling_rocks[i].state == GAME_ROCK_STATE_INACTIVE &&
-            game.asteroids[i].rect.width == GAME_ENVIRONMENT_OBJECT_WIDTH &&
-            game.falling_rocks[i].rect.height ==
-                GAME_ENVIRONMENT_OBJECT_HEIGHT,
-            "game init clears dedicated bounded slots and preserves dimensions");
+            game.falling_rocks[i].state == GAME_ROCK_STATE_INACTIVE,
+            "game init clears dedicated bounded slots");
     }
     expect(game.environment_event_cursor == 0u &&
         game.wind.state == GAME_WIND_STATE_INACTIVE,
@@ -2740,7 +2789,7 @@ static void test_all_clear_restart(void)
         count_enemy_bullets(&game) == 0u && game.boss.active == 0u,
         "all clear restart resets background bullets and boss without firing");
     for (i = 0u; i < GAME_MAX_ENEMIES; ++i) {
-        expect(game.enemies[i].active == 0u,
+        expect(game_enemy_at(&game, i)->active == 0u,
             "all clear restart keeps normal enemies clear during intro");
     }
 }
@@ -2748,6 +2797,99 @@ static void test_all_clear_restart(void)
 static void reset_game_sound(GameState* game)
 {
     sound_set_stage(&game->sound, game->stage);
+}
+
+static void test_combatant_capacity_and_activity_contract(void)
+{
+    GameState game;
+    GameEnemy template_enemy;
+    unsigned char i;
+
+    init_normal(&game);
+    template_enemy = game.enemies[0];
+    disable_enemies_except(&game, GAME_MAX_ENEMIES);
+    expect(game_active_combatant_count(&game) == 0u,
+        "activity count reports zero visible combatants");
+    game.enemies[0] = template_enemy;
+    game.enemies[0].active = 1u;
+    game.enemies[0].rect.x = 80u;
+    expect(game_active_combatant_count(&game) == 1u,
+        "activity count reports one visible normal enemy");
+    for (i = 0u; i < GAME_STAGE_ACTIVE_ENEMIES; ++i) {
+        game.enemies[i] = template_enemy;
+        game.enemies[i].active = 1u;
+        game.enemies[i].rect.x = (unsigned char)(80u + i);
+    }
+    expect(game_active_combatant_count(&game) == 4u,
+        "activity count reports the authored four-enemy baseline");
+    for (i = 0u; i < GAME_MAX_ENEMIES; ++i) {
+        *game_enemy_at(&game, i) = template_enemy;
+        game_enemy_at(&game, i)->active = 1u;
+        game_enemy_at(&game, i)->rect.x = (unsigned char)(80u + i);
+        game_enemy_at(&game, i)->rect.y = 80u;
+        game_enemy_at(&game, i)->base_y = 80u;
+    }
+    expect(game_active_combatant_count(&game) == 8u,
+        "activity count accepts all eight visible normal enemies");
+    game_enemy_at(&game, 7u)->rect.x = GAME_SCREEN_WIDTH;
+    expect(game_active_combatant_count(&game) == 7u,
+        "pre-spawn enemy slots do not count as active combatants");
+    game_enemy_at(&game, 7u)->rect.x = 115u;
+
+    expect(game_combatant_injection_is_valid(8u, 0u) != 0u &&
+        game_combatant_injection_is_valid(4u, 1u) != 0u &&
+        game_combatant_injection_is_valid(5u, 1u) == 0u &&
+        game_combatant_injection_is_valid(8u, 1u) == 0u &&
+        game_combatant_injection_is_valid(9u, 0u) == 0u &&
+        game_combatant_injection_is_valid(0u, 2u) == 0u,
+        "combatant injection enforces normal weight one boss weight four and limit eight");
+
+    game_enemy_at(&game, 7u)->type = GAME_ENEMY_TYPE_DROPPER;
+    place_player_bullet_hit(&game, 0u, 7u);
+    game_update(&game, 0u);
+    expect(game.score == 100ul && game.power_item.active != 0u &&
+        game_enemy_at(&game, 7u)->active == 0u &&
+        game_active_combatant_count(&game) == 7u,
+        "slot seven collision score and drop complete before injection-only retirement");
+
+    init_normal(&game);
+    template_enemy = game.enemies[0];
+    for (i = 0u; i < GAME_MAX_ENEMIES; ++i) {
+        *game_enemy_at(&game, i) = template_enemy;
+        game_enemy_at(&game, i)->active = 1u;
+        game_enemy_at(&game, i)->rect.x = (unsigned char)(100u + i);
+        game_enemy_at(&game, i)->rect.y = 80u;
+        game_enemy_at(&game, i)->base_y = 80u;
+        game_enemy_at(&game, i)->fire_counter = 89u;
+    }
+    game_update(&game, GAME_INPUT_FIRE);
+    expect(count_enemy_bullets(&game) == 8u &&
+        count_player_bullets(&game) == 1u &&
+        game_active_combatant_count(&game) == 8u,
+        "eight active enemies update and fire while player input remains sampled once");
+
+    game.phase_timer = GAME_NORMAL_FRAMES - 1u;
+    game_update(&game, 0u);
+    expect(game.phase == GAME_PHASE_WARNING &&
+        game_active_combatant_count(&game) == 0u,
+        "normal phase boundary clears all eight capacity slots");
+    enter_boss(&game, 1u);
+    expect(game_active_combatant_count(&game) == 4u &&
+        game.boss.active != 0u,
+        "boss phase reports its weighted combatant value of four");
+
+    for (i = 0u; i < GAME_STAGE_ACTIVE_ENEMIES; ++i) {
+        *game_enemy_at(&game, i) = template_enemy;
+        game_enemy_at(&game, i)->active = 1u;
+        game_enemy_at(&game, i)->rect.x = (unsigned char)(80u + i);
+    }
+    expect(game_active_combatant_count(&game) == 8u,
+        "four visible normal enemies plus one boss fill weighted limit eight");
+    *game_enemy_at(&game, GAME_STAGE_ACTIVE_ENEMIES) = template_enemy;
+    game_enemy_at(&game, GAME_STAGE_ACTIVE_ENEMIES)->active = 1u;
+    game_enemy_at(&game, GAME_STAGE_ACTIVE_ENEMIES)->rect.x = 90u;
+    expect(game_active_combatant_count(&game) == 9u,
+        "five visible normal enemies plus one boss report weighted nine");
 }
 
 static void test_draw_frame_logic_scheduler(void)
@@ -3205,6 +3347,7 @@ int main(void)
     test_stage_three_rockfall();
     test_environment_phase_boundaries_and_restart();
     test_all_clear_restart();
+    test_combatant_capacity_and_activity_contract();
     test_draw_frame_logic_scheduler();
     test_sound_initial_phase_and_fire_integration();
     test_sound_enemy_asteroid_and_power_integration();

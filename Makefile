@@ -7,7 +7,8 @@ CC65_HOME := $(TOOLCHAIN_ROOT)/share/cc65
 export CC65_HOME
 HOST_CC ?= clang
 GEN_DIR := build/gen
-HOST_CFLAGS := -std=c89 -pedantic -Wall -Wextra -Werror -Iinclude -I$(GEN_DIR)
+HOST_CFLAGS := -std=c89 -pedantic -Wall -Wextra -Werror \
+	-DGAME_COMBATANT_INSTRUMENT -Iinclude -I$(GEN_DIR)
 ROM_CFLAGS := -t lynx -Oirs --standard cc65 -W error -Iinclude -I$(GEN_DIR)
 ROM := dist/asteroid-patrol.lnx
 ROM_OBJECTS := build/cart_directory.o build/main.o build/game.o build/sound.o \
@@ -18,7 +19,7 @@ MUSIC_DATA := $(GEN_DIR)/music_data.c
 STAGE_INPUT := assets/stages/stages.json
 STAGE_GENERATOR := scripts/generate-stage-data.py
 STAGE_GOLDEN := tests/golden/stage-data-v034.json
-SPRITE_GOLDEN := tests/golden/sprite-data-v040.json
+SPRITE_GOLDEN := tests/golden/sprite-data-v050.json
 STAGE_STAMP := $(GEN_DIR)/.stage-data.stamp
 STAGE_DATA := $(GEN_DIR)/stage_data.c $(GEN_DIR)/stage_data.h \
 	$(GEN_DIR)/sprite_data.c $(GEN_DIR)/sprite_data.h
@@ -35,7 +36,8 @@ PERF_WORKLOAD_FRAMES := 5000000
 PERF_PAIR_COUNT := 7
 
 .PHONY: all toolchain rom clean test stage-check smoke-host smoke-gearlynx \
-	perf-host lint verify inspect voice-generate voice-generate-game-over voice-check
+	perf-host frame-cadence-gearlynx lint verify inspect voice-generate \
+	voice-generate-game-over voice-check
 
 all: verify
 
@@ -174,6 +176,10 @@ perf-host: build/perf-bench build/perf-bench-legacy build/test-game-legacy
 
 smoke-gearlynx: $(ROM)
 	./scripts/smoke-gearlynx.sh $(ROM) build/asteroid-patrol.lbl
+
+frame-cadence-gearlynx: $(ROM)
+	./scripts/verify-frame-pacing-gearlynx.py \
+		--output evidence/APS-049/frame-cadence-gearlynx.json
 
 build/test-game: tests/test_game.c src/game.c src/sound.c $(MUSIC_DATA) \
 		$(GEN_DIR)/stage_data.c $(GEN_DIR)/stage_data.h include/game.h include/sound.h

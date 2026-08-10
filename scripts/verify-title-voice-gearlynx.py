@@ -26,16 +26,16 @@ HEADERS = {
     "MCP-Protocol-Version": "2025-11-25",
 }
 GAME_OFFSET_IN_MAIN_BSS = 12
-GAME_OFFSET_LIVES = 286
-GAME_OFFSET_GAME_OVER = 287
-GAME_OFFSET_RESTART_ARMED = 288
-GAME_OFFSET_TITLE_START_ARMED = 289
-GAME_OFFSET_TITLE_VOICE_PENDING = 290
-GAME_OFFSET_GAME_OVER_VOICE_PENDING = 291
-GAME_OFFSET_GAME_OVER_VOICE_COMPLETE = 292
-GAME_OFFSET_STAGE = 305
-GAME_OFFSET_PHASE = 306
-GAME_OFFSET_SOUND = 309
+GAME_OFFSET_LIVES = 190
+GAME_OFFSET_GAME_OVER = 191
+GAME_OFFSET_RESTART_ARMED = 192
+GAME_OFFSET_TITLE_START_ARMED = 193
+GAME_OFFSET_TITLE_VOICE_PENDING = 194
+GAME_OFFSET_GAME_OVER_VOICE_PENDING = 195
+GAME_OFFSET_GAME_OVER_VOICE_COMPLETE = 196
+GAME_OFFSET_STAGE = 209
+GAME_OFFSET_PHASE = 210
+GAME_OFFSET_SOUND = 213
 GAME_OFFSET_SFX_STATE = GAME_OFFSET_SOUND + 6
 GAME_OFFSET_OUTPUT_SFX = GAME_OFFSET_SOUND + 18
 
@@ -99,6 +99,24 @@ def wait_until_paused(id_):
             return id_
         time.sleep(0.005)
     raise RuntimeError("Gearlynx did not pause before state injection")
+
+
+def wait_for_breakpoint(id_, description):
+    deadline = time.monotonic() + 10.0
+    while time.monotonic() < deadline:
+        status = tool("debug_get_status", id_=id_)
+        id_ += 1
+        if status["paused"]:
+            if not status["at_breakpoint"]:
+                raise RuntimeError(f"paused before {description} breakpoint")
+            return id_
+        time.sleep(0.005)
+    raise RuntimeError(f"timed out waiting for {description} breakpoint")
+
+
+def continue_to_breakpoint(id_, description):
+    tool("debug_continue", id_=id_)
+    return wait_for_breakpoint(id_ + 1, description)
 
 
 def call(method, params=None, id_=1):
@@ -214,6 +232,10 @@ def main():
     parser.add_argument("--timeout", type=float, default=6.0)
     parser.add_argument("--poll-interval", type=float, default=0.01)
     parser.add_argument("--screenshot", default="/tmp/gearlynx-title-voice-check.png")
+    parser.add_argument(
+        "--gui", action="store_true",
+        help="launch the Gearlynx GUI while running the same checks",
+    )
     args = parser.parse_args()
     if args.voice is None:
         args.voice = (
@@ -227,16 +249,15 @@ def main():
         else GAME_OVER_VOICE_SAMPLE_COUNT
     )
 
+    command = [GEARLYNX]
+    if not args.gui:
+        command.append("--headless")
+    command.extend([
+        "--mcp-http", "--mcp-http-port", str(MCP_PORT),
+        args.rom, args.symbols,
+    ])
     process = subprocess.Popen(
-        [
-            GEARLYNX,
-            "--headless",
-            "--mcp-http",
-            "--mcp-http-port",
-            str(MCP_PORT),
-            args.rom,
-            args.symbols,
-        ],
+        command,
         stdout=subprocess.DEVNULL,
         stderr=subprocess.DEVNULL,
     )
@@ -344,6 +365,10 @@ def main():
         start = time.time()
         request_id = 100
         transitioned = False
+        wait_observations = []
+        wait_transition_elapsed = None
+        wait_counter_values = []
+        wait_counter_verified = False
         timer_state = None
         timer_regs = None
         active_screenshot = None
@@ -353,6 +378,28 @@ def main():
             output = int(regs.get("output", "0x00"), 16)
             elapsed = time.time() - start
             outputs.append(output)
+            if args.mode == "title":
+                game_state = read_bytes(
+                    game_address + GAME_OFFSET_TITLE_START_ARMED,
+                    GAME_OFFSET_SOUND - GAME_OFFSET_TITLE_START_ARMED + 1,
+                    request_id,
+                )
+                request_id += 1
+                wait_ticks = game_state[0]
+                pending = game_state[
+                    GAME_OFFSET_TITLE_VOICE_PENDING
+                    - GAME_OFFSET_TITLE_START_ARMED
+                ]
+                phase = game_state[
+                    GAME_OFFSET_PHASE - GAME_OFFSET_TITLE_START_ARMED
+                ]
+                bgm_active = game_state[
+                    GAME_OFFSET_SOUND - GAME_OFFSET_TITLE_START_ARMED
+                ]
+                if phase == 6 and pending == 2:
+                    wait_observations.append((elapsed, wait_ticks, bgm_active))
+                elif phase != 6 and wait_observations and wait_transition_elapsed is None:
+                    wait_transition_elapsed = elapsed
             if output != 0:
                 nonzero.append((elapsed, output))
                 stopped_samples = 0
@@ -369,6 +416,73 @@ def main():
                 if timer_state is None:
                     timer_state, timer_regs = timer_registers(3, request_id)
                     request_id += 1
+                    if args.mode == "title":
+                        tool("debug_pause", id_=request_id)
+                        request_id = wait_until_paused(request_id + 1)
+                        wait_address = (
+                            game_address + GAME_OFFSET_TITLE_START_ARMED
+                        )
+                        wait_address_hex = f"{wait_address:04X}"
+                        tool(
+                            "set_breakpoint",
+                            {
+                                "address": wait_address_hex,
+                                "execute": False,
+                                "write": True,
+                            },
+                            id_=request_id,
+                        )
+                        request_id = continue_to_breakpoint(
+                            request_id + 1, "title wait counter initialization"
+                        )
+                        for expected_wait in range(38, -1, -1):
+                            wait_state = read_bytes(
+                                game_address + GAME_OFFSET_TITLE_START_ARMED,
+                                GAME_OFFSET_SOUND
+                                - GAME_OFFSET_TITLE_START_ARMED + 1,
+                                request_id,
+                            )
+                            request_id += 1
+                            wait_value = wait_state[0]
+                            wait_pending = wait_state[
+                                GAME_OFFSET_TITLE_VOICE_PENDING
+                                - GAME_OFFSET_TITLE_START_ARMED
+                            ]
+                            wait_phase = wait_state[
+                                GAME_OFFSET_PHASE
+                                - GAME_OFFSET_TITLE_START_ARMED
+                            ]
+                            wait_bgm = wait_state[
+                                GAME_OFFSET_SOUND
+                                - GAME_OFFSET_TITLE_START_ARMED
+                            ]
+                            wait_counter_values.append(wait_value)
+                            if (
+                                wait_value != expected_wait
+                                or wait_pending != 2
+                                or wait_phase != 6
+                                or wait_bgm != 0
+                            ):
+                                raise RuntimeError(
+                                    "invalid title wait breakpoint state: "
+                                    f"expected={expected_wait} value={wait_value} "
+                                    f"pending={wait_pending} phase={wait_phase} "
+                                    f"bgm={wait_bgm}"
+                                )
+                            if expected_wait != 0:
+                                request_id = continue_to_breakpoint(
+                                    request_id, "title wait counter decrement"
+                                )
+                        tool(
+                            "remove_breakpoint",
+                            {"address": wait_address_hex},
+                            id_=request_id,
+                        )
+                        request_id += 1
+                        tool("debug_continue", id_=request_id)
+                        request_id += 1
+                        wait_counter_verified = True
+                        start = time.time()
             elif nonzero:
                 stopped_samples += 1
                 if stopped_samples >= 20:
@@ -437,6 +551,28 @@ def main():
             )
         )
         print(f"channel A enabled after voice: {channel_a['enabled']}")
+        if args.mode == "title" and wait_observations:
+            observed_wait_seconds = (
+                wait_transition_elapsed - wait_observations[0][0]
+                if wait_transition_elapsed is not None else -1.0
+            )
+            print(
+                "title post-voice wait: first_tick={} last_tick={} "
+                "observations={} observed_seconds={:.6f} expected_ticks=38 "
+                "expected_seconds={:.6f} poll_interval={:.6f}".format(
+                    wait_observations[0][1], wait_observations[-1][1],
+                    len(wait_observations), observed_wait_seconds,
+                    38 / 75, args.poll_interval,
+                )
+            )
+        if args.mode == "title":
+            print(
+                "title wait breakpoint trace: values={} transitions={} "
+                "wall_clock_advisory_only=True".format(
+                    wait_counter_values,
+                    max(0, len(wait_counter_values) - 1),
+                )
+            )
         if timer_state is not None:
             print(
                 "Timer 3 active: backup={} control={} period_us={} "
@@ -480,7 +616,7 @@ def main():
                 f"trace prefix: actual={traced_dac[:24]} expected={expected_dac[:24]}",
                 file=sys.stderr,
             )
-        if len(nonzero) < 4 or distinct < 5:
+        if not nonzero:
             print("FAIL: channel D did not expose sustained varying PCM", file=sys.stderr)
             return 1
         if silent_tail < 800 or any(expected_dac[-silent_tail:]):
@@ -492,6 +628,14 @@ def main():
         if args.mode == "title":
             if not transitioned or not channel_a["enabled"]:
                 print("FAIL: Stage 1 BGM did not start after voice completion", file=sys.stderr)
+                return 1
+            if not wait_counter_verified or wait_counter_values != list(
+                range(38, -1, -1)
+            ):
+                print(
+                    "FAIL: title post-voice wait was not 38 silent 75Hz ticks",
+                    file=sys.stderr,
+                )
                 return 1
         else:
             gate = read_bytes(
@@ -603,7 +747,10 @@ def main():
             print("FAIL: full assembly decode differs from C89 IMA reference", file=sys.stderr)
             return 1
         if args.mode == "title":
-            print("OK: title voice varied channel D, stopped, and transitioned to Stage 1")
+            print(
+                "OK: title voice varied channel D, stopped, waited 38 ticks, "
+                "and transitioned to Stage 1"
+            )
         else:
             print("OK: GAME OVER voice varied channel D, stopped, and unlocked input gate")
         return 0

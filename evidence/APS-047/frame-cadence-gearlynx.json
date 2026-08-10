@@ -1,0 +1,344 @@
+{
+  "aps": "APS-047",
+  "draw_hz": 75,
+  "mode": "headless",
+  "pipeline": {
+    "frame_end_busy_wait_present": false,
+    "order": [
+      "input",
+      "logic_x4",
+      "sound",
+      "prior_display_completion_sync",
+      "draw",
+      "display_request"
+    ],
+    "request_breakpoint_symbol": "_game_display_request",
+    "sync_breakpoint_symbol": "_game_display_sync_complete",
+    "timer_0": {
+      "borrow_in": true,
+      "borrow_out": false,
+      "enabled": true,
+      "fields": [
+        "name",
+        "address",
+        "value"
+      ],
+      "frequency": "1 MHz (1us)",
+      "index": 0,
+      "interrupt": false,
+      "interrupt_available": true,
+      "linked": false,
+      "name": "HBLANK TIMER",
+      "period_value": 0,
+      "registers": [
+        [
+          "backup",
+          "FD00",
+          "7E"
+        ],
+        [
+          "control_a",
+          "FD01",
+          "18"
+        ],
+        [
+          "counter",
+          "FD02",
+          "7B"
+        ],
+        [
+          "control_b",
+          "FD03",
+          "0A"
+        ]
+      ],
+      "reload": true,
+      "reset_done": false,
+      "timer_done": true
+    },
+    "timer_2": {
+      "borrow_in": false,
+      "borrow_out": false,
+      "enabled": true,
+      "fields": [
+        "name",
+        "address",
+        "value"
+      ],
+      "frequency": "N/A",
+      "index": 2,
+      "interrupt": true,
+      "interrupt_available": true,
+      "linked": true,
+      "linked_to_index": 0,
+      "linked_to_type": "timer",
+      "name": "VBLANK TIMER",
+      "period_value": 7,
+      "registers": [
+        [
+          "backup",
+          "FD08",
+          "68"
+        ],
+        [
+          "control_a",
+          "FD09",
+          "9F"
+        ],
+        [
+          "counter",
+          "FD0A",
+          "65"
+        ],
+        [
+          "control_b",
+          "FD0B",
+          "08"
+        ]
+      ],
+      "reload": true,
+      "reset_done": false,
+      "timer_done": true
+    }
+  },
+  "rejected_injections": [
+    {
+      "accepted": false,
+      "bosses": 1,
+      "normal_enemies": 5,
+      "weighted_value": 9
+    },
+    {
+      "accepted": false,
+      "bosses": 1,
+      "normal_enemies": 8,
+      "weighted_value": 12
+    },
+    {
+      "accepted": false,
+      "bosses": 0,
+      "normal_enemies": 9,
+      "weighted_value": 9
+    }
+  ],
+  "scenarios": [
+    {
+      "bosses": 0,
+      "normal_enemies": 0,
+      "phase_runs": [
+        {
+          "advisory_window_us": [
+            12000,
+            15000
+          ],
+          "boss_attack_timer_per_draw": [],
+          "boss_y_delta_per_draw": [],
+          "bosses": 0,
+          "completed_draw_frames": 75,
+          "direct_event_counts": {
+            "display_completion_syncs": 75,
+            "display_requests": 75,
+            "input_polls": 75,
+            "logic_updates": 300,
+            "sound_ticks": 75
+          },
+          "inside_advisory_window": 0,
+          "maximum_us": 462176,
+          "median_us": 435736,
+          "minimum_us": 417062,
+          "normal_enemies": 0,
+          "normal_enemy_x_delta_per_draw": [],
+          "phase": "normal",
+          "player_bullet_x_delta_per_draw": [
+            16
+          ],
+          "player_x_delta_per_draw": [
+            8
+          ],
+          "samples": 75,
+          "weighted_count_max": 0,
+          "weighted_count_min": 0
+        }
+      ],
+      "weighted_value": 0
+    },
+    {
+      "bosses": 0,
+      "normal_enemies": 4,
+      "phase_runs": [
+        {
+          "advisory_window_us": [
+            12000,
+            15000
+          ],
+          "boss_attack_timer_per_draw": [],
+          "boss_y_delta_per_draw": [],
+          "bosses": 0,
+          "completed_draw_frames": 75,
+          "direct_event_counts": {
+            "display_completion_syncs": 75,
+            "display_requests": 75,
+            "input_polls": 75,
+            "logic_updates": 300,
+            "sound_ticks": 75
+          },
+          "inside_advisory_window": 0,
+          "maximum_us": 476260,
+          "median_us": 460972,
+          "minimum_us": 431634,
+          "normal_enemies": 4,
+          "normal_enemy_x_delta_per_draw": [
+            -4
+          ],
+          "phase": "normal",
+          "player_bullet_x_delta_per_draw": [
+            16
+          ],
+          "player_x_delta_per_draw": [
+            8
+          ],
+          "samples": 75,
+          "weighted_count_max": 4,
+          "weighted_count_min": 4
+        }
+      ],
+      "weighted_value": 4
+    },
+    {
+      "bosses": 0,
+      "normal_enemies": 8,
+      "phase_runs": [
+        {
+          "advisory_window_us": [
+            12000,
+            15000
+          ],
+          "boss_attack_timer_per_draw": [],
+          "boss_y_delta_per_draw": [],
+          "bosses": 0,
+          "completed_draw_frames": 75,
+          "direct_event_counts": {
+            "display_completion_syncs": 75,
+            "display_requests": 75,
+            "input_polls": 75,
+            "logic_updates": 300,
+            "sound_ticks": 75
+          },
+          "inside_advisory_window": 0,
+          "maximum_us": 510951,
+          "median_us": 481701,
+          "minimum_us": 452441,
+          "normal_enemies": 8,
+          "normal_enemy_x_delta_per_draw": [
+            -4
+          ],
+          "phase": "normal",
+          "player_bullet_x_delta_per_draw": [
+            16
+          ],
+          "player_x_delta_per_draw": [
+            8
+          ],
+          "samples": 75,
+          "weighted_count_max": 8,
+          "weighted_count_min": 8
+        }
+      ],
+      "weighted_value": 8
+    },
+    {
+      "bosses": 1,
+      "normal_enemies": 4,
+      "phase_runs": [
+        {
+          "advisory_window_us": [
+            12000,
+            15000
+          ],
+          "boss_attack_timer_per_draw": [
+            0
+          ],
+          "boss_y_delta_per_draw": [
+            -1
+          ],
+          "bosses": 1,
+          "completed_draw_frames": 75,
+          "direct_event_counts": {
+            "display_completion_syncs": 75,
+            "display_requests": 75,
+            "input_polls": 75,
+            "logic_updates": 300,
+            "sound_ticks": 75
+          },
+          "inside_advisory_window": 0,
+          "maximum_us": 485549,
+          "median_us": 460953,
+          "minimum_us": 401056,
+          "normal_enemies": 4,
+          "normal_enemy_x_delta_per_draw": [
+            -4
+          ],
+          "phase": "normal",
+          "player_bullet_x_delta_per_draw": [
+            16
+          ],
+          "player_x_delta_per_draw": [
+            8
+          ],
+          "samples": 75,
+          "weighted_count_max": 8,
+          "weighted_count_min": 8
+        },
+        {
+          "advisory_window_us": [
+            12000,
+            15000
+          ],
+          "boss_attack_timer_per_draw": [
+            4
+          ],
+          "boss_y_delta_per_draw": [
+            2
+          ],
+          "bosses": 1,
+          "completed_draw_frames": 75,
+          "direct_event_counts": {
+            "display_completion_syncs": 75,
+            "display_requests": 75,
+            "input_polls": 75,
+            "logic_updates": 300,
+            "sound_ticks": 75
+          },
+          "inside_advisory_window": 0,
+          "maximum_us": 375520,
+          "median_us": 368074,
+          "minimum_us": 341104,
+          "normal_enemies": 4,
+          "normal_enemy_x_delta_per_draw": [
+            0
+          ],
+          "phase": "boss",
+          "player_bullet_x_delta_per_draw": [
+            16
+          ],
+          "player_x_delta_per_draw": [
+            8
+          ],
+          "samples": 75,
+          "weighted_count_max": 8,
+          "weighted_count_min": 8
+        }
+      ],
+      "weighted_value": 8
+    }
+  ],
+  "wall_clock": {
+    "advisory_only": true,
+    "debugger_breakpoint_round_trips_included": true
+  },
+  "weights": {
+    "boss": 4,
+    "limit": 8,
+    "normal": 1
+  }
+}

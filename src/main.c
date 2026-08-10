@@ -208,7 +208,11 @@ static const SoundWaveRegister sound_wave_registers[SOUND_WAVE_COUNT] = {
 static SoundHardwareState sound_hardware_bgm;
 static SoundHardwareState sound_hardware_bgm_bass;
 static SoundHardwareState sound_hardware_sfx;
-static GameState game;
+GameState game;
+GameEnemy game_enemies[GAME_MAX_ENEMIES];
+
+void game_display_request(void);
+void game_display_sync_complete(void);
 static unsigned char active_palette_stage;
 
 /* Fixed wiring of one logical sound output to one MIKEY channel. The
@@ -461,7 +465,7 @@ static void sound_backend_apply_all(void)
     }
 }
 
-static unsigned char read_input(void)
+unsigned char game_input_poll(void)
 {
     unsigned char joy;
     unsigned char input;
@@ -721,23 +725,67 @@ static void format_score(unsigned long score, char* text)
     }
 }
 
+/* APS-050: preview-authored sprites carry a per-sprite anchor
+ * (collision-rect-center minus visual-bbox-center, computed once by
+ * scripts/generate-stage-data.py). Frame 1 is an overlay delta (1..6 runs)
+ * applied on top of frame 0, so draw_sprite() visits frame 0 first and
+ * frame 1 second instead of drawing a second full frame. All sprites,
+ * including bosses, draw at 1x through draw_sprite_run_scaled via this same
+ * visitor. */
+typedef struct SpriteDrawOrigin {
+    int ox;
+    int oy;
+    unsigned char scale;
+} SpriteDrawOrigin;
+
+static void draw_sprite_run_scaled(int x0, int x1, int y,
+    unsigned char color, void* context)
+{
+    const SpriteDrawOrigin* origin;
+    int screen_x0;
+    int screen_x1;
+    int screen_y;
+    unsigned char row;
+    int draw_y;
+
+    origin = (const SpriteDrawOrigin*)context;
+    screen_x0 = origin->ox + x0 * (int)origin->scale;
+    screen_x1 = origin->ox + (x1 + 1) * (int)origin->scale - 1;
+    screen_y = origin->oy + y * (int)origin->scale;
+    for (row = 0u; row < origin->scale; ++row) {
+        draw_y = screen_y + (int)row;
+        if (draw_y < (int)GAME_HUD_HEIGHT) {
+            continue;
+        }
+        draw_clipped_hline(screen_x0, screen_x1, draw_y, color);
+    }
+}
+
 static void draw_sprite(int x, int y, unsigned char sprite_id,
     unsigned char animation_frame)
 {
-    const GameSpriteDefinition* sprite;
-    const GameSpriteFrame* frame;
-    const GameSpriteRun* run;
-    unsigned char i;
+    const GameSpriteDefinition* def;
+    SpriteDrawOrigin origin;
+    signed char dx;
+    signed char dy;
 
-    if (sprite_id >= GAME_SPRITE_COUNT || animation_frame > 1u) {
+    if (sprite_id >= GAME_SPRITE_COUNT) {
         return;
     }
-    sprite = &game_sprite_definitions[sprite_id];
-    frame = &sprite->frames[animation_frame];
-    for (i = 0u; i < frame->run_count; ++i) {
-        run = &game_sprite_runs[frame->run_offset + i];
-        draw_clipped_hline(x + (int)run->x0, x + (int)run->x1,
-            y + (int)run->y, run->color);
+    def = &game_sprite_definitions[sprite_id];
+    /* anchor is packed as (dx+8) in the high nibble and (dy+8) in the low
+     * nibble (each 0..15, range -8..7); a plain subtract undoes the bias
+     * without a branch. */
+    dx = (signed char)((def->anchor >> 4) & 0x0Fu) - 8;
+    dy = (signed char)(def->anchor & 0x0Fu) - 8;
+    origin.ox = x + dx;
+    origin.oy = y + dy;
+    origin.scale = 1u;
+    (void)game_sprite_visit_runs(0, 0, sprite_id, 0u, draw_sprite_run_scaled,
+        &origin);
+    if (animation_frame != 0u) {
+        (void)game_sprite_visit_runs(0, 0, sprite_id, 1u,
+            draw_sprite_run_scaled, &origin);
     }
 }
 
@@ -1020,7 +1068,7 @@ static void draw_game(const GameState* game)
         tgi_outtextxy(36u, 74u, "A/B: FIRE");
         draw_voice_credit();
         tgi_outtextxy(52u, 90u, "V" GAME_VERSION_STRING);
-        tgi_updatedisplay();
+        game_display_request();
         return;
     }
 
@@ -1058,11 +1106,13 @@ static void draw_game(const GameState* game)
                 GAME_SPRITE_PLAYER, game->animation_frame);
         }
         for (i = 0u; i < GAME_MAX_ENEMIES; ++i) {
-            if (game->enemies[i].active != 0u &&
-                game->enemies[i].rect.x < GAME_SCREEN_WIDTH) {
-                draw_sprite(game->enemies[i].rect.x,
-                    game->enemies[i].rect.y,
-                    game_enemy_sprite_ids[game->enemies[i].type],
+            const GameEnemy* enemy;
+
+            enemy = game_enemy_at(game, i);
+            if (enemy->active != 0u &&
+                enemy->rect.x < GAME_SCREEN_WIDTH) {
+                draw_sprite(enemy->rect.x, enemy->rect.y,
+                    game_enemy_sprite_ids[enemy->type],
                     game->animation_frame);
             }
         }
@@ -1112,7 +1162,16 @@ static void draw_game(const GameState* game)
             tgi_outtextxy(48u, 58u, "VOICE...");
         }
     }
+    game_display_request();
+}
+
+void game_display_request(void)
+{
     tgi_updatedisplay();
+}
+
+void game_display_sync_complete(void)
+{
 }
 
 void main(void)
@@ -1132,23 +1191,26 @@ void main(void)
     tgi_setframerate(75u);
     sound_backend_init();
     title_voice_init();
+    game.enemies = game_enemies;
     game_init(&game);
     active_palette_stage = 0u;
     logic_remainder = 0u;
 
     for (;;) {
-        while (tgi_busy() != 0u) {
-        }
-        input = read_input();
+        /* Pipeline gameplay work while the previous VBLANK swap is pending.
+         * Only wait immediately before reusing the completed back buffer. */
+        input = game_input_poll();
         logic_updates = game_logic_updates_for_draw_frame(&logic_remainder);
         for (update = 0u; update < logic_updates; ++update) {
             game_update_logic(&game, input);
         }
         game_sound_tick(&game);
         sound_backend_apply_all();
+        GAME_DISPLAY_READY_WAIT(tgi_busy());
+        game_display_sync_complete();
         draw_game(&game);
         if (game.phase == GAME_PHASE_TITLE &&
-            game.title_voice_pending != 0u) {
+            game.title_voice_pending == GAME_TITLE_VOICE_PENDING) {
             if (title_voice_start() != 0u) {
                 while (title_voice_is_playing() != 0u) {
                     title_voice_pump();
