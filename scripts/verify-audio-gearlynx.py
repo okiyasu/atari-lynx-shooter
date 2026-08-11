@@ -72,6 +72,17 @@ def main_bss_game_address(map_path):
     )
 
 
+def label_address(symbols_path, symbol):
+    for line in Path(symbols_path).read_text(encoding="utf-8").splitlines():
+        match = re.match(
+            r"^al\s+([0-9A-Fa-f]{6})\s+\." + re.escape(symbol) + r"$",
+            line,
+        )
+        if match:
+            return int(match.group(1), 16)
+    raise RuntimeError("cannot locate {} in label file".format(symbol))
+
+
 def read_byte(address, id_):
     result = tool(
         "read_memory",
@@ -202,6 +213,21 @@ def wait_until_paused(id_):
             return id_
         time.sleep(0.005)
     raise RuntimeError("Gearlynx did not pause before SFX state injection")
+
+
+def wait_for_breakpoint(id_, description):
+    deadline = time.monotonic() + 30.0
+    while time.monotonic() < deadline:
+        status = tool("debug_get_status", id_=id_)
+        id_ += 1
+        if status["paused"]:
+            if not status["at_breakpoint"]:
+                raise RuntimeError(
+                    "paused before {} breakpoint".format(description)
+                )
+            return id_
+        time.sleep(0.005)
+    raise RuntimeError("timed out waiting for {} breakpoint".format(description))
 
 
 def scaled_volume(logical):
@@ -408,42 +434,66 @@ def main():
             f.write(base64.b64decode(shot["data"]))
         print(f"screenshot: {args.screenshot}")
 
+        sync_address = label_address(
+            Path(args.symbols), "_game_display_sync_complete"
+        )
+        tool(
+            "set_breakpoint",
+            {"address": f"{sync_address:04X}"},
+            id_=request_id,
+        )
+        request_id += 1
         last_backup = None
         note_changes = []
         gain_pairs = set()
         gain_mismatches = []
-        start = time.time()
+        start = time.monotonic()
         req_id = request_id
         logical_address = game_address + LOGICAL_VOLUME_OFFSETS[args.channel]
-        while time.time() - start < args.seconds:
-            logical_before = read_byte(logical_address, req_id)
+        sample_index = 0
+        while time.monotonic() - start < args.seconds:
+            tool("debug_continue", id_=req_id)
+            req_id += 1
+            req_id = wait_for_breakpoint(
+                req_id, "sound apply boundary sample %d" % (sample_index + 1)
+            )
+            logical = read_byte(logical_address, req_id)
             req_id += 1
             ch = tool("get_mikey_audio", {"channel": args.channel}, id_=req_id)
-            req_id += 1
-            logical_after = read_byte(logical_address, req_id)
             req_id += 1
             regs = {r[0]: r[2] for r in ch["registers"]}
             backup = regs.get("backup")
             hardware_volume = int(regs.get("volume", "0x00"), 16)
+            if args.channel == 1 and not ch["enabled"]:
+                # The shot SFX is shorter than the long BGM runs. Re-arm the
+                # same deterministic fixture at an apply boundary so the
+                # synchronized gain/pitch sampling observes repeated shots.
+                write_bytes(
+                    game_address + GAME_OFFSET_SFX_STATE,
+                    [1, 0, 4, 0],
+                    req_id,
+                )
+                req_id += 1
+                write_bytes(
+                    game_address + GAME_OFFSET_OUTPUT_SFX,
+                    [1, 15, 28, 3],
+                    req_id,
+                )
+                req_id += 1
             if ch["enabled"]:
-                expected_before = scaled_volume(logical_before)
-                expected_after = scaled_volume(logical_after)
-                if hardware_volume not in (expected_before, expected_after):
-                    gain_mismatches.append(
-                        (logical_before, hardware_volume, logical_after)
-                    )
+                expected = scaled_volume(logical)
+                if hardware_volume != expected:
+                    gain_mismatches.append((logical, hardware_volume, expected))
                 else:
-                    logical = (
-                        logical_before
-                        if hardware_volume == expected_before
-                        else logical_after
-                    )
                     gain_pairs.add((logical, hardware_volume))
             if ch["enabled"] and backup != last_backup:
-                elapsed = time.time() - start
+                elapsed = time.monotonic() - start
                 note_changes.append((elapsed, backup, regs.get("volume")))
                 last_backup = backup
-            time.sleep(args.poll_interval)
+            sample_index += 1
+
+        tool("remove_breakpoint", {"address": f"{sync_address:04X}"}, id_=req_id)
+        req_id += 1
 
         print(f"channel {args.channel}: {len(note_changes)} note change(s) in {args.seconds}s")
         for elapsed, backup, vol in note_changes:
@@ -460,10 +510,12 @@ def main():
             for line in channel_trace[:80]:
                 print("  " + line)
 
-        if len(note_changes) < 2:
+        minimum_note_changes = 1 if args.channel == 1 else 2
+        if len(note_changes) < minimum_note_changes:
             print(
-                "FAIL: fewer than 2 distinct pitches observed -- channel is silent or "
+                "FAIL: fewer than %d distinct pitches observed -- channel is silent or "
                 "stuck on one note",
+                minimum_note_changes,
                 file=sys.stderr,
             )
             return 1

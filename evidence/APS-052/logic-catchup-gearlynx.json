@@ -1,0 +1,1734 @@
+{
+  "all_contract_g_within_budget": false,
+  "aps": "APS-052",
+  "calibration_gate": {
+    "gate": "stable TITLE display_request / Timer 2 VBlank",
+    "measured_title_raw_samples_reproducible": true,
+    "measured_title_raw_vblank_counts": [
+      [
+        3,
+        3,
+        3,
+        4,
+        3,
+        3,
+        3,
+        4,
+        3,
+        3,
+        3,
+        4,
+        3,
+        3,
+        3,
+        4
+      ],
+      [
+        3,
+        3,
+        3,
+        4,
+        3,
+        3,
+        3,
+        4,
+        3,
+        3,
+        3,
+        4,
+        3,
+        3,
+        3,
+        4
+      ]
+    ],
+    "measured_title_run_maxima_vblank_ratio": [
+      4,
+      4
+    ],
+    "measured_title_run_medians_vblank_ratio": [
+      3.0,
+      3.0
+    ],
+    "passed": true,
+    "prior_tick_reference": {
+      "display_request_ticks": 553362,
+      "ratio": 2.9995446710248155,
+      "vblank_ticks": 184482
+    },
+    "reference_ratio_difference": [
+      0.0004553289751845213,
+      0.0004553289751845213
+    ],
+    "tolerance": 0.05
+  },
+  "draw_hz": 75,
+  "four_eight_boss_sound_timing_within_target": true,
+  "four_enemy_logic_catch_up_within_target": true,
+  "hardware_cadence_contract": {
+    "contract_g_method": "16 consecutive VBlank counts between 17 continuously running display requests; one completion write breakpoint per batch; no debug_step_frame",
+    "max_interval_ratio": 1.05,
+    "rom_probe": {
+      "debug_step_frame_used": false,
+      "display_hook_symbol": "_cadence_probe_display",
+      "raw_sample_unit": "Timer 2 VBlank IRQ count",
+      "request_breakpoints_per_batch": 0,
+      "samples_per_fixture": 16,
+      "stops_per_batch": 1,
+      "timer2_interruptor": "cadence_probe_irq",
+      "warmup_display_requests": 6
+    },
+    "source": "ROM Timer 2 VBlank counter sampled by the display-request hook",
+    "vblank_reference_ticks": 184482,
+    "vblank_reference_us": 13333.333333333334
+  },
+  "measurement_stage": 1,
+  "mode": "headless",
+  "normal_rom": {
+    "layout": {
+      "bss_end_inclusive": 47234,
+      "bss_size": 1269,
+      "bss_stack_nonoverlap": true,
+      "bss_start": 45966,
+      "bss_to_stack_residual_bytes": 53,
+      "c_stack_start": 47288,
+      "cadence_probe_intervals": null,
+      "main_end_exclusive": 47288,
+      "main_size": 46776,
+      "main_start": 512,
+      "probe_symbols_present": false,
+      "stack_end_exclusive": 49208,
+      "stack_reserved_size": 1920
+    },
+    "path": "dist/asteroid-patrol.lnx",
+    "sha256": "77968e51735bbe523d02462b9c2d5af1515e4ec18afaf7e38501eba7f5a569b4",
+    "size_bytes": 60295
+  },
+  "pipeline": {
+    "frame_end_busy_wait_present": false,
+    "order": [
+      "input",
+      "logic_x4",
+      "sound",
+      "prior_display_completion_sync",
+      "draw",
+      "display_request"
+    ],
+    "request_breakpoint_symbol": "_game_display_request",
+    "sync_breakpoint_symbol": "_game_display_sync_complete",
+    "timer_0": {
+      "borrow_in": false,
+      "borrow_out": false,
+      "enabled": true,
+      "fields": [
+        "name",
+        "address",
+        "value"
+      ],
+      "frequency": "1 MHz (1us)",
+      "index": 0,
+      "interrupt": false,
+      "interrupt_available": true,
+      "linked": false,
+      "name": "HBLANK TIMER",
+      "period_value": 0,
+      "registers": [
+        [
+          "backup",
+          "FD00",
+          "7E"
+        ],
+        [
+          "control_a",
+          "FD01",
+          "18"
+        ],
+        [
+          "counter",
+          "FD02",
+          "74"
+        ],
+        [
+          "control_b",
+          "FD03",
+          "08"
+        ]
+      ],
+      "reload": true,
+      "reset_done": false,
+      "timer_done": true
+    },
+    "timer_2": {
+      "borrow_in": false,
+      "borrow_out": false,
+      "enabled": true,
+      "fields": [
+        "name",
+        "address",
+        "value"
+      ],
+      "frequency": "N/A",
+      "index": 2,
+      "interrupt": true,
+      "interrupt_available": true,
+      "linked": true,
+      "linked_to_index": 0,
+      "linked_to_type": "timer",
+      "name": "VBLANK TIMER",
+      "period_value": 7,
+      "registers": [
+        [
+          "backup",
+          "FD08",
+          "68"
+        ],
+        [
+          "control_a",
+          "FD09",
+          "9F"
+        ],
+        [
+          "counter",
+          "FD0A",
+          "5B"
+        ],
+        [
+          "control_b",
+          "FD0B",
+          "08"
+        ]
+      ],
+      "reload": true,
+      "reset_done": false,
+      "timer_done": true
+    }
+  },
+  "rejected_injections": [
+    {
+      "accepted": false,
+      "bosses": 1,
+      "normal_enemies": 5,
+      "weighted_value": 9
+    },
+    {
+      "accepted": false,
+      "bosses": 1,
+      "normal_enemies": 8,
+      "weighted_value": 12
+    },
+    {
+      "accepted": false,
+      "bosses": 0,
+      "normal_enemies": 9,
+      "weighted_value": 9
+    }
+  ],
+  "rom": {
+    "layout": {
+      "bss_end_inclusive": 47608,
+      "bss_size": 1303,
+      "bss_stack_nonoverlap": true,
+      "bss_start": 46306,
+      "bss_to_stack_residual_bytes": 15,
+      "c_stack_start": 47624,
+      "cadence_probe_intervals": {
+        "end_exclusive": 47351,
+        "inside_bss": true,
+        "inside_main": true,
+        "size": 16,
+        "start": 47335
+      },
+      "main_end_exclusive": 47624,
+      "main_size": 47112,
+      "main_start": 512,
+      "probe_symbols_present": true,
+      "stack_end_exclusive": 49208,
+      "stack_reserved_size": 1584
+    },
+    "path": "dist/asteroid-patrol-cadence.lnx",
+    "sha256": "22492b25a89f0a540d58a95e18f9e272818acfd969b37f6c8bdb0013c56c72cd",
+    "size_bytes": 60635
+  },
+  "rom_separation": {
+    "cadence_rom": {
+      "layout": {
+        "bss_end_inclusive": 47608,
+        "bss_size": 1303,
+        "bss_stack_nonoverlap": true,
+        "bss_start": 46306,
+        "bss_to_stack_residual_bytes": 15,
+        "c_stack_start": 47624,
+        "cadence_probe_intervals": {
+          "end_exclusive": 47351,
+          "inside_bss": true,
+          "inside_main": true,
+          "size": 16,
+          "start": 47335
+        },
+        "main_end_exclusive": 47624,
+        "main_size": 47112,
+        "main_start": 512,
+        "probe_symbols_present": true,
+        "stack_end_exclusive": 49208,
+        "stack_reserved_size": 1584
+      },
+      "path": "dist/asteroid-patrol-cadence.lnx",
+      "sha256": "22492b25a89f0a540d58a95e18f9e272818acfd969b37f6c8bdb0013c56c72cd",
+      "size_bytes": 60635
+    },
+    "cadence_rom_contains_probe": true,
+    "common_bss_layout_relative_offsets": true,
+    "common_bss_symbols_verified": 2,
+    "normal_rom": {
+      "layout": {
+        "bss_end_inclusive": 47234,
+        "bss_size": 1269,
+        "bss_stack_nonoverlap": true,
+        "bss_start": 45966,
+        "bss_to_stack_residual_bytes": 53,
+        "c_stack_start": 47288,
+        "cadence_probe_intervals": null,
+        "main_end_exclusive": 47288,
+        "main_size": 46776,
+        "main_start": 512,
+        "probe_symbols_present": false,
+        "stack_end_exclusive": 49208,
+        "stack_reserved_size": 1920
+      },
+      "path": "dist/asteroid-patrol.lnx",
+      "sha256": "77968e51735bbe523d02462b9c2d5af1515e4ec18afaf7e38501eba7f5a569b4",
+      "size_bytes": 60295
+    },
+    "normal_rom_contains_probe": false,
+    "protected_assets": {
+      "assets/stages/stages.json": {
+        "sha256": "888be63ff3c83e52bc49a1a298b73710f7209caad9638c1d06328bcd0826ce08",
+        "size_bytes": 7089
+      },
+      "assets/voice/game-over.adpcm": {
+        "sha256": "848691fea26de6e2503c67bed5721f1da27cab1692af81e2227a348ab412cb0f",
+        "size_bytes": 5846
+      },
+      "assets/voice/title-start.adpcm": {
+        "sha256": "99eb68abe7da548a7285510c86dec9417e94766d00ac30638de302a2cd6a1eb2",
+        "size_bytes": 8704
+      },
+      "tests/golden/sprite-data-v050.json": {
+        "sha256": "a6d8d2a6b7a1dffebc661d337dfa6e74c7e7dc6706a5f2013506cb1f4a6ad3b2",
+        "size_bytes": 92
+      }
+    }
+  },
+  "scenarios": [
+    {
+      "bosses": 0,
+      "normal_enemies": 0,
+      "phase_runs": [
+        {
+          "completed_draw_frames": 0,
+          "contract_g": {
+            "clip_count": [
+              15,
+              15
+            ],
+            "clip_zero": false,
+            "discarded_vblanks": [
+              967,
+              964
+            ],
+            "enemy_count_held": false,
+            "independent_batch_count": 2,
+            "logic_catch_up": {
+              "clip_invoked": [
+                true,
+                true
+              ],
+              "discarded_updates": [
+                3588,
+                3580
+              ],
+              "display_interval_elapsed_vblanks": [
+                1458,
+                1455
+              ],
+              "elapsed_vblanks": [
+                1356,
+                1354
+              ],
+              "ideal_updates": [
+                5424,
+                5416
+              ],
+              "logic_updates": [
+                1836,
+                1836
+              ],
+              "logic_updates_per_elapsed_vblank_x4": [
+                0.33849557522123896,
+                0.33899556868537667
+              ],
+              "production_consumed_vblanks": [
+                1356,
+                1354
+              ],
+              "target_ratio": [
+                0.95,
+                1.05
+              ],
+              "terminal_display_interval_vblanks": [
+                102,
+                101
+              ],
+              "unaccounted_display_interval_vblanks": [
+                102,
+                101
+              ],
+              "within_target": [
+                false,
+                false
+              ]
+            },
+            "method": "rom_internal_timer2_counter",
+            "readback_bosses": 1,
+            "readback_normal_enemies": 0,
+            "run_maxima_vblank": [
+              115,
+              115
+            ],
+            "run_medians_vblank": [
+              102.5,
+              102.5
+            ],
+            "runs": [
+              {
+                "exceeded_samples": 16,
+                "first_exceeded_sample": 1,
+                "interval_ratios": [
+                  11.0,
+                  44.0,
+                  109.0,
+                  115.0,
+                  115.0,
+                  115.0,
+                  39.0,
+                  88.0,
+                  98.0,
+                  107.0,
+                  100.0,
+                  106.0,
+                  102.0,
+                  103.0,
+                  104.0,
+                  102.0
+                ],
+                "max_interval_ratio": 1.05,
+                "maximum_us": 1533333.3333333335,
+                "maximum_vblank_interval": 115,
+                "median_us": 1366666.6666666667,
+                "median_vblank_interval": 102.5,
+                "method": "rom_internal_timer2_counter",
+                "raw_interval_vblank_counts": [
+                  11,
+                  44,
+                  109,
+                  115,
+                  115,
+                  115,
+                  39,
+                  88,
+                  98,
+                  107,
+                  100,
+                  106,
+                  102,
+                  103,
+                  104,
+                  102
+                ],
+                "samples": 16,
+                "vblank_reference_ticks": 184482,
+                "vblank_reference_us": 13333.333333333334,
+                "within_budget": false
+              },
+              {
+                "exceeded_samples": 16,
+                "first_exceeded_sample": 1,
+                "interval_ratios": [
+                  11.0,
+                  44.0,
+                  109.0,
+                  114.0,
+                  115.0,
+                  115.0,
+                  39.0,
+                  88.0,
+                  98.0,
+                  107.0,
+                  99.0,
+                  106.0,
+                  102.0,
+                  103.0,
+                  104.0,
+                  101.0
+                ],
+                "max_interval_ratio": 1.05,
+                "maximum_us": 1533333.3333333335,
+                "maximum_vblank_interval": 115,
+                "median_us": 1366666.6666666667,
+                "median_vblank_interval": 102.5,
+                "method": "rom_internal_timer2_counter",
+                "raw_interval_vblank_counts": [
+                  11,
+                  44,
+                  109,
+                  114,
+                  115,
+                  115,
+                  39,
+                  88,
+                  98,
+                  107,
+                  99,
+                  106,
+                  102,
+                  103,
+                  104,
+                  101
+                ],
+                "samples": 16,
+                "vblank_reference_ticks": 184482,
+                "vblank_reference_us": 13333.333333333334,
+                "within_budget": false
+              }
+            ],
+            "same_conclusion": true,
+            "sound_timing": {
+              "actual_sound_ticks": [
+                1356,
+                1354
+              ],
+              "clip_invoked": [
+                false,
+                false
+              ],
+              "discarded_vblanks": [
+                0,
+                0
+              ],
+              "display_interval_elapsed_vblanks": [
+                1458,
+                1455
+              ],
+              "elapsed_vblanks": [
+                1356,
+                1354
+              ],
+              "production_consumed_vblanks": [
+                1356,
+                1354
+              ],
+              "sound_tick_cap": 2048,
+              "sound_ticks": [
+                1356,
+                1354
+              ],
+              "terminal_display_interval_vblanks": [
+                102,
+                101
+              ],
+              "unaccounted_display_interval_vblanks": [
+                102,
+                101
+              ],
+              "within_target": [
+                true,
+                true
+              ]
+            },
+            "stack_high_water": {
+              "at_least_128_unused": true,
+              "lowest_cc65_stack_pointer": 48896,
+              "minimum_unused_bytes_required": 128,
+              "stack_end_exclusive": 49208,
+              "stack_pointer_in_range": true,
+              "stack_start": 47624,
+              "stack_used_bytes": 312,
+              "unused_bytes_between_stack_start_and_low_water": 1272
+            },
+            "warmup_discarded_vblanks": [
+              512,
+              511
+            ],
+            "within_budget": false
+          },
+          "frame_regression_skipped": true,
+          "median_us": 0.0,
+          "phase": "normal"
+        }
+      ],
+      "weighted_value": 0
+    },
+    {
+      "bosses": 0,
+      "normal_enemies": 4,
+      "phase_runs": [
+        {
+          "completed_draw_frames": 0,
+          "contract_g": {
+            "clip_count": [
+              0,
+              0
+            ],
+            "clip_zero": true,
+            "discarded_vblanks": [
+              0,
+              0
+            ],
+            "enemy_count_held": true,
+            "independent_batch_count": 2,
+            "logic_catch_up": {
+              "clip_invoked": [
+                false,
+                false
+              ],
+              "discarded_updates": [
+                0,
+                0
+              ],
+              "display_interval_elapsed_vblanks": [
+                420,
+                385
+              ],
+              "elapsed_vblanks": [
+                394,
+                361
+              ],
+              "ideal_updates": [
+                1576,
+                1444
+              ],
+              "logic_updates": [
+                1576,
+                1444
+              ],
+              "logic_updates_per_elapsed_vblank_x4": [
+                1.0,
+                1.0
+              ],
+              "production_consumed_vblanks": [
+                394,
+                361
+              ],
+              "target_ratio": [
+                0.95,
+                1.05
+              ],
+              "terminal_display_interval_vblanks": [
+                26,
+                24
+              ],
+              "unaccounted_display_interval_vblanks": [
+                26,
+                24
+              ],
+              "within_target": [
+                true,
+                true
+              ]
+            },
+            "method": "rom_internal_timer2_counter",
+            "readback_bosses": 0,
+            "readback_normal_enemies": 4,
+            "run_maxima_vblank": [
+              27,
+              25
+            ],
+            "run_medians_vblank": [
+              26.0,
+              24.0
+            ],
+            "runs": [
+              {
+                "exceeded_samples": 16,
+                "first_exceeded_sample": 1,
+                "interval_ratios": [
+                  23.0,
+                  27.0,
+                  26.0,
+                  26.0,
+                  27.0,
+                  26.0,
+                  27.0,
+                  26.0,
+                  27.0,
+                  26.0,
+                  27.0,
+                  26.0,
+                  27.0,
+                  26.0,
+                  27.0,
+                  26.0
+                ],
+                "max_interval_ratio": 1.05,
+                "maximum_us": 360000.0,
+                "maximum_vblank_interval": 27,
+                "median_us": 346666.6666666667,
+                "median_vblank_interval": 26.0,
+                "method": "rom_internal_timer2_counter",
+                "raw_interval_vblank_counts": [
+                  23,
+                  27,
+                  26,
+                  26,
+                  27,
+                  26,
+                  27,
+                  26,
+                  27,
+                  26,
+                  27,
+                  26,
+                  27,
+                  26,
+                  27,
+                  26
+                ],
+                "samples": 16,
+                "vblank_reference_ticks": 184482,
+                "vblank_reference_us": 13333.333333333334,
+                "within_budget": false
+              },
+              {
+                "exceeded_samples": 16,
+                "first_exceeded_sample": 1,
+                "interval_ratios": [
+                  22.0,
+                  24.0,
+                  24.0,
+                  24.0,
+                  24.0,
+                  24.0,
+                  25.0,
+                  24.0,
+                  24.0,
+                  25.0,
+                  24.0,
+                  24.0,
+                  24.0,
+                  25.0,
+                  24.0,
+                  24.0
+                ],
+                "max_interval_ratio": 1.05,
+                "maximum_us": 333333.3333333334,
+                "maximum_vblank_interval": 25,
+                "median_us": 320000.0,
+                "median_vblank_interval": 24.0,
+                "method": "rom_internal_timer2_counter",
+                "raw_interval_vblank_counts": [
+                  22,
+                  24,
+                  24,
+                  24,
+                  24,
+                  24,
+                  25,
+                  24,
+                  24,
+                  25,
+                  24,
+                  24,
+                  24,
+                  25,
+                  24,
+                  24
+                ],
+                "samples": 16,
+                "vblank_reference_ticks": 184482,
+                "vblank_reference_us": 13333.333333333334,
+                "within_budget": false
+              }
+            ],
+            "same_conclusion": true,
+            "sound_timing": {
+              "actual_sound_ticks": [
+                394,
+                361
+              ],
+              "clip_invoked": [
+                false,
+                false
+              ],
+              "discarded_vblanks": [
+                0,
+                0
+              ],
+              "display_interval_elapsed_vblanks": [
+                420,
+                385
+              ],
+              "elapsed_vblanks": [
+                394,
+                361
+              ],
+              "production_consumed_vblanks": [
+                394,
+                361
+              ],
+              "sound_tick_cap": 2048,
+              "sound_ticks": [
+                394,
+                361
+              ],
+              "terminal_display_interval_vblanks": [
+                26,
+                24
+              ],
+              "unaccounted_display_interval_vblanks": [
+                26,
+                24
+              ],
+              "within_target": [
+                true,
+                true
+              ]
+            },
+            "stack_high_water": {
+              "at_least_128_unused": true,
+              "lowest_cc65_stack_pointer": 48896,
+              "minimum_unused_bytes_required": 128,
+              "stack_end_exclusive": 49208,
+              "stack_pointer_in_range": true,
+              "stack_start": 47624,
+              "stack_used_bytes": 312,
+              "unused_bytes_between_stack_start_and_low_water": 1272
+            },
+            "warmup_discarded_vblanks": [
+              502,
+              387
+            ],
+            "within_budget": false
+          },
+          "frame_regression_skipped": true,
+          "median_us": 0.0,
+          "phase": "normal"
+        }
+      ],
+      "weighted_value": 4
+    },
+    {
+      "bosses": 0,
+      "normal_enemies": 8,
+      "phase_runs": [
+        {
+          "completed_draw_frames": 0,
+          "contract_g": {
+            "clip_count": [
+              15,
+              15
+            ],
+            "clip_zero": false,
+            "discarded_vblanks": [
+              58,
+              57
+            ],
+            "enemy_count_held": true,
+            "independent_batch_count": 2,
+            "logic_catch_up": {
+              "clip_invoked": [
+                true,
+                true
+              ],
+              "discarded_updates": [
+                216,
+                212
+              ],
+              "display_interval_elapsed_vblanks": [
+                570,
+                569
+              ],
+              "elapsed_vblanks": [
+                534,
+                533
+              ],
+              "ideal_updates": [
+                2136,
+                2132
+              ],
+              "logic_updates": [
+                1920,
+                1920
+              ],
+              "logic_updates_per_elapsed_vblank_x4": [
+                0.898876404494382,
+                0.900562851782364
+              ],
+              "production_consumed_vblanks": [
+                534,
+                533
+              ],
+              "target_ratio": [
+                0.95,
+                1.05
+              ],
+              "terminal_display_interval_vblanks": [
+                36,
+                36
+              ],
+              "unaccounted_display_interval_vblanks": [
+                36,
+                36
+              ],
+              "within_target": [
+                false,
+                false
+              ]
+            },
+            "method": "rom_internal_timer2_counter",
+            "readback_bosses": 0,
+            "readback_normal_enemies": 8,
+            "run_maxima_vblank": [
+              36,
+              36
+            ],
+            "run_medians_vblank": [
+              36.0,
+              36.0
+            ],
+            "runs": [
+              {
+                "exceeded_samples": 16,
+                "first_exceeded_sample": 1,
+                "interval_ratios": [
+                  32.0,
+                  35.0,
+                  36.0,
+                  36.0,
+                  36.0,
+                  36.0,
+                  36.0,
+                  36.0,
+                  36.0,
+                  36.0,
+                  36.0,
+                  36.0,
+                  36.0,
+                  35.0,
+                  36.0,
+                  36.0
+                ],
+                "max_interval_ratio": 1.05,
+                "maximum_us": 480000.0,
+                "maximum_vblank_interval": 36,
+                "median_us": 480000.0,
+                "median_vblank_interval": 36.0,
+                "method": "rom_internal_timer2_counter",
+                "raw_interval_vblank_counts": [
+                  32,
+                  35,
+                  36,
+                  36,
+                  36,
+                  36,
+                  36,
+                  36,
+                  36,
+                  36,
+                  36,
+                  36,
+                  36,
+                  35,
+                  36,
+                  36
+                ],
+                "samples": 16,
+                "vblank_reference_ticks": 184482,
+                "vblank_reference_us": 13333.333333333334,
+                "within_budget": false
+              },
+              {
+                "exceeded_samples": 16,
+                "first_exceeded_sample": 1,
+                "interval_ratios": [
+                  32.0,
+                  35.0,
+                  36.0,
+                  36.0,
+                  36.0,
+                  35.0,
+                  36.0,
+                  36.0,
+                  36.0,
+                  36.0,
+                  36.0,
+                  35.0,
+                  36.0,
+                  36.0,
+                  36.0,
+                  36.0
+                ],
+                "max_interval_ratio": 1.05,
+                "maximum_us": 480000.0,
+                "maximum_vblank_interval": 36,
+                "median_us": 480000.0,
+                "median_vblank_interval": 36.0,
+                "method": "rom_internal_timer2_counter",
+                "raw_interval_vblank_counts": [
+                  32,
+                  35,
+                  36,
+                  36,
+                  36,
+                  35,
+                  36,
+                  36,
+                  36,
+                  36,
+                  36,
+                  35,
+                  36,
+                  36,
+                  36,
+                  36
+                ],
+                "samples": 16,
+                "vblank_reference_ticks": 184482,
+                "vblank_reference_us": 13333.333333333334,
+                "within_budget": false
+              }
+            ],
+            "same_conclusion": true,
+            "sound_timing": {
+              "actual_sound_ticks": [
+                534,
+                533
+              ],
+              "clip_invoked": [
+                false,
+                false
+              ],
+              "discarded_vblanks": [
+                0,
+                0
+              ],
+              "display_interval_elapsed_vblanks": [
+                570,
+                569
+              ],
+              "elapsed_vblanks": [
+                534,
+                533
+              ],
+              "production_consumed_vblanks": [
+                534,
+                533
+              ],
+              "sound_tick_cap": 2048,
+              "sound_ticks": [
+                534,
+                533
+              ],
+              "terminal_display_interval_vblanks": [
+                36,
+                36
+              ],
+              "unaccounted_display_interval_vblanks": [
+                36,
+                36
+              ],
+              "within_target": [
+                true,
+                true
+              ]
+            },
+            "stack_high_water": {
+              "at_least_128_unused": true,
+              "lowest_cc65_stack_pointer": 48896,
+              "minimum_unused_bytes_required": 128,
+              "stack_end_exclusive": 49208,
+              "stack_pointer_in_range": true,
+              "stack_start": 47624,
+              "stack_used_bytes": 312,
+              "unused_bytes_between_stack_start_and_low_water": 1272
+            },
+            "warmup_discarded_vblanks": [
+              506,
+              504
+            ],
+            "within_budget": false
+          },
+          "frame_regression_skipped": true,
+          "median_us": 0.0,
+          "phase": "normal"
+        }
+      ],
+      "weighted_value": 8
+    },
+    {
+      "bosses": 1,
+      "normal_enemies": 4,
+      "phase_runs": [
+        {
+          "completed_draw_frames": 0,
+          "contract_g": {
+            "clip_count": [
+              0,
+              0
+            ],
+            "clip_zero": true,
+            "discarded_vblanks": [
+              0,
+              0
+            ],
+            "enemy_count_held": true,
+            "independent_batch_count": 2,
+            "logic_catch_up": {
+              "clip_invoked": [
+                false,
+                false
+              ],
+              "discarded_updates": [
+                0,
+                0
+              ],
+              "display_interval_elapsed_vblanks": [
+                508,
+                508
+              ],
+              "elapsed_vblanks": [
+                476,
+                476
+              ],
+              "ideal_updates": [
+                1904,
+                1904
+              ],
+              "logic_updates": [
+                1904,
+                1904
+              ],
+              "logic_updates_per_elapsed_vblank_x4": [
+                1.0,
+                1.0
+              ],
+              "production_consumed_vblanks": [
+                476,
+                476
+              ],
+              "target_ratio": [
+                0.95,
+                1.05
+              ],
+              "terminal_display_interval_vblanks": [
+                32,
+                32
+              ],
+              "unaccounted_display_interval_vblanks": [
+                32,
+                32
+              ],
+              "within_target": [
+                true,
+                true
+              ]
+            },
+            "method": "rom_internal_timer2_counter",
+            "readback_bosses": 1,
+            "readback_normal_enemies": 4,
+            "run_maxima_vblank": [
+              32,
+              32
+            ],
+            "run_medians_vblank": [
+              32.0,
+              32.0
+            ],
+            "runs": [
+              {
+                "exceeded_samples": 16,
+                "first_exceeded_sample": 1,
+                "interval_ratios": [
+                  28.0,
+                  32.0,
+                  32.0,
+                  32.0,
+                  32.0,
+                  32.0,
+                  32.0,
+                  32.0,
+                  32.0,
+                  32.0,
+                  32.0,
+                  32.0,
+                  32.0,
+                  32.0,
+                  32.0,
+                  32.0
+                ],
+                "max_interval_ratio": 1.05,
+                "maximum_us": 426666.6666666667,
+                "maximum_vblank_interval": 32,
+                "median_us": 426666.6666666667,
+                "median_vblank_interval": 32.0,
+                "method": "rom_internal_timer2_counter",
+                "raw_interval_vblank_counts": [
+                  28,
+                  32,
+                  32,
+                  32,
+                  32,
+                  32,
+                  32,
+                  32,
+                  32,
+                  32,
+                  32,
+                  32,
+                  32,
+                  32,
+                  32,
+                  32
+                ],
+                "samples": 16,
+                "vblank_reference_ticks": 184482,
+                "vblank_reference_us": 13333.333333333334,
+                "within_budget": false
+              },
+              {
+                "exceeded_samples": 16,
+                "first_exceeded_sample": 1,
+                "interval_ratios": [
+                  28.0,
+                  32.0,
+                  32.0,
+                  32.0,
+                  32.0,
+                  32.0,
+                  32.0,
+                  32.0,
+                  32.0,
+                  32.0,
+                  32.0,
+                  32.0,
+                  32.0,
+                  32.0,
+                  32.0,
+                  32.0
+                ],
+                "max_interval_ratio": 1.05,
+                "maximum_us": 426666.6666666667,
+                "maximum_vblank_interval": 32,
+                "median_us": 426666.6666666667,
+                "median_vblank_interval": 32.0,
+                "method": "rom_internal_timer2_counter",
+                "raw_interval_vblank_counts": [
+                  28,
+                  32,
+                  32,
+                  32,
+                  32,
+                  32,
+                  32,
+                  32,
+                  32,
+                  32,
+                  32,
+                  32,
+                  32,
+                  32,
+                  32,
+                  32
+                ],
+                "samples": 16,
+                "vblank_reference_ticks": 184482,
+                "vblank_reference_us": 13333.333333333334,
+                "within_budget": false
+              }
+            ],
+            "same_conclusion": true,
+            "sound_timing": {
+              "actual_sound_ticks": [
+                476,
+                476
+              ],
+              "clip_invoked": [
+                false,
+                false
+              ],
+              "discarded_vblanks": [
+                0,
+                0
+              ],
+              "display_interval_elapsed_vblanks": [
+                508,
+                508
+              ],
+              "elapsed_vblanks": [
+                476,
+                476
+              ],
+              "production_consumed_vblanks": [
+                476,
+                476
+              ],
+              "sound_tick_cap": 2048,
+              "sound_ticks": [
+                476,
+                476
+              ],
+              "terminal_display_interval_vblanks": [
+                32,
+                32
+              ],
+              "unaccounted_display_interval_vblanks": [
+                32,
+                32
+              ],
+              "within_target": [
+                true,
+                true
+              ]
+            },
+            "stack_high_water": {
+              "at_least_128_unused": true,
+              "lowest_cc65_stack_pointer": 48896,
+              "minimum_unused_bytes_required": 128,
+              "stack_end_exclusive": 49208,
+              "stack_pointer_in_range": true,
+              "stack_start": 47624,
+              "stack_used_bytes": 312,
+              "unused_bytes_between_stack_start_and_low_water": 1272
+            },
+            "warmup_discarded_vblanks": [
+              429,
+              429
+            ],
+            "within_budget": false
+          },
+          "frame_regression_skipped": true,
+          "median_us": 0.0,
+          "phase": "normal"
+        },
+        {
+          "completed_draw_frames": 0,
+          "contract_g": {
+            "clip_count": [
+              15,
+              15
+            ],
+            "clip_zero": false,
+            "discarded_vblanks": [
+              1409,
+              1410
+            ],
+            "enemy_count_held": true,
+            "independent_batch_count": 2,
+            "logic_catch_up": {
+              "clip_invoked": [
+                true,
+                true
+              ],
+              "discarded_updates": [
+                5268,
+                5272
+              ],
+              "display_interval_elapsed_vblanks": [
+                1921,
+                1922
+              ],
+              "elapsed_vblanks": [
+                1797,
+                1798
+              ],
+              "ideal_updates": [
+                7188,
+                7192
+              ],
+              "logic_updates": [
+                1920,
+                1920
+              ],
+              "logic_updates_per_elapsed_vblank_x4": [
+                0.2671118530884808,
+                0.26696329254727474
+              ],
+              "production_consumed_vblanks": [
+                1797,
+                1798
+              ],
+              "target_ratio": [
+                0.95,
+                1.05
+              ],
+              "terminal_display_interval_vblanks": [
+                124,
+                124
+              ],
+              "unaccounted_display_interval_vblanks": [
+                124,
+                124
+              ],
+              "within_target": [
+                false,
+                false
+              ]
+            },
+            "method": "rom_internal_timer2_counter",
+            "readback_bosses": 1,
+            "readback_normal_enemies": 4,
+            "run_maxima_vblank": [
+              129,
+              130
+            ],
+            "run_medians_vblank": [
+              126.0,
+              125.5
+            ],
+            "runs": [
+              {
+                "exceeded_samples": 16,
+                "first_exceeded_sample": 1,
+                "interval_ratios": [
+                  32.0,
+                  121.0,
+                  123.0,
+                  129.0,
+                  125.0,
+                  127.0,
+                  126.0,
+                  127.0,
+                  127.0,
+                  126.0,
+                  127.0,
+                  125.0,
+                  129.0,
+                  124.0,
+                  129.0,
+                  124.0
+                ],
+                "max_interval_ratio": 1.05,
+                "maximum_us": 1720000.0,
+                "maximum_vblank_interval": 129,
+                "median_us": 1680000.0,
+                "median_vblank_interval": 126.0,
+                "method": "rom_internal_timer2_counter",
+                "raw_interval_vblank_counts": [
+                  32,
+                  121,
+                  123,
+                  129,
+                  125,
+                  127,
+                  126,
+                  127,
+                  127,
+                  126,
+                  127,
+                  125,
+                  129,
+                  124,
+                  129,
+                  124
+                ],
+                "samples": 16,
+                "vblank_reference_ticks": 184482,
+                "vblank_reference_us": 13333.333333333334,
+                "within_budget": false
+              },
+              {
+                "exceeded_samples": 16,
+                "first_exceeded_sample": 1,
+                "interval_ratios": [
+                  32.0,
+                  121.0,
+                  123.0,
+                  129.0,
+                  125.0,
+                  127.0,
+                  126.0,
+                  127.0,
+                  127.0,
+                  125.0,
+                  129.0,
+                  124.0,
+                  129.0,
+                  124.0,
+                  130.0,
+                  124.0
+                ],
+                "max_interval_ratio": 1.05,
+                "maximum_us": 1733333.3333333335,
+                "maximum_vblank_interval": 130,
+                "median_us": 1673333.3333333335,
+                "median_vblank_interval": 125.5,
+                "method": "rom_internal_timer2_counter",
+                "raw_interval_vblank_counts": [
+                  32,
+                  121,
+                  123,
+                  129,
+                  125,
+                  127,
+                  126,
+                  127,
+                  127,
+                  125,
+                  129,
+                  124,
+                  129,
+                  124,
+                  130,
+                  124
+                ],
+                "samples": 16,
+                "vblank_reference_ticks": 184482,
+                "vblank_reference_us": 13333.333333333334,
+                "within_budget": false
+              }
+            ],
+            "same_conclusion": true,
+            "sound_timing": {
+              "actual_sound_ticks": [
+                1797,
+                1798
+              ],
+              "clip_invoked": [
+                false,
+                false
+              ],
+              "discarded_vblanks": [
+                0,
+                0
+              ],
+              "display_interval_elapsed_vblanks": [
+                1921,
+                1922
+              ],
+              "elapsed_vblanks": [
+                1797,
+                1798
+              ],
+              "production_consumed_vblanks": [
+                1797,
+                1798
+              ],
+              "sound_tick_cap": 2048,
+              "sound_ticks": [
+                1797,
+                1798
+              ],
+              "terminal_display_interval_vblanks": [
+                124,
+                124
+              ],
+              "unaccounted_display_interval_vblanks": [
+                124,
+                124
+              ],
+              "within_target": [
+                true,
+                true
+              ]
+            },
+            "stack_high_water": {
+              "at_least_128_unused": true,
+              "lowest_cc65_stack_pointer": 48896,
+              "minimum_unused_bytes_required": 128,
+              "stack_end_exclusive": 49208,
+              "stack_pointer_in_range": true,
+              "stack_start": 47624,
+              "stack_used_bytes": 312,
+              "unused_bytes_between_stack_start_and_low_water": 1272
+            },
+            "warmup_discarded_vblanks": [
+              639,
+              642
+            ],
+            "within_budget": false
+          },
+          "frame_regression_skipped": true,
+          "median_us": 0.0,
+          "phase": "boss"
+        }
+      ],
+      "weighted_value": 8
+    }
+  ],
+  "title_calibration": {
+    "clip_count": [
+      0,
+      0
+    ],
+    "clip_zero": true,
+    "discarded_vblanks": [
+      0,
+      0
+    ],
+    "independent_batch_count": 2,
+    "method": "rom_internal_timer2_counter",
+    "run_maxima_vblank": [
+      4,
+      4
+    ],
+    "run_medians_vblank": [
+      3.0,
+      3.0
+    ],
+    "runs": [
+      {
+        "exceeded_samples": 16,
+        "first_exceeded_sample": 1,
+        "interval_ratios": [
+          3.0,
+          3.0,
+          3.0,
+          4.0,
+          3.0,
+          3.0,
+          3.0,
+          4.0,
+          3.0,
+          3.0,
+          3.0,
+          4.0,
+          3.0,
+          3.0,
+          3.0,
+          4.0
+        ],
+        "max_interval_ratio": 1.05,
+        "maximum_us": 53333.333333333336,
+        "maximum_vblank_interval": 4,
+        "median_us": 40000.0,
+        "median_vblank_interval": 3.0,
+        "method": "rom_internal_timer2_counter",
+        "raw_interval_vblank_counts": [
+          3,
+          3,
+          3,
+          4,
+          3,
+          3,
+          3,
+          4,
+          3,
+          3,
+          3,
+          4,
+          3,
+          3,
+          3,
+          4
+        ],
+        "samples": 16,
+        "vblank_reference_ticks": 184482,
+        "vblank_reference_us": 13333.333333333334,
+        "within_budget": false
+      },
+      {
+        "exceeded_samples": 16,
+        "first_exceeded_sample": 1,
+        "interval_ratios": [
+          3.0,
+          3.0,
+          3.0,
+          4.0,
+          3.0,
+          3.0,
+          3.0,
+          4.0,
+          3.0,
+          3.0,
+          3.0,
+          4.0,
+          3.0,
+          3.0,
+          3.0,
+          4.0
+        ],
+        "max_interval_ratio": 1.05,
+        "maximum_us": 53333.333333333336,
+        "maximum_vblank_interval": 4,
+        "median_us": 40000.0,
+        "median_vblank_interval": 3.0,
+        "method": "rom_internal_timer2_counter",
+        "raw_interval_vblank_counts": [
+          3,
+          3,
+          3,
+          4,
+          3,
+          3,
+          3,
+          4,
+          3,
+          3,
+          3,
+          4,
+          3,
+          3,
+          3,
+          4
+        ],
+        "samples": 16,
+        "vblank_reference_ticks": 184482,
+        "vblank_reference_us": 13333.333333333334,
+        "within_budget": false
+      }
+    ],
+    "same_conclusion": true,
+    "sound_timing": {
+      "actual_sound_ticks": [
+        48,
+        48
+      ],
+      "clip_invoked": [
+        false,
+        false
+      ],
+      "discarded_vblanks": [
+        0,
+        0
+      ],
+      "display_interval_elapsed_vblanks": [
+        52,
+        52
+      ],
+      "elapsed_vblanks": [
+        48,
+        48
+      ],
+      "production_consumed_vblanks": [
+        48,
+        48
+      ],
+      "sound_tick_cap": 2048,
+      "sound_ticks": [
+        48,
+        48
+      ],
+      "terminal_display_interval_vblanks": [
+        4,
+        4
+      ],
+      "unaccounted_display_interval_vblanks": [
+        4,
+        4
+      ],
+      "within_target": [
+        true,
+        true
+      ]
+    },
+    "within_budget": false
+  },
+  "wall_clock": {
+    "advisory_only": true,
+    "used_for_contract_g": false
+  },
+  "weights": {
+    "boss": 4,
+    "limit": 8,
+    "normal": 1
+  }
+}

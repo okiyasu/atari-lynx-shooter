@@ -1471,15 +1471,40 @@ static void update_boss(GameState* game, unsigned char input,
     ++game->phase_timer;
 }
 
-unsigned char game_logic_updates_for_draw_frame(unsigned char* remainder)
+unsigned char game_logic_updates_for_draw_frame(unsigned int elapsed_vblanks,
+    signed char remainder)
 {
-    unsigned char total;
-    unsigned char updates;
+#ifdef __CC65__
+    /* The Lynx production scheduler has denominator 1, so its remainder is
+     * permanently zero. Keep the signed remainder API for host boundary
+     * tests, while using the smaller target path to preserve ROM/RAM headroom. */
+    (void)remainder;
+    if (elapsed_vblanks >= GAME_LOGIC_UPDATES_MAX /
+        GAME_LOGIC_UPDATES_NUMERATOR) {
+        return GAME_LOGIC_UPDATES_MAX;
+    }
+    return (unsigned char)(elapsed_vblanks *
+        GAME_LOGIC_UPDATES_NUMERATOR);
+#else
+    unsigned char base;
 
-    total = (unsigned char)(*remainder + GAME_LOGIC_UPDATES_NUMERATOR);
-    updates = (unsigned char)(total / GAME_LOGIC_UPDATES_DENOMINATOR);
-    *remainder = (unsigned char)(total % GAME_LOGIC_UPDATES_DENOMINATOR);
-    return updates;
+    if (elapsed_vblanks > GAME_LOGIC_UPDATES_MAX /
+        GAME_LOGIC_UPDATES_NUMERATOR) {
+        return GAME_LOGIC_UPDATES_MAX;
+    }
+    base = (unsigned char)(elapsed_vblanks * GAME_LOGIC_UPDATES_NUMERATOR);
+    if (remainder < 0) {
+        if (base <= (unsigned char)(-remainder)) {
+            return 0u;
+        }
+        return (unsigned char)(base - (unsigned char)(-remainder));
+    }
+    if ((unsigned char)remainder >=
+        (unsigned char)(GAME_LOGIC_UPDATES_MAX - base)) {
+        return GAME_LOGIC_UPDATES_MAX;
+    }
+    return (unsigned char)(base + (unsigned char)remainder);
+#endif
 }
 
 void game_update_logic(GameState* game, unsigned char input)

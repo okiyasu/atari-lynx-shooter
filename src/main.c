@@ -3,7 +3,11 @@
 #include <lynx.h>
 #include <tgi.h>
 
+#ifdef CADENCE_PROBE
+#include "cadence_probe.h"
+#endif
 #include "game.h"
+#include "game_timing.h"
 #include "sprite_data.h"
 #include "title_voice.h"
 #include "version.h"
@@ -1167,6 +1171,9 @@ static void draw_game(const GameState* game)
 
 void game_display_request(void)
 {
+#ifdef CADENCE_PROBE
+    cadence_probe_display();
+#endif
     tgi_updatedisplay();
 }
 
@@ -1176,9 +1183,9 @@ void game_display_sync_complete(void)
 
 void main(void)
 {
-    unsigned char logic_remainder;
+    unsigned int elapsed_vblanks;
     unsigned char logic_updates;
-    unsigned char update;
+    register unsigned int sound_ticks;
     unsigned char input;
 
     tgi_install(tgi_static_stddrv);
@@ -1191,20 +1198,37 @@ void main(void)
     tgi_setframerate(75u);
     sound_backend_init();
     title_voice_init();
+    game_timing_init();
     game.enemies = game_enemies;
     game_init(&game);
     active_palette_stage = 0u;
-    logic_remainder = 0u;
-
     for (;;) {
         /* Pipeline gameplay work while the previous VBLANK swap is pending.
          * Only wait immediately before reusing the completed back buffer. */
         input = game_input_poll();
-        logic_updates = game_logic_updates_for_draw_frame(&logic_remainder);
-        for (update = 0u; update < logic_updates; ++update) {
+        elapsed_vblanks = game_timing_consume_vblanks();
+#ifdef CADENCE_PROBE
+        cadence_probe_elapsed_vblanks(elapsed_vblanks);
+#endif
+        logic_updates = game_logic_updates_for_draw_frame(elapsed_vblanks,
+            0);
+        while (logic_updates != 0u) {
             game_update_logic(&game, input);
+#ifdef CADENCE_PROBE
+            /* Count only after the real game update returns. */
+            cadence_probe_logic_update();
+#endif
+            --logic_updates;
         }
-        game_sound_tick(&game);
+        sound_ticks = game_sound_ticks_for_draw_frame(elapsed_vblanks);
+        while (sound_ticks != 0u) {
+            game_sound_tick(&game);
+#ifdef CADENCE_PROBE
+            /* Count only after the real production sound tick returns. */
+            cadence_probe_sound_tick();
+#endif
+            --sound_ticks;
+        }
         sound_backend_apply_all();
         GAME_DISPLAY_READY_WAIT(tgi_busy());
         game_display_sync_complete();
@@ -1218,6 +1242,7 @@ void main(void)
                 title_voice_stop();
             }
             game_title_voice_complete(&game);
+            game_timing_reset_baseline();
         } else if (game.game_over != 0u &&
             game.game_over_voice_pending != 0u) {
             if (game_over_voice_start() != 0u) {
@@ -1227,6 +1252,7 @@ void main(void)
                 title_voice_stop();
             }
             game_game_over_voice_complete(&game);
+            game_timing_reset_baseline();
         }
     }
 }

@@ -11,7 +11,15 @@ Atari Lynxの標準160x102・16色モードで動く、最小構成の横スク�
 - `src/main.c`: cc65/Lynxアダプタ。標準ジョイスティックドライバを読み、Stage遷移時だけ生成済み32-byte paletteをTGIへ設定する。固定水平ラン表の惑星・山・雲・洞窟地形、固定星、生成済み3〜4色水平runの自機・9通常敵・3ボス、両陣営の弾、Stage/フェーズ表示、ボスHPバー、HUDを背面から順に描く。純Cのメロディ/ベース/SFX論理出力を75% gain後にMIKEY channel A/C/Bへ反映し、cartridge-only音声は共有+25% saturating PCM gain後にchannel Dへ排他的に流す。
 - `tests/test_game.c`と`tests/test_sound.c`: 同じゲーム/サウンドロジックをmacOS clangで実行する回帰テスト。
 
-描画フレームごとに入力を一度取得し、画面クリアと再描画、`tgi_updatedisplay()`、`sound_tick()`を各一回だけ75Hzで行う。APS-030最終仕様のゲーム内ロジックは剰余0からの`4/1`固定スケジューラで、各描画フレームに4回、300Hz（基準75Hz比4.00倍）更新する。同じ描画フレーム内の4回の更新にも同一入力を渡すため、状態遷移、進行タイマ、移動、弾、クールダウン、敵発射、環境、無敵は決定的に4倍で進む。`sound_tick()`は論理出力を一回投影した後、非死亡時の共有BGMカーソル（メロディ/ベース）だけを4回進める。SFXカーソルは一回だけ進め、SFXの実時間長、優先順位、開始回数を保つ。自機死亡開始時はBGMを停止し、爆発SFXの完了を死亡状態の解除条件とするため、300HzロジックがSFXより先に再出撃やGAME OVERへ進むことはない。GAME OVER/ALL CLEARの解除・再押下判定を最優先とし、導入・警告・クリアは許可された背景・入力を一度更新してから境界判定する。NORMALは既存の通常戦闘順を維持し、BOSSは背景、自機、射撃、自機弾、ボス命中、既存敵弾、ボス移動/発射、自機損傷の順とする。HP0更新は直ちにクリアへ移って後続ボス処理を省略する。動的確保、外部アセット、外部音源を使わない。
+## APS-051 実時間cadence計測の是正（段階1）
+
+APS-049契約gの換算基準`553,362/553,380 ticks`は誤りだった。Timer 2 VBLANKの同一ROM実測中央値`184,482 ticks`を1 VBlank=`13,333.333333333334us`の基準とし、`US_PER_TICK=13,333.333333333334/184,482`を使う。契約gは平均CPU tickやbulk frame-stepの実行量ではなく、連続する`_game_display_request`間隔を直接採取し、各`delta_ticks / 184,482`が全て`1.05`以下であることを要求する。各fixtureは独立2 batch（各75区間）、Timer 2 IRQ raw sample・run別中央値/最大値を保存する。
+
+段階1では描画・Suzy/TGI・ゲームロジック・spriteデータを変更しない。通常配布ROMはprobe object/header/main hookを含まず、`make frame-cadence-gearlynx`だけが専用cfg・map・label付きの計測ROMを生成してprobeをリンクする。16-byte intervalは計測ROM専用BSSへ確保し、実`game_sound_tick()`戻り後counterはZPへ置いてBSSを増やさない。mapからBSS終端・C stack開始・残余・stack非重複を機械検査する。現行未最適化ROMの描画契約g FAILは正しい観測であり、`evidence/APS-052/logic-catchup-gearlynx.json`へ両ROM path/size/SHA、raw interval、実logic/sound tick、clip/discard、stack値を保存する。`tests/perf_bench.c`は実TGI/Suzy描画をリンクしないため、host性能値を実機cadenceの根拠にしない。
+
+段階2ではSuzyハードスプライト（SCB直接）等による敵描画削減・背景全再描画削減を実装し、修理済み契約gでGearlynxの敵4体/8体を再測定する。最終受入にはAtari Lynx実機の敵4体/8体の速度実測と体感確認も必要で、cadence自動テスト単独PASSは受入条件にしない。
+
+描画フレームごとに入力を一度取得し、画面クリアと再描画、`tgi_updatedisplay()`、MIKEYへのsound applyを各一回だけ行う。Timer 2 VBlank基準の`elapsed_vblanks`により、ロジックは`elapsed_vblanks × 4`回（1描画あたり128回上限）、サウンドは`elapsed_vblanks`回（1描画あたり2048回上限）進め、各上限超過分はproduction consume counterと実`game_sound_tick()`戻り後counterの差として証跡へ記録する。これにより低FPS時も300Hzロジックと75Hz基準のA/C/B音楽・SFX時間を、4/8/boss+4 fixtureの実測範囲内で実時間へ追従させる。APS-030最終仕様のゲーム内ロジックは剰余0からの`4/1`固定スケジューラで、通常の各描画フレームに4回、300Hz（基準75Hz比4.00倍）更新する。同じ描画フレーム内のcatch-up更新にも同一入力を渡すため、状態遷移、進行タイマ、移動、弾、クールダウン、敵発射、環境、無敵は決定的に経過VBlank分進む。各`game_sound_tick()`は論理出力を一回投影した後、非死亡時の共有BGMカーソル（メロディ/ベース）を4回進め、SFXカーソルを一回進める。自機死亡開始時はBGMを停止し、爆発SFXの完了を死亡状態の解除条件とするため、300HzロジックがSFXより先に再出撃やGAME OVERへ進むことはない。GAME OVER/ALL CLEARの解除・再押下判定を最優先とし、導入・警告・クリアは許可された背景・入力を一度更新してから境界判定する。NORMALは既存の通常戦闘順を維持し、BOSSは背景、自機、射撃、自機弾、ボス命中、既存敵弾、ボス移動/発射、自機損傷の順とする。HP0更新は直ちにクリアへ移って後続ボス処理を省略する。動的確保、外部アセット、外部音源を使わない。
 
 ## APS-019 75Hz同期と開発用性能計測
 

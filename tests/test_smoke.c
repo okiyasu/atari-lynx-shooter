@@ -37,12 +37,12 @@ static void advance_intro(GameState* game)
 
 static void advance_draw_frame(GameState* game, unsigned char input)
 {
-    unsigned char remainder;
+    signed char remainder;
     unsigned char updates;
     unsigned char update;
 
     remainder = 0u;
-    updates = game_logic_updates_for_draw_frame(&remainder);
+    updates = game_logic_updates_for_draw_frame(1u, remainder);
     for (update = 0u; update < updates; ++update) {
         game_update_logic(game, input);
     }
@@ -157,11 +157,11 @@ int main(void)
     logic_updates = 0u;
     sound_ticks = 0u;
     for (frame = 0u; frame < GAME_DRAW_HZ; ++frame) {
-        unsigned char remainder;
+        signed char remainder;
         unsigned char updates;
 
         remainder = 0u;
-        updates = game_logic_updates_for_draw_frame(&remainder);
+        updates = game_logic_updates_for_draw_frame(1u, remainder);
         logic_updates += updates;
         ++sound_ticks;
     }

@@ -11,10 +11,15 @@ HOST_CFLAGS := -std=c89 -pedantic -Wall -Wextra -Werror \
 	-DGAME_COMBATANT_INSTRUMENT -Iinclude -I$(GEN_DIR)
 ROM_CFLAGS := -t lynx -Oirs --standard cc65 -W error -Iinclude -I$(GEN_DIR)
 ROM := dist/asteroid-patrol.lnx
-ROM_OBJECTS := build/cart_directory.o build/main.o build/game.o build/sound.o \
+CADENCE_ROM := dist/asteroid-patrol-cadence.lnx
+CADENCE_CFG := cfg/lynx-voice-cadence.cfg
+COMMON_ROM_OBJECTS := build/game.o build/sound.o \
 	build/ima_adpcm.o build/pcm_stream.o build/title_voice.o \
 	build/title_voice_stream.o build/music_data.o build/stage_data.o \
-	build/sprite_data.o build/title_voice_asset.o
+	build/sprite_data.o build/title_voice_asset.o build/game_timing.o
+ROM_OBJECTS := build/cart_directory.o build/main.o $(COMMON_ROM_OBJECTS)
+CADENCE_OBJECTS := build/cart_directory.o build/main-cadence.o $(COMMON_ROM_OBJECTS) \
+	build/cadence_probe.o
 MUSIC_DATA := $(GEN_DIR)/music_data.c
 STAGE_INPUT := assets/stages/stages.json
 STAGE_GENERATOR := scripts/generate-stage-data.py
@@ -51,14 +56,35 @@ $(ROM): $(ROM_OBJECTS) | toolchain
 	$(CL65) -t lynx -C cfg/lynx-voice.cfg -m build/asteroid-patrol.map \
 		-Ln build/asteroid-patrol.lbl -o $@ $(ROM_OBJECTS)
 
+$(CADENCE_ROM): $(CADENCE_OBJECTS) $(CADENCE_CFG) | toolchain
+	mkdir -p dist build
+	$(CL65) -t lynx -C $(CADENCE_CFG) -m build/asteroid-patrol-cadence.map \
+		-Ln build/asteroid-patrol-cadence.lbl -o $@ $(CADENCE_OBJECTS)
+
 build/cart_directory.o: src/cart_directory.s cfg/lynx-voice.cfg | toolchain
 	mkdir -p build
 	$(CL65) -t lynx -c -o $@ src/cart_directory.s
 
 build/main.o: src/main.c include/game.h include/sound.h include/title_voice.h \
-		include/version.h $(GEN_DIR)/stage_data.h $(GEN_DIR)/sprite_data.h | toolchain
+		include/version.h include/game_timing.h \
+		$(GEN_DIR)/stage_data.h $(GEN_DIR)/sprite_data.h | toolchain
 	mkdir -p build
 	$(CL65) $(ROM_CFLAGS) -c -o $@ src/main.c
+
+build/main-cadence.o: src/main.c include/game.h include/sound.h \
+		include/title_voice.h include/version.h include/game_timing.h \
+		include/cadence_probe.h \
+		$(GEN_DIR)/stage_data.h $(GEN_DIR)/sprite_data.h | toolchain
+	mkdir -p build
+	$(CL65) $(ROM_CFLAGS) -DCADENCE_PROBE -c -o $@ src/main.c
+
+build/cadence_probe.o: src/cadence_probe.s | toolchain
+	mkdir -p build
+	$(CL65) -t lynx -c -o $@ src/cadence_probe.s
+
+build/game_timing.o: src/game_timing.s include/game_timing.h | toolchain
+	mkdir -p build
+	$(CL65) -t lynx -c -o $@ src/game_timing.s
 
 build/game.o: src/game.c include/game.h include/sound.h \
 		$(GEN_DIR)/stage_data.h | toolchain
@@ -177,9 +203,17 @@ perf-host: build/perf-bench build/perf-bench-legacy build/test-game-legacy
 smoke-gearlynx: $(ROM)
 	./scripts/smoke-gearlynx.sh $(ROM) build/asteroid-patrol.lbl
 
-frame-cadence-gearlynx: $(ROM)
+frame-cadence-gearlynx: $(ROM) $(CADENCE_ROM)
+	./scripts/inspect-lnx.sh $(ROM)
+	./scripts/inspect-lnx.sh $(CADENCE_ROM)
 	./scripts/verify-frame-pacing-gearlynx.py \
-		--output evidence/APS-049/frame-cadence-gearlynx.json
+		--rom $(CADENCE_ROM) \
+		--symbols build/asteroid-patrol-cadence.lbl \
+		--map build/asteroid-patrol-cadence.map \
+		--normal-rom $(ROM) \
+		--normal-symbols build/asteroid-patrol.lbl \
+		--normal-map build/asteroid-patrol.map \
+		--output evidence/APS-052/logic-catchup-gearlynx.json
 
 build/test-game: tests/test_game.c src/game.c src/sound.c $(MUSIC_DATA) \
 		$(GEN_DIR)/stage_data.c $(GEN_DIR)/stage_data.h include/game.h include/sound.h

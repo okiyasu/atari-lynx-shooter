@@ -57,6 +57,43 @@ def main_bss_game_address(map_path):
     )
 
 
+def label_address(symbols_path, symbol):
+    for line in Path(symbols_path).read_text(encoding="utf-8").splitlines():
+        match = re.match(r"^al\s+([0-9A-Fa-f]{6})\s+\." +
+                         re.escape(symbol) + r"$", line)
+        if match:
+            return int(match.group(1), 16)
+    raise RuntimeError(f"cannot locate {symbol} in label file")
+
+
+def map_value(map_path, symbol):
+    text = Path(map_path).read_text(encoding="utf-8")
+    match = re.search(
+        r"(?:^|\s)" + re.escape(symbol) + r"\s+([0-9A-Fa-f]{6})\s+",
+        text, re.MULTILINE,
+    )
+    if match is None:
+        raise RuntimeError(f"cannot locate {symbol} in linker map")
+    return int(match.group(1), 16)
+
+
+def stack_end_exclusive(map_path):
+    return (map_value(map_path, "__MAIN_START__") +
+            map_value(map_path, "__MAIN_SIZE__") +
+            map_value(map_path, "__STACKSIZE__"))
+
+
+def bss_end_exclusive(map_path):
+    text = Path(map_path).read_text(encoding="utf-8")
+    match = re.search(
+        r"^BSS\s+([0-9A-Fa-f]{6})\s+([0-9A-Fa-f]{6})\s+",
+        text, re.MULTILINE,
+    )
+    if match is None:
+        raise RuntimeError("cannot locate BSS range in linker map")
+    return int(match.group(2), 16) + 1
+
+
 def write_bytes(address, values, id_):
     tool(
         "write_memory",
@@ -283,6 +320,15 @@ def main():
             return 1
 
         game_address = main_bss_game_address(Path(args.map))
+        stack_low_water_address = label_address(
+            Path(args.symbols), "_game_timing_stack_low_water"
+        )
+        stack_floor = bss_end_exclusive(Path(args.map))
+        stack_start = (
+            map_value(Path(args.map), "__MAIN_START__") +
+            map_value(Path(args.map), "__MAIN_SIZE__")
+        )
+        stack_top = stack_end_exclusive(Path(args.map))
         tool("debug_continue")
         initial, request_id = wait_for_game_bytes(
             game_address,
@@ -590,6 +636,25 @@ def main():
             f"{args.mode} voice state: remaining={remaining} active={active} "
             f"underrun={underrun}"
         )
+        stack_low_water = int.from_bytes(
+            read_bytes(stack_low_water_address, 2, request_id), "little"
+        )
+        stack_pointer_in_range = stack_start <= stack_low_water <= stack_top
+        stack_used = (
+            stack_top - stack_low_water if stack_pointer_in_range else None
+        )
+        stack_unused = (
+            stack_low_water - stack_start if stack_pointer_in_range else 0
+        )
+        print(
+            "stack high-water: lowest_cc65_sp=0x{:04x} bss_end_exclusive=0x{:04x} "
+            "stack_start=0x{:04x} stack_end_exclusive=0x{:04x} "
+            "stack_pointer_in_range={} stack_used_bytes={} "
+            "unused_bytes_between_stack_start_and_low_water={} required=128".format(
+                stack_low_water, stack_floor, stack_start, stack_top,
+                stack_pointer_in_range, stack_used, stack_unused
+            )
+        )
         print(
             f"assembly decode trace: DAC_writes={len(traced_dac)} "
             f"all_{voice_sample_count}_exact={trace_offset is not None} "
@@ -724,6 +789,12 @@ def main():
                 return 1
         if remaining != 0 or active != 0 or underrun != 0:
             print("FAIL: title voice stream ended with an underrun", file=sys.stderr)
+            return 1
+        if not stack_pointer_in_range or stack_unused < 128:
+            print(
+                "FAIL: stack high-water leaves fewer than 128 unused bytes",
+                file=sys.stderr,
+            )
             return 1
         if timer_state is None or timer_regs is None:
             print("FAIL: Timer 3 was not observed during voice playback", file=sys.stderr)

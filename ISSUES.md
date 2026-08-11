@@ -1,8 +1,44 @@
 # ISSUES
 
-最終更新: 2026-08-11(APS-050 v005: boss 2x採用判断の結果として、全3ボス1x統一・衝突中心整列へ再統一。clip検知契約追加、verify.sh/smoke/perf PASS、version=0.50.0更新。)
+最終更新: 2026-08-11(APS-052 v005: 実sound tick証跡・4/8敵音声実時間追従完了。version=0.52.4。)
 
 ## 課題台帳
+
+### APS-052: Phase 1 Timer 2基準logic catch-up
+
+- 状態: **Phase 1完了・実sound tick/stack/低FPS音声回帰PASS**（Dev、2026-08-11。commit/push/stash/reset/checkoutなし）。描画cadence契約gは現行の未最適化描画経路が原因で期待どおりFAIL、Phase 2（描画最適化）は未着手。
+- `src/game_timing.s`を追加。Timer 2 VBlankを32-bit monotonic counterへ加算し、`SEI`付きatomic consumeで16-bit elapsedをdraw開始前に返却。title/GAME OVERのblocking voice pump完了後はbaseline resetで蓄積VBlankを破棄。logicは最大128 updates/draw、soundは最大2048 ticks/draw、`sound_backend_apply_all()`はdrawごと1回。
+- `game_logic_updates_for_draw_frame()`はproductionの`4/1`分母に合わせたcc65縮小経路とhostのremainder境界テストを保持。main loopはdrawごとinput poll/sound applyを1回、同一inputでcatch-up logicを反復。
+- APS-052 cadence probeは実`game_update_logic()`戻り後のlogic counter、production consume elapsed、実`game_sound_tick()`戻り後のsound counter、stack low-waterを記録。sound counterはZP `$0023..$0026`へ置き、BSSを増やさない。debugger再開直後の6 display requestはwarm-upとして別記録。raw display合計とproduction elapsedの終端request差分を混同せずevidenceへ保存。
+- sound上限を`GAME_SOUND_TICKS_MAX=2048`へ拡張。正本証跡`evidence/APS-052/logic-catchup-gearlynx.json`で、4敵NORMALはproduction `394/361` VBlank・actual sound `394/361`・discard `0/0`・clip `false/false`、8敵NORMALは`534/533`・`534/533`・`0/0`・`false/false`、boss+4はNORMAL `476/476`・`476/476`、BOSS `1797/1798`・`1797/1798`で全て音声実時間追従PASS。0敵の`1356/1354`もactualとproductionの一致を記録。4敵logic ratioは`1.0`/`1.0`、clip `0`/`0`。
+- stack high-water guard: 通常CFG C stack `$B8B8..$C038`、cadence CFG C stack `$BA08..$C038`。4/8/boss+4計測時の最深`cc65 sp=0xBF00`、cadence stack used 312 bytes、未使用1272 bytes（要求128 bytes以上）でPASS。title/GAME OVER voiceでも同じstack guard回帰を維持。
+- ROM: `GAME_VERSION_STRING=0.52.4`。通常`dist/asteroid-patrol.lnx` 60,295 bytes、SHA-256 `77968e51735bbe523d02462b9c2d5af1515e4ec18afaf7e38501eba7f5a569b4`。cadence `dist/asteroid-patrol-cadence.lnx` 60,635 bytes、SHA-256 `22492b25a89f0a540d58a95e18f9e272818acfd969b37f6c8bdb0013c56c72cd`。通常BSS `$B38E..$B88E` (1,269 bytes)、C stack開始`$B8B8`、残余53 bytes。cadence BSS `$B4E2..$B9F8` (1,303 bytes)、C stack開始`$BA08`、残余15 bytes、interval `$B8E7..$B8F6`、ZP sound counter `$0023..$0026`。両LNX header検査成功。
+- 音声: title/GAME OVERのTimer3/DAC exact sample、underrun=0、38 tick wait、BGM/gate遷移、assembly decodeをPASS。MIKEY channel 0/2は複数pitchとgain `5→3`,`16→12`,`3→2`,`15→11`、channel 1は短いSFXの1 pitch changeとgain `28→21`をPASS。
+- 検証: `make clean && ./scripts/verify.sh`、host回帰（game 617 / sound 351 / IMA 14,949 / sprite 1,647）、`python3 -m py_compile scripts/verify-frame-pacing-gearlynx.py`、`git diff --check`を実行済み。`make frame-cadence-gearlynx`は両ROM LNX検査、TITLE校正、4/8/boss+4の実sound tick/logic/stack証跡を生成後、描画契約gの期待FAIL終了コード2（4敵logic・4/8/boss+4 sound条件PASS）。
+
+#### APS-052設計差分・未確認
+
+- 設計差分: `GAME_SOUND_TICKS_MAX`を24から2048へ拡張し、production elapsedに対する実sound tick戻り後counterをZPへ追加。scheduler予定budget counterは削除し、実logic counterをlogic比率の唯一の実行証跡へ統一。計測ROMは実更新経路を使用。debugger再開遷移の6 requestだけをwarm-upとして別記録。区間数はAPS-052検収の実行可能性に合わせ16へ短縮（APS-051既存75区間証跡は変更なし）。remainderは本番分母が1のためsigned char引数で保持し、cc65では同値の小型経路を使用。
+- 未確認: Atari Lynx実機での4/8敵時の速度・体感、低FPS時のSFX/BGM進行の実機差、長時間（16-bit API elapsedの65,536 VBlank超）動作、実機IRQマージン。Gearlynxでは未最適化描画cadence契約g FAIL継続。
+
+### APS-051: 実時間cadence計測の是正（段階1）
+
+- 状態: **段階1完了・段階2待ち**（Dev、2026-08-11、v003計測経路。commit/push/stash/reset/checkoutなし）。
+- 通常ROM`dist/asteroid-patrol.lnx`から`cadence_probe.o`、`main-cadence.o`、probe header/hookを除外。`make verify`/`make rom`は通常ROMのみを生成し、`make frame-cadence-gearlynx`だけが`dist/asteroid-patrol-cadence.lnx`を専用cfg・label・map付きで生成して計測する。
+- cadence interval 75 bytesは`src/cadence_probe.s`の計測ROM専用BSSへ正規確保。計測ROM map実測: BSS `$B319..$B857` (1,343 bytes)、C stack開始`$B878`、残余32 bytes、interval `$B76B..$B7B5` (75 bytes)でBSS/MAIN内かつstack非重複を機械検査。通常ROMはBSS `$B2A5..$B791` (1,261 bytes)、C stack開始`$B838`、残余166 bytes、probe symbol/moduleなし。
+- 通常ROMと計測ROMは、共通GameState BSS相対配置（`_game`/`_game_enemies`）および生成stage/sprite/voice assetのSHA-256を検証。計測ROMのBSS拡張・code追加による絶対アドレス移動は、probe専用ROM内に限定。
+- Timer 2 VBLANK基準は`184,482 ticks = 13,333.333333333334us`、契約g上限は`1.05 VBlank`。debug_step_frame、requestごとのpause/resume、ホストwall-clockは契約g判定に不使用。各batchは76 display request間を連続実行し、完了write breakpointを1回だけ使用。
+- TITLE校正ゲートは独立2 batchともPASS。両runのraw 75 samplesが全て`3 VBlank`、中央値/最大値`3`、既存基準`553,362 / 184,482 = 2.999544671`との差`+0.000455329`。
+- cadence契約gは全fixtureで意図どおりFAIL（`make frame-cadence-gearlynx`終了コード1）。各fixtureは独立2 batch、raw sample・run別中央値/最大値を`evidence/APS-051/frame-cadence-gearlynx.json`へ保存。
+  - `0 normal`: median `15/14 VBlank`、max `15/16 VBlank`、各75/75超過
+  - `4 normal`: median `24/23 VBlank`、max `28/135 VBlank`、各75/75超過
+  - `8 normal`: median `33/33 VBlank`、max `145/145 VBlank`、各75/75超過
+  - `boss+4 normal / NORMAL`: median `29/29 VBlank`、max `142/142 VBlank`、各75/75超過
+  - `boss+4 normal / BOSS`: median `35/35 VBlank`、max `36/36 VBlank`、各75/75超過
+- 通常ROM: `GAME_VERSION_STRING=0.51.2`、LNX `60,062 bytes`、SHA-256 `710bd88fd025eab61821ece965d46198d21b56e6da7ca21bdb967ad86e9ad256`。計測ROM: LNX `60,178 bytes`、SHA-256 `0ce571704f96c64f82a72078aa380a936d1aa18f672bda18d62ed7a7df49ebf6`。両LNX header検査成功。
+- 検証: `make clean && ./scripts/verify.sh`（game 611 / sound 351 / IMA 14,949 / sprite 1,647、cc65 strict、lint、通常ROM LNX）成功、`make smoke-host`（19）成功、`make perf-host`成功。`make frame-cadence-gearlynx`は両ROM LNX検査PASS後、期待されたcadence FAILで終了コード1。`python3 -m py_compile scripts/verify-frame-pacing-gearlynx.py`、`python3 -m json.tool evidence/APS-051/frame-cadence-gearlynx.json`、map分離/BSS検査、`git diff --check`成功。
+- 旧v001のbreakpoint介入値`14x`〜`145x`、v002のprobe混入通常ROM結果、およびそこから導いた「現行ROMの確定性能値」は正本から撤回。v002結果はprobe混入ROMの暫定結果としてのみ履歴扱いし、正本は分離済みcadence ROMと通常ROM双方のpath/size/SHA。
+- host `tests/perf_bench.c`は実TGI/Suzy描画をリンクしないため、出力を描画性能やLynx実機速度の根拠にしない。段階2はSuzyハードスプライト（SCB直接）等で敵描画・背景全再描画を削減し、修理済み契約gでGearlynxの敵4/8体を独立2 batch再測定する。Atari Lynx実機でも敵4/8体の速度実測・体感確認を行い、cadence自動テスト単独PASSでは受入しない。
 
 ### APS-050: APS-047受入修正完了(APS-049未確定項目の解消)
 
@@ -40,9 +76,7 @@
 
 - v001セッションで`scripts/verify-frame-pacing-gearlynx.py`にtotal_ticksベースの契約g(1 draw frame実時間)を追加したところ、0 normal/0 bossで74/74フレーム全部が13.3ms予算超過(最大55,738.865us)しFAILしていた件、v002で手法切り分けを実施し**旧計測手法(高頻度breakpoint往復)側のアーティファクトと確定した**。
 - **キャリブレーション(`scripts/calibrate-cadence-ticks-gearlynx.py`、新規)**: 現ビルドの未使用BSS残余(`.map`から動的算出、今回は`$B6B3`〜`$B837`の389 bytes)へ既知cycle数のNOP直線列(2 cycles/NOP、分岐なし)を書き込み、IRQを無効化した状態でPCを直接そこへ書き込んで実行し、`total_ticks`の(1)線形性・再現性、(2)MCP往復頻度への感度を検証。結果: n=50/100/200/388全てでticks/nop比が9.06付近で安定(線形)、同一Nの3回反復で完全一致(決定論的)、**単発continue(1往復) vs 分割continue(388往復、最大1552往復まで反復)で結果が完全一致(inflation比1.000)**。すなわちtotal_ticksそのものはMCP往復回数・経過real時間に一切影響されない、信頼できるCPUサイクル比例カウンタであることを確認(evidence: `evidence/APS-049/cadence-tick-calibration.json`)。※Timer2 VBLANK IRQとdisplay_requestの周期比較(1:3、想定と不一致)も同ファイルに記録したが解釈が未確定のため合否判定には使っていない。
-- **低頻度再測定(`scripts/verify-frame-pacing-lowfreq-gearlynx.py`、新規)**: キャリブレーションでtotal_ticks自体は無罪と判明したため、計測「経路」の違いを疑い、実ゲームコード(draw_game本体)を`debug_step_frame({frames:75})`(Gearlynx側の「Nフレーム分VBlankまで一括実行」ネイティブ機能)で1回だけ駆動し、total_ticksを実行前後に1回ずつ読む方式(fixtureあたり往復12回、旧来の370往復超から大幅減)で0/4/8 normal・boss+4normalを再測定。**結果: 全fixtureで13.3ms予算に対し余裕(59.288us〜118.573us、budgetの1%未満)、全PASS**(evidence: `evidence/APS-049/frame-cadence-lowfreq-gearlynx.json`)。respawn_enemy()はbullet-enemy衝突時のみ発火(`src/game.c`)し本fixtureでは衝突が起きないため、fixture開始時の1回injectのみで75フレーム中enemy/boss数のdriftがないことも読み戻しで確認済み(`enemy_count_held: true`全件)。
-- **結論**: 旧来の高頻度breakpoint往復方式(1frameあたりinput/logic×4/sound/sync/requestの5 breakpoint+state読み書き十数回、374フレーム全体で往復1500回超)は、`total_ticks`自体の欠陥ではなく、**breakpoint駆動(`debug_continue`)による実行がGearlynx内部でreal-time相当にペーシングされ、draw_game内のハードウェア(Suzy描画/DMA完了待ち等)ポーリングループがreal経過時間に応じて余分にtotal_ticksを消費した**ことによる計測アーティファクトである可能性が高い(`debug_step_frame`のような一括実行プリミティブではこの影響が出ない)と判断。**敵ゼロでも約40msかかるという実性能バグは存在しない** — v001「次にすべきこと」の(2)の懸念は棄却。
-- **低頻度方式の正式統合(v003)**: `scripts/verify-frame-pacing-gearlynx.py`本体に`measure_cadence_lowfreq()`として統合し、これを契約gの合否判定源とした。旧来の毎フレームbreakpoint駆動(`verify_phase()`)はplayer/bullet/enemy/boss移動量と各イベント回数の回帰チェック用に残したが、その中のwall-clock/tick計測は"advisory_only"と明記し合否には使わない。プロトタイプ`scripts/verify-frame-pacing-lowfreq-gearlynx.py`は重複を避けるため削除し一本化。Makefile `frame-cadence-gearlynx`ターゲットの出力パスも`evidence/APS-049/`へ修正済み。
+- **APS-051で撤回**: 上記の低頻度再測定と「敵ゼロでも実性能バグなし」という結論は、要求フレーム数の実行を保証しないbulk frame-stepに依存していたため、契約gの根拠として無効化。APS-051の連続display request間隔測定で、現行未最適化ROMが全fixtureで1.05 VBlank契約にFAILすることを再確認した。APS-049の履歴証跡は改変せず、正しい現行判定は`evidence/APS-051/frame-cadence-gearlynx.json`を参照する。
 - **boss 2x実測ゲート(v003)**: boss 2x描画を実際に有効化した状態(`src/main.c`の`draw_sprite`が`GAME_SPRITE_CORAL_BASTION`〜`GAME_SPRITE_VIOLET_GEODE`で`scale=2`を適用)で`make verify`によるclean ROM再生成後、低頻度方式で0/4/8 normal・boss+4normalを再測定。**全fixture PASS**、最重量ケース(boss+4normal, phase=boss)でも37.683us/13,333.333us予算(0.28%)と潤沢な余裕。evidence: `evidence/APS-049/frame-cadence-gearlynx.json`。この実測を根拠にboss 2xを採用しコード化した(`src/main.c`・`scripts/generate-stage-data.py`のコメントも実測値を明記するよう更新)。
 - **新規発見: boss 2x採用時の画面端クリッピング(v003、未解決・ユーザー判断待ち)**: 契約f実装中に、2xスケール後のboss visual(32x32)がboss停止位置(`bosses[].stop_x`)+anchorで配置されると、**coral_bastion(stage1)とviolet_geode(stage3)で右端3列が画面幅160pxを超えクリップされる**ことが判明(`amber_carrier`(stage2)は160pxちょうどに収まりクリップ0)。実測: `stop_x=132, anchor_dx=-1` → 描画原点131、幅32 → 右端163(160を3超過)。`draw_clipped_hline()`は超過分を静かに切り捨てる仕様(x1を159へクランプ)ため、クラッシュや検証エラーにはならず**視覚的にボスの右側約1割が見えないまま**になる。1xスケール時は同じ停止位置でも右端154(クリップなし)だったため、**2x採用によって新たに生じた事象**であり、契約g(タイミングのみ検証)では検出できない種類の不具合。v001/v002の採用判定基準(13.3ms予算)はクリアしているが、この画面端クリッピングは基準に含まれていなかった新事実のため、Devの判断だけで採用/フォールバックを決めず、ここで止めてユーザー判断を仰ぐ(詳細は下記「次にすべきこと」)。evidence: `evidence/APS-049/coral-bastion.png`・`evidence/APS-049/violet-geode.png`(右端が黒塗りで欠けた状態のnative capture)、`evidence/APS-049/runtime-sprite-gearlynx.json`の`individual_sprite_sha256.coral_bastion/violet_geode.clipped_columns=3`。
 

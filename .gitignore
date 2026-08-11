@@ -7,6 +7,8 @@ dist/
 !src/cart_directory.s
 !src/title_voice_asset.s
 !src/title_voice_stream.s
+!src/cadence_probe.s
+!src/game_timing.s
 *.map
 *.lbl
 .DS_Store

@@ -2895,16 +2895,42 @@ static void test_combatant_capacity_and_activity_contract(void)
 static void test_draw_frame_logic_scheduler(void)
 {
     GameState game;
-    unsigned char remainder;
+    signed char remainder;
     unsigned char frame;
     unsigned char update;
     unsigned char updates;
     unsigned int total_updates;
 
+    remainder = 0;
+    expect(game_logic_updates_for_draw_frame(0u, remainder) == 0u,
+        "zero elapsed VBlanks produce no logic updates");
+    remainder = 3;
+    expect(game_logic_updates_for_draw_frame(1u, remainder) == 7u,
+        "positive remainder is added deterministically to one VBlank");
+    remainder = -2;
+    expect(game_logic_updates_for_draw_frame(1u, remainder) == 2u,
+        "negative remainder is subtracted deterministically from one VBlank");
+    remainder = 0;
+    expect(game_logic_updates_for_draw_frame(31u, remainder) == 124u &&
+        game_logic_updates_for_draw_frame(32u, remainder) == 128u &&
+        game_logic_updates_for_draw_frame(33u, remainder) == 128u,
+        "128-update clip has exact 31/32/33 VBlank boundary behavior");
+    remainder = 7;
+    expect(game_logic_updates_for_draw_frame(65535u, remainder) == 128u,
+        "large elapsed VBlank values clip without unsigned wrap");
+    expect(game_sound_ticks_for_draw_frame(0u) == 0u &&
+        game_sound_ticks_for_draw_frame(1u) == 1u &&
+        game_sound_ticks_for_draw_frame(GAME_SOUND_TICKS_MAX) ==
+            GAME_SOUND_TICKS_MAX &&
+        game_sound_ticks_for_draw_frame(GAME_SOUND_TICKS_MAX + 1u) ==
+            GAME_SOUND_TICKS_MAX &&
+        game_sound_ticks_for_draw_frame(65535u) == GAME_SOUND_TICKS_MAX,
+        "sound ticks follow elapsed VBlanks with an explicit 2048-tick safety clip");
+
     remainder = 0u;
     total_updates = 0u;
     for (frame = 0u; frame < GAME_LOGIC_UPDATES_DENOMINATOR; ++frame) {
-        updates = game_logic_updates_for_draw_frame(&remainder);
+        updates = game_logic_updates_for_draw_frame(1u, remainder);
         expect(updates == 4u,
             "4/1 scheduler performs four deterministic updates on every draw frame");
         total_updates += updates;
@@ -2919,7 +2945,7 @@ static void test_draw_frame_logic_scheduler(void)
     game.environment_event_cursor = GAME_ASTEROID_EVENT_COUNT;
     remainder = 0u;
     for (frame = 0u; frame < 75u; ++frame) {
-        updates = game_logic_updates_for_draw_frame(&remainder);
+        updates = game_logic_updates_for_draw_frame(1u, remainder);
         for (update = 0u; update < updates; ++update) {
             game_update_logic(&game, 0u);
         }
@@ -3137,7 +3163,7 @@ static void test_draw_frame_death_waits_for_explosion_sfx(void)
 {
     GameState game;
     GameState frozen;
-    unsigned char remainder;
+    signed char remainder;
     unsigned char frame;
     unsigned char update;
     unsigned char updates;
@@ -3148,7 +3174,7 @@ static void test_draw_frame_death_waits_for_explosion_sfx(void)
     game.enemies[0].rect.x = game.player.x;
     game.enemies[0].rect.y = game.player.y;
     remainder = 0u;
-    updates = game_logic_updates_for_draw_frame(&remainder);
+    updates = game_logic_updates_for_draw_frame(1u, remainder);
     game_update_logic(&game, 0u);
     for (update = 1u; update < updates; ++update) {
         game_update_logic(&game, 0u);
@@ -3163,7 +3189,7 @@ static void test_draw_frame_death_waits_for_explosion_sfx(void)
     frozen = game;
     explosion_length = sound_get_sfx_length(SOUND_SFX_PLAYER_EXPLOSION);
     for (frame = 1u; frame < explosion_length; ++frame) {
-        updates = game_logic_updates_for_draw_frame(&remainder);
+        updates = game_logic_updates_for_draw_frame(1u, remainder);
         for (update = 0u; update < updates; ++update) {
             game_update_logic(&game, GAME_INPUT_RIGHT | GAME_INPUT_FIRE);
         }

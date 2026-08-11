@@ -78,13 +78,13 @@ static void prepare_combat(GameState* game)
     }
 }
 
-static void run_draw_frame(GameState* game, unsigned char* remainder,
+static void run_draw_frame(GameState* game, signed char* remainder,
     unsigned long* logic_since_prepare, BenchResult* result)
 {
     unsigned char update;
     unsigned char updates;
 
-    updates = game_logic_updates_for_draw_frame(remainder);
+    updates = game_logic_updates_for_draw_frame(1u, *remainder);
     for (update = 0u; update < updates; ++update) {
         if (*logic_since_prepare == BENCH_REPREPARE_LOGIC_UPDATES) {
             prepare_combat(game);
@@ -105,7 +105,7 @@ static BenchResult run_timed(unsigned char synchronized)
     BenchResult result;
     struct timeval start;
     struct timeval now;
-    unsigned char remainder;
+    signed char remainder;
     unsigned long logic_since_prepare;
 
     result.elapsed_us = 0ul;
@@ -135,7 +135,7 @@ static BenchResult run_workload(unsigned long frames)
     BenchResult result;
     struct timeval start;
     struct timeval end;
-    unsigned char remainder;
+    signed char remainder;
     unsigned long logic_since_prepare;
 
     result.elapsed_us = 0ul;

@@ -49,6 +49,12 @@
 #define GAME_FRAME_INTERVAL_MAX_US 15000ul
 #define GAME_LOGIC_UPDATES_NUMERATOR 4u
 #define GAME_LOGIC_UPDATES_DENOMINATOR 1u
+#define GAME_LOGIC_UPDATES_MAX 128u
+#define GAME_SOUND_TICKS_MAX 2048u
+
+#define game_sound_ticks_for_draw_frame(elapsed_vblanks) \
+    ((unsigned int)(((elapsed_vblanks) > GAME_SOUND_TICKS_MAX) ? \
+        GAME_SOUND_TICKS_MAX : (elapsed_vblanks)))
 
 #define GAME_DISPLAY_READY_WAIT(busy_expression) \
     do { while ((busy_expression) != 0u) { } } while (0)
@@ -337,7 +343,8 @@ void game_init(GameState* game);
 void game_start(GameState* game);
 void game_title_voice_complete(GameState* game);
 void game_game_over_voice_complete(GameState* game);
-unsigned char game_logic_updates_for_draw_frame(unsigned char* remainder);
+unsigned char game_logic_updates_for_draw_frame(unsigned int elapsed_vblanks,
+    signed char remainder);
 void game_update_logic(GameState* game, unsigned char input);
 void game_sound_tick(GameState* game);
 void game_update(GameState* game, unsigned char input);

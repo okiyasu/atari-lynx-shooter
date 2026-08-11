@@ -11,7 +11,7 @@ make toolchain  # cc65 2.19を.cacheへ取得・検証・ローカルビルド
 make verify     # clean、clangテスト、lint、ROMビルド、LNXヘッダ検査
 ./scripts/verify.sh  # make verifyの実出力を.cache/logs/verify.logにも保存
 make perf-host  # 開発専用: 75Hz/無待機のホスト側スケジューラ計測
-make frame-cadence-gearlynx  # Gearlynx: 0/4/8通常敵・4通常敵+bossの75 frame cadence
+make frame-cadence-gearlynx  # Gearlynx: APS-052実logic/sound証跡＋APS-051 cadence契約（未最適化ROMはFAIL予定）
 make voice-check  # 同梱IMA ADPCM・メタデータ・復号差分表・voice gain表を検証/解析
 make stage-check  # JSON schema/ID/range/負性fixture/goldenを検証
 python3 scripts/verify-title-voice-gearlynx.py --mode title
@@ -19,6 +19,8 @@ python3 scripts/verify-title-voice-gearlynx.py --mode game-over
 ```
 
 ROMは`dist/asteroid-patrol.lnx`に生成されます。`.cache/`、`build/`、`dist/`はGit管理外です。ツールチェーンスクリプトは`V2.19`の固定コミットを検査し、`cl65 -t lynx`でROMを作ります。
+
+`make frame-cadence-gearlynx`は通常ROMとは別に`dist/asteroid-patrol-cadence.lnx`を生成します。計測probeと16-byte interval BSSは計測ROM専用で、実`game_sound_tick()`戻り後counterはZPへ置き、通常配布ROMへ混入しません。4/8/boss+4のsound timingはproduction elapsedと実tickを比較して合否を記録し、未最適化ROMの描画契約g FAILは段階1の期待結果です。
 
 Gearlynx音声検証は、タイトル音声の完了後に75 Hz基準38 tick（約0.507秒）だけTITLEで静止してからStage 1 BGMが始まること、および最終爆発SFXの最終stepからGAME OVER音声11,691 sampleを再生して停止し、A/Bのrelease→pressでタイトルへ一度だけ戻ることを実ROMで検査します。GAME OVER経路は固定時間待機ではなく、安定したTITLE状態、入力gate、TITLE復帰を`GameState`から期限付きで同期します。
 
@@ -36,7 +38,7 @@ V0.47.0の固定spriteは、APS-044で承認された自機Aのdelta wingと敵9
 - AまたはB: 弾発射（押し続けると8フレーム間隔で連射）。武器Lv1は中央1発、Lv2は上下2発、Lv3は前方平行3発
 - サウンド: MIKEY channel A/Cのメロディ/ベースBGMとchannel Bの全7 SFXは、論理table/envelopeを保ったままhardware出力だけを`floor(volume*3/4)`（非zero最低1）へ下げる。channel Dはタイトル開始とGAME OVERのIMA ADPCMを共通Timer 3 backup 125（1 us clock、126 us周期、実効7,936.508 Hz）で排他的に再生し、両音声だけへcenter-preserving +25% saturating gainを一度適用する。タイトルは17,408 samples・約2.193秒、GAME OVERは11,691 samples・約1.473秒
 - ステージ進行: 描画・入力・`sound_tick()`は75Hzのまま、描画フレームごとに4ロジック更新（300Hz、基準75Hz比4.00倍）。Stage/phase進行、移動、弾、クールダウン、環境イベント、無敵を同じ比率で進める。BGMカーソルも非死亡時に1 sound tickあたり4回進め、SFXカーソルは1回のまま実時間長を維持する
-- frame cadence: `tgi_setframerate(75u)`をhardware presentationの唯一のtiming sourceとする。各frameは前回swap待ちの間に入力1回→logic 4回→sound 1回を進め、back buffer再利用の直前だけ`while (tgi_busy()!=0u)`で前回display completionを待ち、draw→display requestを各1回行う。製品frame終端の容量補償wait、delay、logic/input/sound skipはない。0/4/8通常敵と4通常敵+bossで同じevent回数・移動量を維持し、MCP wall-clockでなくhardware eventを正しさの基準とする
+- frame cadence: `tgi_setframerate(75u)`をhardware presentationの唯一のtiming sourceとする。各frameは前回swap待ちの間に入力1回→Timer 2 elapsedに応じたlogic catch-up→同じelapsed分のsound tick→sound apply 1回を進め、back buffer再利用の直前だけ`while (tgi_busy()!=0u)`で前回display completionを待ち、draw→display requestを各1回行う。製品frame終端の容量補償wait、delay、logic/input/sound skipはない。0/4/8通常敵と4通常敵+bossで同じevent回数・移動量を維持し、MCP wall-clockでなくhardware eventを正しさの基準とする
 - HUD: 画面最上部の黒い帯に小型一行で`S<stage> <phase><progress> <score> L<lives> W<weapon>`を表示し、下端線から下だけをプレイ領域として使う。Stage 1導入の進行もこの行に集約する
 - 非戦闘フェーズ: 導入・クリア中は背景とアニメーションのみ進行。`WARNING`中は移動だけ可能で射撃不可
 - Stage 1背景: `SPACE`テーマの黒系配色。最背面の32x24ピクセル惑星、遠景星10個、近景星7個が8/4/2フレームに1pxの3速度で左へスクロール
