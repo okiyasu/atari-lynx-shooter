@@ -1,0 +1,80 @@
+{
+  "aps": "APS-053",
+  "brief": ".briefs/APS-053/v003.md",
+  "status": "blocked_ram_design",
+  "measured_at": "2026-08-12 JST",
+  "cfg": {
+    "normal": {
+      "path": "cfg/lynx-voice.cfg",
+      "stack_reservation_hex": "0x0780",
+      "stack_reservation_bytes": 1920
+    },
+    "cadence": {
+      "path": "cfg/lynx-voice-cadence.cfg",
+      "stack_reservation_hex": "0x0630",
+      "stack_reservation_bytes": 1584
+    }
+  },
+  "build_commands": [
+    {
+      "command": "make clean && make verify",
+      "result": "FAIL: ld65 BSS overflows MAIN by 1186 bytes"
+    },
+    {
+      "command": "make dist/asteroid-patrol-cadence.lnx",
+      "result": "FAIL: ld65 BSS overflows MAIN by 1224 bytes"
+    }
+  ],
+  "normal_rom": {
+    "map": "build/asteroid-patrol.map",
+    "main_start": "0x0200",
+    "main_size": "0xB6B8",
+    "main_end_exclusive": "0xB8B8",
+    "code_start": "0x0298",
+    "code_end": "0x9A23",
+    "code_size": "0x978C",
+    "rodata_start": "0x9A24",
+    "rodata_end": "0xB72F",
+    "rodata_size": "0x1D0C",
+    "data_start": "0xB730",
+    "data_end": "0xB863",
+    "data_size": "0x0134",
+    "bss_start": "0xB864",
+    "bss_end_inclusive": "0xBD59",
+    "bss_size": 1270,
+    "required_reduction_to_link_bytes": 1186,
+    "required_bss_end_at_or_before": "0xB8B7",
+    "labels_generated": false
+  },
+  "cadence_rom": {
+    "map": "build/asteroid-patrol-cadence.map",
+    "main_start": "0x0200",
+    "main_size": "0xB808",
+    "main_end_exclusive": "0xBA08",
+    "code_start": "0x0298",
+    "code_end": "0x9B75",
+    "code_size": "0x98DE",
+    "rodata_start": "0x9B76",
+    "rodata_end": "0xB883",
+    "rodata_size": "0x1D0E",
+    "data_start": "0xB884",
+    "data_end": "0xB9B7",
+    "data_size": "0x0134",
+    "bss_start": "0xB9B8",
+    "bss_end_inclusive": "0xBECF",
+    "bss_size": 1304,
+    "required_reduction_to_link_bytes": 1224,
+    "required_bss_end_at_or_before": "0xBA07",
+    "labels_generated": false
+  },
+  "guard_requirement": {
+    "minimum_bytes": 128,
+    "decision": "not measurable because both base-CFG links failed"
+  },
+  "forbidden_work_not_done": [
+    "voice compression",
+    "BSS reduction",
+    "stack reservation reduction",
+    "reuse of another reserved region"
+  ]
+}

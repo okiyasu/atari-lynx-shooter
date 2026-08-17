@@ -1,0 +1,6800 @@
+{
+  "aps": "APS-053",
+  "diagnosis": {
+    "all_changed_bytes_saved_with_before_after": true,
+    "bisect_attempts": [
+      "C1"
+    ],
+    "bisect_maximum_not_exceeded": true,
+    "bisect_results": [
+      {
+        "classification": "expected_values_match",
+        "differences": [
+          "sprctl0: 0x05 -> 0x01 (TYPE_NONCOLL -> TYPE_BACKNONCOLL)"
+        ],
+        "expected_values_match": true,
+        "run": "C1"
+      }
+    ],
+    "classification": "cls_type_control_difference_separated",
+    "expected_interpretation": {
+      "Run A": "VIDBAS+30*80+10=0xFA, VIDBAS+30*80+20=0xCA",
+      "Run B": "same addresses=0x0A, release penpal[0]=0"
+    },
+    "main_spare_and_bss_guard": true,
+    "run_a_b_run_b_separate_processes": true,
+    "run_a_both_pixels_match": true,
+    "run_b_both_pixels_match": false,
+    "unresolved_if_mismatch": [
+      "first-only: conditional A' order-swap chain test",
+      "location mismatch: HPOS/nibble/offset candidates",
+      "no change: SCB control/data format or Suzy chain execution"
+    ]
+  },
+  "diagnostic": "O5 minimal SCB chain Run A/B",
+  "driver_cls_sprite_comparison": {
+    "data_bytes": [
+      "0x03",
+      "0x84",
+      "0x00",
+      "0x00"
+    ],
+    "field_differences": [
+      "sprctl0/type: 0x01 TYPE_BACKNONCOLL vs 0x05 TYPE_NONCOLL",
+      "next: 0x0000 vs SCB2 for SCB1",
+      "data pointer: pixel_bitmap vs injected data1/data2 (data bytes identical)",
+      "hpos/vpos: 0/0 vs (20,30)/(40,30)",
+      "hsize/vsize: 0xA000/0x6600 vs 0x0100/0x0100",
+      "palette: driver has one trailing palette byte 0x00; Run B has 8 bytes 00 0F 0F 03 00 00 00 00"
+    ],
+    "run_b_scb_bytes": [
+      "0x05",
+      "0x10",
+      "0x20",
+      "next->SCB2",
+      "data1",
+      "0x14",
+      "0x00",
+      "0x1E",
+      "0x00",
+      "0x00",
+      "0x01",
+      "0x00",
+      "0x01",
+      "0x00",
+      "0x00",
+      "0x0F",
+      "0x0F",
+      "0x03",
+      "0x00",
+      "0x00",
+      "0x00",
+      "0x00",
+      "0x00"
+    ],
+    "same_fields": [
+      "sprctl1=0x10 PACKED|REHV",
+      "sprcoll=0x20 NO_COLLIDE",
+      "packed data=03 84 00 00"
+    ],
+    "source": ".cache/cc65-2.19/source/libsrc/lynx/tgi/lynx-160-102-16.s",
+    "source_bytes": [
+      "0x01",
+      "0x10",
+      "0x20",
+      "0x00",
+      "0x00",
+      "<pixel_bitmap.lo>",
+      "<pixel_bitmap.hi>",
+      "0x00",
+      "0x00",
+      "0x00",
+      "0x00",
+      "0x00",
+      "0xA0",
+      "0x00",
+      "0x66",
+      "0x00",
+      "<implicit/padded bytes 0x00 x7>"
+    ],
+    "source_layout": "16 explicit bytes: 3 control + 2 next + 2 data + 2 hpos + 2 vpos + 2 hsize + 2 vsize + 1 trailing byte",
+    "source_lines": "407-421, 424-426"
+  },
+  "gate": "A",
+  "method": {
+    "bisect_max_followups": 3,
+    "bisect_policy": "Run C1/C2/C3 only after Run B no-write; stop at first separating result",
+    "chain_bytes": 54,
+    "data_bytes": [
+      "0x03",
+      "0x84",
+      "0x00",
+      "0x00"
+    ],
+    "entry": "real _tgi_ioctl breakpoint; AX/XA and SCB head recorded",
+    "fixture": "TITLE stable -> sync breakpoint -> GAME_PHASE_STAGE_INTRO, player (250,250), enemies inactive",
+    "raw_page_read": "CPU read_bytes at 0xC038/0xE018; no screenshot/framebuffer API",
+    "release_source_or_rom_modified": false,
+    "return_registers": [
+      "SCBNEXT",
+      "SPRGO",
+      "SPRSYS",
+      "VIDBAS",
+      "DISPADR"
+    ],
+    "run_process_isolation": "Run A and Run B use separate Gearlynx processes",
+    "scb_layout": "SCB_REHV_PAL 23B x2, data 4B x2, scratch head",
+    "sentinel": "0xAA"
+  },
+  "phase": "2R-2",
+  "physical_framebuffers": {
+    "page_c038": {
+      "bytes": 8160,
+      "cpu_address": "0xC038"
+    },
+    "page_e018": {
+      "bytes": 8160,
+      "cpu_address": "0xE018"
+    }
+  },
+  "release_layout": {
+    "cadence": {
+      "bss_baseline_bytes": 1358,
+      "bss_bytes": 1358,
+      "bss_non_increased": true,
+      "kind": "cadence",
+      "main_end_exclusive": "0xBA08",
+      "main_size": 47112,
+      "main_size_hex": "0xB808",
+      "main_spare_after_bss_bytes": 257,
+      "main_spare_at_least_256": true,
+      "main_start": "0x0200",
+      "map": "build/asteroid-patrol-cadence.map",
+      "segments": {
+        "BSS": {
+          "align": "0x01",
+          "end": "0xB906",
+          "size": 1358,
+          "size_hex": "0x054E",
+          "start": "0xB3B9"
+        },
+        "CODE": {
+          "align": "0x01",
+          "end": "0x93B2",
+          "size": 37147,
+          "size_hex": "0x911B",
+          "start": "0x0298"
+        },
+        "DATA": {
+          "align": "0x01",
+          "end": "0xB3B8",
+          "size": 308,
+          "size_hex": "0x0134",
+          "start": "0xB285"
+        },
+        "RODATA": {
+          "align": "0x01",
+          "end": "0xB284",
+          "size": 7890,
+          "size_hex": "0x1ED2",
+          "start": "0x93B3"
+        },
+        "STARTUP": {
+          "align": "0x01",
+          "end": "0x026C",
+          "size": 109,
+          "size_hex": "0x006D",
+          "start": "0x0200"
+        }
+      },
+      "stack_reserved_bytes": 1584
+    },
+    "normal": {
+      "bss_baseline_bytes": 1264,
+      "bss_bytes": 1264,
+      "bss_non_increased": true,
+      "kind": "normal",
+      "main_end_exclusive": "0xB8B8",
+      "main_size": 46776,
+      "main_size_hex": "0xB6B8",
+      "main_spare_after_bss_bytes": 443,
+      "main_spare_at_least_256": true,
+      "main_start": "0x0200",
+      "map": "build/asteroid-patrol.map",
+      "segments": {
+        "BSS": {
+          "align": "0x01",
+          "end": "0xB6FC",
+          "size": 1264,
+          "size_hex": "0x04F0",
+          "start": "0xB20D"
+        },
+        "CODE": {
+          "align": "0x01",
+          "end": "0x9208",
+          "size": 36721,
+          "size_hex": "0x8F71",
+          "start": "0x0298"
+        },
+        "DATA": {
+          "align": "0x01",
+          "end": "0xB20C",
+          "size": 308,
+          "size_hex": "0x0134",
+          "start": "0xB0D9"
+        },
+        "RODATA": {
+          "align": "0x01",
+          "end": "0xB0D8",
+          "size": 7888,
+          "size_hex": "0x1ED0",
+          "start": "0x9209"
+        },
+        "STARTUP": {
+          "align": "0x01",
+          "end": "0x026C",
+          "size": 109,
+          "size_hex": "0x006D",
+          "start": "0x0200"
+        }
+      },
+      "stack_reserved_bytes": 1920
+    }
+  },
+  "rom": {
+    "expected_release_sha256": "19bffae3019e1fe64c5578e8c581a3201c93ad0fdafa9ea2735da056f9d94f0c",
+    "path": "dist/asteroid-patrol.lnx",
+    "release_sha256_unchanged": true,
+    "sha256": "19bffae3019e1fe64c5578e8c581a3201c93ad0fdafa9ea2735da056f9d94f0c",
+    "size_bytes": 59910
+  },
+  "runs": [
+    {
+      "diagnosis": {
+        "changed_byte_addresses_recorded": true,
+        "classification": "expected_values_match",
+        "other_physical_page_read": true,
+        "run_expected_bytes_match": true
+      },
+      "entry": {
+        "bisect_differences": [],
+        "breakpoint": "0x8C70",
+        "cpu": {
+          "A": "6D",
+          "IRQ_line_asserted": false,
+          "IRQ_mask": "04",
+          "IRQ_pending": "00",
+          "IRQs": [
+            {
+              "asserted": false,
+              "enabled": false,
+              "index": 0,
+              "masked": false
+            },
+            {
+              "asserted": false,
+              "enabled": false,
+              "index": 1,
+              "masked": false
+            },
+            {
+              "asserted": false,
+              "enabled": true,
+              "index": 2,
+              "masked": true
+            },
+            {
+              "asserted": false,
+              "enabled": false,
+              "index": 3,
+              "masked": false
+            },
+            {
+              "asserted": false,
+              "enabled": false,
+              "index": 4,
+              "masked": false
+            },
+            {
+              "asserted": false,
+              "enabled": false,
+              "index": 5,
+              "masked": false
+            },
+            {
+              "asserted": false,
+              "enabled": false,
+              "index": 6,
+              "masked": false
+            },
+            {
+              "asserted": false,
+              "enabled": false,
+              "index": 7,
+              "masked": false
+            }
+          ],
+          "MAPCTL": "0C",
+          "P": "A0",
+          "PC": "8C70",
+          "S": "F7",
+          "SP": "01F7",
+          "X": "B3",
+          "Y": "00",
+          "flag_B": false,
+          "flag_C": false,
+          "flag_D": false,
+          "flag_I": false,
+          "flag_N": true,
+          "flag_V": false,
+          "flag_Z": false,
+          "last_ticks": 13,
+          "mikey_visible": true,
+          "rom_visible": false,
+          "suzy_visible": true,
+          "total_ticks": 22188597,
+          "vectors_visible": false
+        },
+        "data1": [
+          "0x03",
+          "0x84",
+          "0x00",
+          "0x00"
+        ],
+        "data2": [
+          "0x03",
+          "0x84",
+          "0x00",
+          "0x00"
+        ],
+        "fastcall_candidates": {
+          "AX_little_endian": "0xB36D",
+          "XA_little_endian": "0x6DB3"
+        },
+        "fastcall_pointer_matches_scb_head": true,
+        "injected_chain": [
+          {
+            "address": "0xB36D",
+            "data": "0xB39B",
+            "hpos": 20,
+            "hsize": "0x0100",
+            "next": "0xB384",
+            "penpal": [
+              "0x0F",
+              "0x00",
+              "0x00",
+              "0x00",
+              "0x00",
+              "0x00",
+              "0x00",
+              "0x00"
+            ],
+            "sprcoll": "0x20",
+            "sprctl0": "0x05",
+            "sprctl1": "0x10",
+            "vpos": 30,
+            "vsize": "0x0100"
+          },
+          {
+            "address": "0xB384",
+            "data": "0xB39F",
+            "hpos": 40,
+            "hsize": "0x0100",
+            "next": "0x0000",
+            "penpal": [
+              "0x0C",
+              "0x00",
+              "0x00",
+              "0x00",
+              "0x00",
+              "0x00",
+              "0x00",
+              "0x00"
+            ],
+            "sprcoll": "0x20",
+            "sprctl0": "0x05",
+            "sprctl1": "0x10",
+            "vpos": 30,
+            "vsize": "0x0100"
+          }
+        ],
+        "injected_chain_bytes": 54,
+        "injected_chain_sha256": "1b387daef2f9f0d8ace24ba92b415ec8af8f5818038aa8d2120bfd0b62e78b8c",
+        "injected_chain_write_readback_match": true,
+        "original_chain_sha256": "d33f6706e66e581f634c7587e13e9df5dd9ede3e377772bad3bdba96b4a04c7f",
+        "pc_matches_ioctl": true,
+        "penpal": [
+          [
+            "0x0F",
+            "0x00",
+            "0x00",
+            "0x00",
+            "0x00",
+            "0x00",
+            "0x00",
+            "0x00"
+          ],
+          [
+            "0x0C",
+            "0x00",
+            "0x00",
+            "0x00",
+            "0x00",
+            "0x00",
+            "0x00",
+            "0x00"
+          ]
+        ],
+        "registers": {
+          "mikey_registers": {
+            "ATTEN_A": {
+              "address": "FD40",
+              "int": 0,
+              "value": "00"
+            },
+            "ATTEN_B": {
+              "address": "FD41",
+              "int": 0,
+              "value": "00"
+            },
+            "ATTEN_C": {
+              "address": "FD42",
+              "int": 0,
+              "value": "00"
+            },
+            "ATTEN_D": {
+              "address": "FD43",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD0COUNT": {
+              "address": "FD26",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD0CTL": {
+              "address": "FD25",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD0L8SHFT": {
+              "address": "FD23",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD0MISC": {
+              "address": "FD27",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD0OUTVAL": {
+              "address": "FD22",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD0SHFTFB": {
+              "address": "FD21",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD0TBACK": {
+              "address": "FD24",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD0VOL": {
+              "address": "FD20",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD1COUNT": {
+              "address": "FD2E",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD1CTL": {
+              "address": "FD2D",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD1L8SHFT": {
+              "address": "FD2B",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD1MISC": {
+              "address": "FD2F",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD1OUTVAL": {
+              "address": "FD2A",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD1SHFTFB": {
+              "address": "FD29",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD1TBACK": {
+              "address": "FD2C",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD1VOL": {
+              "address": "FD28",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD2COUNT": {
+              "address": "FD36",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD2CTL": {
+              "address": "FD35",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD2L8SHFT": {
+              "address": "FD33",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD2MISC": {
+              "address": "FD37",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD2OUTVAL": {
+              "address": "FD32",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD2SHFTFB": {
+              "address": "FD31",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD2TBACK": {
+              "address": "FD34",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD2VOL": {
+              "address": "FD30",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD3COUNT": {
+              "address": "FD3E",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD3CTL": {
+              "address": "FD3D",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD3L8SHFT": {
+              "address": "FD3B",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD3MISC": {
+              "address": "FD3F",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD3OUTVAL": {
+              "address": "FD3A",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD3SHFTFB": {
+              "address": "FD39",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD3TBACK": {
+              "address": "FD3C",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD3VOL": {
+              "address": "FD38",
+              "int": 0,
+              "value": "00"
+            },
+            "AUDIN": {
+              "address": "FD86",
+              "int": 128,
+              "value": "80"
+            },
+            "BLUERED0": {
+              "address": "FDB0",
+              "int": 0,
+              "value": "00"
+            },
+            "BLUERED1": {
+              "address": "FDB1",
+              "int": 19,
+              "value": "13"
+            },
+            "BLUERED2": {
+              "address": "FDB2",
+              "int": 37,
+              "value": "25"
+            },
+            "BLUERED3": {
+              "address": "FDB3",
+              "int": 70,
+              "value": "46"
+            },
+            "BLUERED4": {
+              "address": "FDB4",
+              "int": 103,
+              "value": "67"
+            },
+            "BLUERED5": {
+              "address": "FDB5",
+              "int": 121,
+              "value": "79"
+            },
+            "BLUERED6": {
+              "address": "FDB6",
+              "int": 44,
+              "value": "2C"
+            },
+            "BLUERED7": {
+              "address": "FDB7",
+              "int": 254,
+              "value": "FE"
+            },
+            "BLUERED8": {
+              "address": "FDB8",
+              "int": 100,
+              "value": "64"
+            },
+            "BLUERED9": {
+              "address": "FDB9",
+              "int": 72,
+              "value": "48"
+            },
+            "BLUEREDA": {
+              "address": "FDBA",
+              "int": 147,
+              "value": "93"
+            },
+            "BLUEREDB": {
+              "address": "FDBB",
+              "int": 66,
+              "value": "42"
+            },
+            "BLUEREDC": {
+              "address": "FDBC",
+              "int": 213,
+              "value": "D5"
+            },
+            "BLUEREDD": {
+              "address": "FDBD",
+              "int": 77,
+              "value": "4D"
+            },
+            "BLUEREDE": {
+              "address": "FDBE",
+              "int": 203,
+              "value": "CB"
+            },
+            "BLUEREDF": {
+              "address": "FDBF",
+              "int": 255,
+              "value": "FF"
+            },
+            "CPUSLEEP": {
+              "address": "FD91",
+              "int": 0,
+              "value": "00"
+            },
+            "DISPADR": {
+              "address": "FD94",
+              "int": 49208,
+              "value": "C038"
+            },
+            "DISPCTL": {
+              "address": "FD92",
+              "int": 13,
+              "value": "0D"
+            },
+            "GREEN0": {
+              "address": "FDA0",
+              "int": 0,
+              "value": "00"
+            },
+            "GREEN1": {
+              "address": "FDA1",
+              "int": 1,
+              "value": "01"
+            },
+            "GREEN2": {
+              "address": "FDA2",
+              "int": 2,
+              "value": "02"
+            },
+            "GREEN3": {
+              "address": "FDA3",
+              "int": 3,
+              "value": "03"
+            },
+            "GREEN4": {
+              "address": "FDA4",
+              "int": 4,
+              "value": "04"
+            },
+            "GREEN5": {
+              "address": "FDA5",
+              "int": 5,
+              "value": "05"
+            },
+            "GREEN6": {
+              "address": "FDA6",
+              "int": 15,
+              "value": "0F"
+            },
+            "GREEN7": {
+              "address": "FDA7",
+              "int": 9,
+              "value": "09"
+            },
+            "GREEN8": {
+              "address": "FDA8",
+              "int": 15,
+              "value": "0F"
+            },
+            "GREEN9": {
+              "address": "FDA9",
+              "int": 3,
+              "value": "03"
+            },
+            "GREENA": {
+              "address": "FDAA",
+              "int": 14,
+              "value": "0E"
+            },
+            "GREENB": {
+              "address": "FDAB",
+              "int": 8,
+              "value": "08"
+            },
+            "GREENC": {
+              "address": "FDAC",
+              "int": 15,
+              "value": "0F"
+            },
+            "GREEND": {
+              "address": "FDAD",
+              "int": 8,
+              "value": "08"
+            },
+            "GREENE": {
+              "address": "FDAE",
+              "int": 3,
+              "value": "03"
+            },
+            "GREENF": {
+              "address": "FDAF",
+              "int": 15,
+              "value": "0F"
+            },
+            "INTRST": {
+              "address": "FD80",
+              "int": 0,
+              "value": "00"
+            },
+            "INTSET": {
+              "address": "FD81",
+              "int": 0,
+              "value": "00"
+            },
+            "IODAT": {
+              "address": "FD8B",
+              "int": 27,
+              "value": "1B"
+            },
+            "IODIR": {
+              "address": "FD8A",
+              "int": 26,
+              "value": "1A"
+            },
+            "MAGRDY0": {
+              "address": "FD84",
+              "int": 0,
+              "value": "00"
+            },
+            "MAGRDY1": {
+              "address": "FD85",
+              "int": 0,
+              "value": "00"
+            },
+            "MIKEYHREV": {
+              "address": "FD88",
+              "int": 2,
+              "value": "02"
+            },
+            "MIKEYSREV": {
+              "address": "FD89",
+              "int": 255,
+              "value": "FF"
+            },
+            "MPAN": {
+              "address": "FD44",
+              "int": 0,
+              "value": "00"
+            },
+            "MSTEREO": {
+              "address": "FD50",
+              "int": 0,
+              "value": "00"
+            },
+            "MTEST0": {
+              "address": "FD9C",
+              "int": 255,
+              "value": "FF"
+            },
+            "MTEST1": {
+              "address": "FD9D",
+              "int": 255,
+              "value": "FF"
+            },
+            "MTEST2": {
+              "address": "FD9E",
+              "int": 255,
+              "value": "FF"
+            },
+            "PBKUP": {
+              "address": "FD93",
+              "int": 32,
+              "value": "20"
+            },
+            "SDONEACK": {
+              "address": "FD90",
+              "int": 0,
+              "value": "00"
+            },
+            "SERCTL": {
+              "address": "FD8C",
+              "int": 4,
+              "value": "04"
+            },
+            "SERDAT": {
+              "address": "FD8D",
+              "int": 0,
+              "value": "00"
+            },
+            "SYSCTL1": {
+              "address": "FD87",
+              "int": 246,
+              "value": "F6"
+            },
+            "TIM0BKUP": {
+              "address": "FD00",
+              "int": 126,
+              "value": "7E"
+            },
+            "TIM0CNT": {
+              "address": "FD02",
+              "int": 65,
+              "value": "41"
+            },
+            "TIM0CTLA": {
+              "address": "FD01",
+              "int": 24,
+              "value": "18"
+            },
+            "TIM0CTLB": {
+              "address": "FD03",
+              "int": 10,
+              "value": "0A"
+            },
+            "TIM1BKUP": {
+              "address": "FD04",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM1CNT": {
+              "address": "FD06",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM1CTLA": {
+              "address": "FD05",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM1CTLB": {
+              "address": "FD07",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM2BKUP": {
+              "address": "FD08",
+              "int": 104,
+              "value": "68"
+            },
+            "TIM2CNT": {
+              "address": "FD0A",
+              "int": 16,
+              "value": "10"
+            },
+            "TIM2CTLA": {
+              "address": "FD09",
+              "int": 159,
+              "value": "9F"
+            },
+            "TIM2CTLB": {
+              "address": "FD0B",
+              "int": 8,
+              "value": "08"
+            },
+            "TIM3BKUP": {
+              "address": "FD0C",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM3CNT": {
+              "address": "FD0E",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM3CTLA": {
+              "address": "FD0D",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM3CTLB": {
+              "address": "FD0F",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM4BKUP": {
+              "address": "FD10",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM4CNT": {
+              "address": "FD12",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM4CTLA": {
+              "address": "FD11",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM4CTLB": {
+              "address": "FD13",
+              "int": 2,
+              "value": "02"
+            },
+            "TIM5BKUP": {
+              "address": "FD14",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM5CNT": {
+              "address": "FD16",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM5CTLA": {
+              "address": "FD15",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM5CTLB": {
+              "address": "FD17",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM6BKUP": {
+              "address": "FD18",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM6CNT": {
+              "address": "FD1A",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM6CTLA": {
+              "address": "FD19",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM6CTLB": {
+              "address": "FD1B",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM7BKUP": {
+              "address": "FD1C",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM7CNT": {
+              "address": "FD1E",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM7CTLA": {
+              "address": "FD1D",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM7CTLB": {
+              "address": "FD1F",
+              "int": 0,
+              "value": "00"
+            }
+          },
+          "readback_available": true,
+          "selected": {
+            "DISPADR": {
+              "address": "FD94",
+              "int": 49208,
+              "value": "C038"
+            },
+            "SCBNEXT": {
+              "address": "FC10",
+              "int": 0,
+              "value": "0000"
+            },
+            "SPRGO": {
+              "address": "FC91",
+              "int": 0,
+              "value": "00"
+            },
+            "SPRSYS": {
+              "address": "FC92",
+              "int": 0,
+              "value": "00"
+            },
+            "VIDBAS": {
+              "address": "FC08",
+              "int": 49208,
+              "value": "C038"
+            }
+          },
+          "suzy_registers": {
+            "COLLADR": {
+              "address": "FC0E",
+              "int": 0,
+              "value": "0000"
+            },
+            "COLLBAS": {
+              "address": "FC0A",
+              "int": 41048,
+              "value": "A058"
+            },
+            "COLLOFF": {
+              "address": "FC24",
+              "int": 65535,
+              "value": "FFFF"
+            },
+            "HOFF": {
+              "address": "FC04",
+              "int": 0,
+              "value": "0000"
+            },
+            "HOWIE": {
+              "address": "FCC4",
+              "int": 255,
+              "value": "FF"
+            },
+            "HPOSSTRT": {
+              "address": "FC14",
+              "int": 52,
+              "value": "0034"
+            },
+            "HSIZOFF": {
+              "address": "FC28",
+              "int": 127,
+              "value": "007F"
+            },
+            "JOYSTICK": {
+              "address": "FCB0",
+              "int": 0,
+              "value": "00"
+            },
+            "LEDS": {
+              "address": "FCC0",
+              "int": 255,
+              "value": "FF"
+            },
+            "MATHA": {
+              "address": "FC55",
+              "int": 0,
+              "value": "00"
+            },
+            "MATHB": {
+              "address": "FC54",
+              "int": 52,
+              "value": "34"
+            },
+            "MATHC": {
+              "address": "FC53",
+              "int": 181,
+              "value": "B5"
+            },
+            "MATHD": {
+              "address": "FC52",
+              "int": 135,
+              "value": "87"
+            },
+            "MATHE": {
+              "address": "FC63",
+              "int": 0,
+              "value": "00"
+            },
+            "MATHF": {
+              "address": "FC62",
+              "int": 95,
+              "value": "5F"
+            },
+            "MATHG": {
+              "address": "FC61",
+              "int": 0,
+              "value": "00"
+            },
+            "MATHH": {
+              "address": "FC60",
+              "int": 0,
+              "value": "00"
+            },
+            "MATHJ": {
+              "address": "FC6F",
+              "int": 181,
+              "value": "B5"
+            },
+            "MATHK": {
+              "address": "FC6E",
+              "int": 135,
+              "value": "87"
+            },
+            "MATHL": {
+              "address": "FC6D",
+              "int": 180,
+              "value": "B4"
+            },
+            "MATHM": {
+              "address": "FC6C",
+              "int": 14,
+              "value": "0E"
+            },
+            "MATHN": {
+              "address": "FC57",
+              "int": 0,
+              "value": "00"
+            },
+            "MATHP": {
+              "address": "FC56",
+              "int": 90,
+              "value": "5A"
+            },
+            "PPORTDATA": {
+              "address": "FCC3",
+              "int": 255,
+              "value": "FF"
+            },
+            "PPORTSTAT": {
+              "address": "FCC2",
+              "int": 255,
+              "value": "FF"
+            },
+            "PROCADR": {
+              "address": "FC2E",
+              "int": 46471,
+              "value": "B587"
+            },
+            "RCART0": {
+              "address": "FCB2",
+              "int": 16,
+              "value": "10"
+            },
+            "RCART1": {
+              "address": "FCB3",
+              "int": 255,
+              "value": "FF"
+            },
+            "SCBADR": {
+              "address": "FC2C",
+              "int": 46094,
+              "value": "B40E"
+            },
+            "SCBNEXT": {
+              "address": "FC10",
+              "int": 0,
+              "value": "0000"
+            },
+            "SPRCOLL": {
+              "address": "FC82",
+              "int": 32,
+              "value": "20"
+            },
+            "SPRCTL0": {
+              "address": "FC80",
+              "int": 5,
+              "value": "05"
+            },
+            "SPRCTL1": {
+              "address": "FC81",
+              "int": 144,
+              "value": "90"
+            },
+            "SPRDLINE": {
+              "address": "FC12",
+              "int": 46471,
+              "value": "B587"
+            },
+            "SPRDOFF": {
+              "address": "FC20",
+              "int": 0,
+              "value": "0000"
+            },
+            "SPRGO": {
+              "address": "FC91",
+              "int": 0,
+              "value": "00"
+            },
+            "SPRHSIZ": {
+              "address": "FC18",
+              "int": 256,
+              "value": "0100"
+            },
+            "SPRINIT": {
+              "address": "FC83",
+              "int": 243,
+              "value": "F3"
+            },
+            "SPRSYS": {
+              "address": "FC92",
+              "int": 0,
+              "value": "00"
+            },
+            "SPRVPOS": {
+              "address": "FC22",
+              "int": 95,
+              "value": "005F"
+            },
+            "SPRVSIZ": {
+              "address": "FC1A",
+              "int": 256,
+              "value": "0100"
+            },
+            "STRETCH": {
+              "address": "FC1C",
+              "int": 0,
+              "value": "0000"
+            },
+            "SUZYBUSEN": {
+              "address": "FC90",
+              "int": 1,
+              "value": "01"
+            },
+            "SUZYHREV": {
+              "address": "FC88",
+              "int": 1,
+              "value": "01"
+            },
+            "SUZYSREV": {
+              "address": "FC89",
+              "int": 255,
+              "value": "FF"
+            },
+            "SWITCHES": {
+              "address": "FCB1",
+              "int": 0,
+              "value": "00"
+            },
+            "TILT": {
+              "address": "FC1E",
+              "int": 0,
+              "value": "0000"
+            },
+            "TILTACUM": {
+              "address": "FC02",
+              "int": 0,
+              "value": "0000"
+            },
+            "TMPADR": {
+              "address": "FC00",
+              "int": 46472,
+              "value": "B588"
+            },
+            "VIDADR": {
+              "address": "FC0C",
+              "int": 0,
+              "value": "0000"
+            },
+            "VIDBAS": {
+              "address": "FC08",
+              "int": 49208,
+              "value": "C038"
+            },
+            "VOFF": {
+              "address": "FC06",
+              "int": 0,
+              "value": "0000"
+            },
+            "VPOSSTRT": {
+              "address": "FC16",
+              "int": 90,
+              "value": "005A"
+            },
+            "VSIZACUM": {
+              "address": "FC26",
+              "int": 127,
+              "value": "007F"
+            },
+            "VSIZOFF": {
+              "address": "FC2A",
+              "int": 127,
+              "value": "007F"
+            }
+          }
+        }
+      },
+      "process_isolated": true,
+      "return": {
+        "cpu": {
+          "A": "00",
+          "IRQ_line_asserted": false,
+          "IRQ_mask": "04",
+          "IRQ_pending": "00",
+          "IRQs": [
+            {
+              "asserted": false,
+              "enabled": false,
+              "index": 0,
+              "masked": false
+            },
+            {
+              "asserted": false,
+              "enabled": false,
+              "index": 1,
+              "masked": false
+            },
+            {
+              "asserted": false,
+              "enabled": true,
+              "index": 2,
+              "masked": true
+            },
+            {
+              "asserted": false,
+              "enabled": false,
+              "index": 3,
+              "masked": false
+            },
+            {
+              "asserted": false,
+              "enabled": false,
+              "index": 4,
+              "masked": false
+            },
+            {
+              "asserted": false,
+              "enabled": false,
+              "index": 5,
+              "masked": false
+            },
+            {
+              "asserted": false,
+              "enabled": false,
+              "index": 6,
+              "masked": false
+            },
+            {
+              "asserted": false,
+              "enabled": false,
+              "index": 7,
+              "masked": false
+            }
+          ],
+          "MAPCTL": "0C",
+          "P": "22",
+          "PC": "73EE",
+          "S": "F9",
+          "SP": "01F9",
+          "X": "E0",
+          "Y": "00",
+          "flag_B": false,
+          "flag_C": false,
+          "flag_D": false,
+          "flag_I": false,
+          "flag_N": false,
+          "flag_V": false,
+          "flag_Z": true,
+          "last_ticks": 30,
+          "mikey_visible": true,
+          "rom_visible": false,
+          "suzy_visible": true,
+          "total_ticks": 22189577,
+          "vectors_visible": false
+        },
+        "expected_pixel_positions": [
+          {
+            "address": "0xE982",
+            "expected_byte": "0xFA",
+            "x": 20,
+            "y": 30
+          },
+          {
+            "address": "0xE98C",
+            "expected_byte": "0xCA",
+            "x": 40,
+            "y": 30
+          }
+        ],
+        "pages": {
+          "0xC038": {
+            "bytes": 8160,
+            "changed_byte_count": 0,
+            "changed_bytes": [],
+            "cpu_address": "0xC038",
+            "expected_target_bytes": [],
+            "raw_file": "phase-2r-o5-run-a-c038.bin",
+            "raw_sha256": "7d03eb8a4abf137a4c09a20c62a47d3cbcaafacf90681fa42eeed57c3b388c17",
+            "sentinel": "0xAA"
+          },
+          "0xE018": {
+            "bytes": 8160,
+            "changed_byte_count": 2,
+            "changed_bytes": [
+              {
+                "address": "0xE982",
+                "after": "0xFA",
+                "before": "0xAA",
+                "offset": 2410
+              },
+              {
+                "address": "0xE98C",
+                "after": "0xCA",
+                "before": "0xAA",
+                "offset": 2420
+              }
+            ],
+            "cpu_address": "0xE018",
+            "expected_target_bytes": [
+              {
+                "actual": "0xFA",
+                "address": "0xE982",
+                "expected": "0xFA"
+              },
+              {
+                "actual": "0xCA",
+                "address": "0xE98C",
+                "expected": "0xCA"
+              }
+            ],
+            "raw_file": "phase-2r-o5-run-a-e018.bin",
+            "raw_sha256": "b465c27982b78a5776092746ee53f9f184c49f44f6a6598987c13331d05db132",
+            "sentinel": "0xAA"
+          }
+        },
+        "physical_page_mapping": {
+          "DISPADR": "0xC038",
+          "VIDBAS": "0xE018",
+          "draw_page_selected_from_return_VIDBAS": true,
+          "hardcoded_draw_page_used": false,
+          "target_page_cpu_address": "0xE018"
+        },
+        "registers": {
+          "mikey_registers": {
+            "ATTEN_A": {
+              "address": "FD40",
+              "int": 0,
+              "value": "00"
+            },
+            "ATTEN_B": {
+              "address": "FD41",
+              "int": 0,
+              "value": "00"
+            },
+            "ATTEN_C": {
+              "address": "FD42",
+              "int": 0,
+              "value": "00"
+            },
+            "ATTEN_D": {
+              "address": "FD43",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD0COUNT": {
+              "address": "FD26",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD0CTL": {
+              "address": "FD25",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD0L8SHFT": {
+              "address": "FD23",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD0MISC": {
+              "address": "FD27",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD0OUTVAL": {
+              "address": "FD22",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD0SHFTFB": {
+              "address": "FD21",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD0TBACK": {
+              "address": "FD24",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD0VOL": {
+              "address": "FD20",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD1COUNT": {
+              "address": "FD2E",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD1CTL": {
+              "address": "FD2D",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD1L8SHFT": {
+              "address": "FD2B",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD1MISC": {
+              "address": "FD2F",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD1OUTVAL": {
+              "address": "FD2A",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD1SHFTFB": {
+              "address": "FD29",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD1TBACK": {
+              "address": "FD2C",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD1VOL": {
+              "address": "FD28",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD2COUNT": {
+              "address": "FD36",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD2CTL": {
+              "address": "FD35",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD2L8SHFT": {
+              "address": "FD33",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD2MISC": {
+              "address": "FD37",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD2OUTVAL": {
+              "address": "FD32",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD2SHFTFB": {
+              "address": "FD31",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD2TBACK": {
+              "address": "FD34",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD2VOL": {
+              "address": "FD30",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD3COUNT": {
+              "address": "FD3E",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD3CTL": {
+              "address": "FD3D",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD3L8SHFT": {
+              "address": "FD3B",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD3MISC": {
+              "address": "FD3F",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD3OUTVAL": {
+              "address": "FD3A",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD3SHFTFB": {
+              "address": "FD39",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD3TBACK": {
+              "address": "FD3C",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD3VOL": {
+              "address": "FD38",
+              "int": 0,
+              "value": "00"
+            },
+            "AUDIN": {
+              "address": "FD86",
+              "int": 128,
+              "value": "80"
+            },
+            "BLUERED0": {
+              "address": "FDB0",
+              "int": 0,
+              "value": "00"
+            },
+            "BLUERED1": {
+              "address": "FDB1",
+              "int": 19,
+              "value": "13"
+            },
+            "BLUERED2": {
+              "address": "FDB2",
+              "int": 37,
+              "value": "25"
+            },
+            "BLUERED3": {
+              "address": "FDB3",
+              "int": 70,
+              "value": "46"
+            },
+            "BLUERED4": {
+              "address": "FDB4",
+              "int": 103,
+              "value": "67"
+            },
+            "BLUERED5": {
+              "address": "FDB5",
+              "int": 121,
+              "value": "79"
+            },
+            "BLUERED6": {
+              "address": "FDB6",
+              "int": 44,
+              "value": "2C"
+            },
+            "BLUERED7": {
+              "address": "FDB7",
+              "int": 254,
+              "value": "FE"
+            },
+            "BLUERED8": {
+              "address": "FDB8",
+              "int": 100,
+              "value": "64"
+            },
+            "BLUERED9": {
+              "address": "FDB9",
+              "int": 72,
+              "value": "48"
+            },
+            "BLUEREDA": {
+              "address": "FDBA",
+              "int": 147,
+              "value": "93"
+            },
+            "BLUEREDB": {
+              "address": "FDBB",
+              "int": 66,
+              "value": "42"
+            },
+            "BLUEREDC": {
+              "address": "FDBC",
+              "int": 213,
+              "value": "D5"
+            },
+            "BLUEREDD": {
+              "address": "FDBD",
+              "int": 77,
+              "value": "4D"
+            },
+            "BLUEREDE": {
+              "address": "FDBE",
+              "int": 203,
+              "value": "CB"
+            },
+            "BLUEREDF": {
+              "address": "FDBF",
+              "int": 255,
+              "value": "FF"
+            },
+            "CPUSLEEP": {
+              "address": "FD91",
+              "int": 0,
+              "value": "00"
+            },
+            "DISPADR": {
+              "address": "FD94",
+              "int": 49208,
+              "value": "C038"
+            },
+            "DISPCTL": {
+              "address": "FD92",
+              "int": 13,
+              "value": "0D"
+            },
+            "GREEN0": {
+              "address": "FDA0",
+              "int": 0,
+              "value": "00"
+            },
+            "GREEN1": {
+              "address": "FDA1",
+              "int": 1,
+              "value": "01"
+            },
+            "GREEN2": {
+              "address": "FDA2",
+              "int": 2,
+              "value": "02"
+            },
+            "GREEN3": {
+              "address": "FDA3",
+              "int": 3,
+              "value": "03"
+            },
+            "GREEN4": {
+              "address": "FDA4",
+              "int": 4,
+              "value": "04"
+            },
+            "GREEN5": {
+              "address": "FDA5",
+              "int": 5,
+              "value": "05"
+            },
+            "GREEN6": {
+              "address": "FDA6",
+              "int": 15,
+              "value": "0F"
+            },
+            "GREEN7": {
+              "address": "FDA7",
+              "int": 9,
+              "value": "09"
+            },
+            "GREEN8": {
+              "address": "FDA8",
+              "int": 15,
+              "value": "0F"
+            },
+            "GREEN9": {
+              "address": "FDA9",
+              "int": 3,
+              "value": "03"
+            },
+            "GREENA": {
+              "address": "FDAA",
+              "int": 14,
+              "value": "0E"
+            },
+            "GREENB": {
+              "address": "FDAB",
+              "int": 8,
+              "value": "08"
+            },
+            "GREENC": {
+              "address": "FDAC",
+              "int": 15,
+              "value": "0F"
+            },
+            "GREEND": {
+              "address": "FDAD",
+              "int": 8,
+              "value": "08"
+            },
+            "GREENE": {
+              "address": "FDAE",
+              "int": 3,
+              "value": "03"
+            },
+            "GREENF": {
+              "address": "FDAF",
+              "int": 15,
+              "value": "0F"
+            },
+            "INTRST": {
+              "address": "FD80",
+              "int": 0,
+              "value": "00"
+            },
+            "INTSET": {
+              "address": "FD81",
+              "int": 0,
+              "value": "00"
+            },
+            "IODAT": {
+              "address": "FD8B",
+              "int": 27,
+              "value": "1B"
+            },
+            "IODIR": {
+              "address": "FD8A",
+              "int": 26,
+              "value": "1A"
+            },
+            "MAGRDY0": {
+              "address": "FD84",
+              "int": 0,
+              "value": "00"
+            },
+            "MAGRDY1": {
+              "address": "FD85",
+              "int": 0,
+              "value": "00"
+            },
+            "MIKEYHREV": {
+              "address": "FD88",
+              "int": 2,
+              "value": "02"
+            },
+            "MIKEYSREV": {
+              "address": "FD89",
+              "int": 255,
+              "value": "FF"
+            },
+            "MPAN": {
+              "address": "FD44",
+              "int": 0,
+              "value": "00"
+            },
+            "MSTEREO": {
+              "address": "FD50",
+              "int": 0,
+              "value": "00"
+            },
+            "MTEST0": {
+              "address": "FD9C",
+              "int": 255,
+              "value": "FF"
+            },
+            "MTEST1": {
+              "address": "FD9D",
+              "int": 255,
+              "value": "FF"
+            },
+            "MTEST2": {
+              "address": "FD9E",
+              "int": 255,
+              "value": "FF"
+            },
+            "PBKUP": {
+              "address": "FD93",
+              "int": 32,
+              "value": "20"
+            },
+            "SDONEACK": {
+              "address": "FD90",
+              "int": 0,
+              "value": "00"
+            },
+            "SERCTL": {
+              "address": "FD8C",
+              "int": 4,
+              "value": "04"
+            },
+            "SERDAT": {
+              "address": "FD8D",
+              "int": 0,
+              "value": "00"
+            },
+            "SYSCTL1": {
+              "address": "FD87",
+              "int": 246,
+              "value": "F6"
+            },
+            "TIM0BKUP": {
+              "address": "FD00",
+              "int": 126,
+              "value": "7E"
+            },
+            "TIM0CNT": {
+              "address": "FD02",
+              "int": 122,
+              "value": "7A"
+            },
+            "TIM0CTLA": {
+              "address": "FD01",
+              "int": 24,
+              "value": "18"
+            },
+            "TIM0CTLB": {
+              "address": "FD03",
+              "int": 10,
+              "value": "0A"
+            },
+            "TIM1BKUP": {
+              "address": "FD04",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM1CNT": {
+              "address": "FD06",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM1CTLA": {
+              "address": "FD05",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM1CTLB": {
+              "address": "FD07",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM2BKUP": {
+              "address": "FD08",
+              "int": 104,
+              "value": "68"
+            },
+            "TIM2CNT": {
+              "address": "FD0A",
+              "int": 15,
+              "value": "0F"
+            },
+            "TIM2CTLA": {
+              "address": "FD09",
+              "int": 159,
+              "value": "9F"
+            },
+            "TIM2CTLB": {
+              "address": "FD0B",
+              "int": 8,
+              "value": "08"
+            },
+            "TIM3BKUP": {
+              "address": "FD0C",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM3CNT": {
+              "address": "FD0E",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM3CTLA": {
+              "address": "FD0D",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM3CTLB": {
+              "address": "FD0F",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM4BKUP": {
+              "address": "FD10",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM4CNT": {
+              "address": "FD12",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM4CTLA": {
+              "address": "FD11",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM4CTLB": {
+              "address": "FD13",
+              "int": 2,
+              "value": "02"
+            },
+            "TIM5BKUP": {
+              "address": "FD14",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM5CNT": {
+              "address": "FD16",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM5CTLA": {
+              "address": "FD15",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM5CTLB": {
+              "address": "FD17",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM6BKUP": {
+              "address": "FD18",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM6CNT": {
+              "address": "FD1A",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM6CTLA": {
+              "address": "FD19",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM6CTLB": {
+              "address": "FD1B",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM7BKUP": {
+              "address": "FD1C",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM7CNT": {
+              "address": "FD1E",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM7CTLA": {
+              "address": "FD1D",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM7CTLB": {
+              "address": "FD1F",
+              "int": 0,
+              "value": "00"
+            }
+          },
+          "readback_available": true,
+          "selected": {
+            "DISPADR": {
+              "address": "FD94",
+              "int": 49208,
+              "value": "C038"
+            },
+            "SCBNEXT": {
+              "address": "FC10",
+              "int": 0,
+              "value": "0000"
+            },
+            "SPRGO": {
+              "address": "FC91",
+              "int": 0,
+              "value": "00"
+            },
+            "SPRSYS": {
+              "address": "FC92",
+              "int": 0,
+              "value": "00"
+            },
+            "VIDBAS": {
+              "address": "FC08",
+              "int": 57368,
+              "value": "E018"
+            }
+          },
+          "suzy_registers": {
+            "COLLADR": {
+              "address": "FC0E",
+              "int": 0,
+              "value": "0000"
+            },
+            "COLLBAS": {
+              "address": "FC0A",
+              "int": 41048,
+              "value": "A058"
+            },
+            "COLLOFF": {
+              "address": "FC24",
+              "int": 65535,
+              "value": "FFFF"
+            },
+            "HOFF": {
+              "address": "FC04",
+              "int": 0,
+              "value": "0000"
+            },
+            "HOWIE": {
+              "address": "FCC4",
+              "int": 255,
+              "value": "FF"
+            },
+            "HPOSSTRT": {
+              "address": "FC14",
+              "int": 40,
+              "value": "0028"
+            },
+            "HSIZOFF": {
+              "address": "FC28",
+              "int": 127,
+              "value": "007F"
+            },
+            "JOYSTICK": {
+              "address": "FCB0",
+              "int": 0,
+              "value": "00"
+            },
+            "LEDS": {
+              "address": "FCC0",
+              "int": 255,
+              "value": "FF"
+            },
+            "MATHA": {
+              "address": "FC55",
+              "int": 0,
+              "value": "00"
+            },
+            "MATHB": {
+              "address": "FC54",
+              "int": 40,
+              "value": "28"
+            },
+            "MATHC": {
+              "address": "FC53",
+              "int": 179,
+              "value": "B3"
+            },
+            "MATHD": {
+              "address": "FC52",
+              "int": 162,
+              "value": "A2"
+            },
+            "MATHE": {
+              "address": "FC63",
+              "int": 0,
+              "value": "00"
+            },
+            "MATHF": {
+              "address": "FC62",
+              "int": 31,
+              "value": "1F"
+            },
+            "MATHG": {
+              "address": "FC61",
+              "int": 0,
+              "value": "00"
+            },
+            "MATHH": {
+              "address": "FC60",
+              "int": 0,
+              "value": "00"
+            },
+            "MATHJ": {
+              "address": "FC6F",
+              "int": 179,
+              "value": "B3"
+            },
+            "MATHK": {
+              "address": "FC6E",
+              "int": 162,
+              "value": "A2"
+            },
+            "MATHL": {
+              "address": "FC6D",
+              "int": 179,
+              "value": "B3"
+            },
+            "MATHM": {
+              "address": "FC6C",
+              "int": 132,
+              "value": "84"
+            },
+            "MATHN": {
+              "address": "FC57",
+              "int": 0,
+              "value": "00"
+            },
+            "MATHP": {
+              "address": "FC56",
+              "int": 30,
+              "value": "1E"
+            },
+            "PPORTDATA": {
+              "address": "FCC3",
+              "int": 255,
+              "value": "FF"
+            },
+            "PPORTSTAT": {
+              "address": "FCC2",
+              "int": 255,
+              "value": "FF"
+            },
+            "PROCADR": {
+              "address": "FC2E",
+              "int": 45986,
+              "value": "B3A2"
+            },
+            "RCART0": {
+              "address": "FCB2",
+              "int": 16,
+              "value": "10"
+            },
+            "RCART1": {
+              "address": "FCB3",
+              "int": 255,
+              "value": "FF"
+            },
+            "SCBADR": {
+              "address": "FC2C",
+              "int": 45956,
+              "value": "B384"
+            },
+            "SCBNEXT": {
+              "address": "FC10",
+              "int": 0,
+              "value": "0000"
+            },
+            "SPRCOLL": {
+              "address": "FC82",
+              "int": 32,
+              "value": "20"
+            },
+            "SPRCTL0": {
+              "address": "FC80",
+              "int": 5,
+              "value": "05"
+            },
+            "SPRCTL1": {
+              "address": "FC81",
+              "int": 16,
+              "value": "10"
+            },
+            "SPRDLINE": {
+              "address": "FC12",
+              "int": 45986,
+              "value": "B3A2"
+            },
+            "SPRDOFF": {
+              "address": "FC20",
+              "int": 0,
+              "value": "0000"
+            },
+            "SPRGO": {
+              "address": "FC91",
+              "int": 0,
+              "value": "00"
+            },
+            "SPRHSIZ": {
+              "address": "FC18",
+              "int": 256,
+              "value": "0100"
+            },
+            "SPRINIT": {
+              "address": "FC83",
+              "int": 243,
+              "value": "F3"
+            },
+            "SPRSYS": {
+              "address": "FC92",
+              "int": 0,
+              "value": "00"
+            },
+            "SPRVPOS": {
+              "address": "FC22",
+              "int": 31,
+              "value": "001F"
+            },
+            "SPRVSIZ": {
+              "address": "FC1A",
+              "int": 256,
+              "value": "0100"
+            },
+            "STRETCH": {
+              "address": "FC1C",
+              "int": 0,
+              "value": "0000"
+            },
+            "SUZYBUSEN": {
+              "address": "FC90",
+              "int": 1,
+              "value": "01"
+            },
+            "SUZYHREV": {
+              "address": "FC88",
+              "int": 1,
+              "value": "01"
+            },
+            "SUZYSREV": {
+              "address": "FC89",
+              "int": 255,
+              "value": "FF"
+            },
+            "SWITCHES": {
+              "address": "FCB1",
+              "int": 0,
+              "value": "00"
+            },
+            "TILT": {
+              "address": "FC1E",
+              "int": 0,
+              "value": "0000"
+            },
+            "TILTACUM": {
+              "address": "FC02",
+              "int": 0,
+              "value": "0000"
+            },
+            "TMPADR": {
+              "address": "FC00",
+              "int": 45987,
+              "value": "B3A3"
+            },
+            "VIDADR": {
+              "address": "FC0C",
+              "int": 0,
+              "value": "0000"
+            },
+            "VIDBAS": {
+              "address": "FC08",
+              "int": 57368,
+              "value": "E018"
+            },
+            "VOFF": {
+              "address": "FC06",
+              "int": 0,
+              "value": "0000"
+            },
+            "VPOSSTRT": {
+              "address": "FC16",
+              "int": 30,
+              "value": "001E"
+            },
+            "VSIZACUM": {
+              "address": "FC26",
+              "int": 127,
+              "value": "007F"
+            },
+            "VSIZOFF": {
+              "address": "FC2A",
+              "int": 127,
+              "value": "007F"
+            }
+          }
+        },
+        "return_register_readback_available": true,
+        "target_page_actual_bytes": [
+          "0xFA",
+          "0xCA"
+        ],
+        "target_page_both_pixels_match": true,
+        "target_page_expected_bytes": [
+          "0xFA",
+          "0xCA"
+        ],
+        "target_page_expected_values_match": true
+      },
+      "rom_sha256": "19bffae3019e1fe64c5578e8c581a3201c93ad0fdafa9ea2735da056f9d94f0c",
+      "run": "A",
+      "scratch_address": "0xB36D",
+      "sentinel_prefill": {
+        "page_c038_all_sentinel": true,
+        "page_c038_sha256": "7d03eb8a4abf137a4c09a20c62a47d3cbcaafacf90681fa42eeed57c3b388c17",
+        "page_e018_all_sentinel": true,
+        "page_e018_sha256": "7d03eb8a4abf137a4c09a20c62a47d3cbcaafacf90681fa42eeed57c3b388c17",
+        "value": "0xAA"
+      }
+    },
+    {
+      "diagnosis": {
+        "changed_byte_addresses_recorded": true,
+        "classification": "no_target_pixel_write",
+        "other_physical_page_read": true,
+        "run_expected_bytes_match": false
+      },
+      "entry": {
+        "bisect_differences": [],
+        "breakpoint": "0x8C70",
+        "cpu": {
+          "A": "6D",
+          "IRQ_line_asserted": false,
+          "IRQ_mask": "04",
+          "IRQ_pending": "00",
+          "IRQs": [
+            {
+              "asserted": false,
+              "enabled": false,
+              "index": 0,
+              "masked": false
+            },
+            {
+              "asserted": false,
+              "enabled": false,
+              "index": 1,
+              "masked": false
+            },
+            {
+              "asserted": false,
+              "enabled": true,
+              "index": 2,
+              "masked": true
+            },
+            {
+              "asserted": false,
+              "enabled": false,
+              "index": 3,
+              "masked": false
+            },
+            {
+              "asserted": false,
+              "enabled": false,
+              "index": 4,
+              "masked": false
+            },
+            {
+              "asserted": false,
+              "enabled": false,
+              "index": 5,
+              "masked": false
+            },
+            {
+              "asserted": false,
+              "enabled": false,
+              "index": 6,
+              "masked": false
+            },
+            {
+              "asserted": false,
+              "enabled": false,
+              "index": 7,
+              "masked": false
+            }
+          ],
+          "MAPCTL": "0C",
+          "P": "A0",
+          "PC": "8C70",
+          "S": "F7",
+          "SP": "01F7",
+          "X": "B3",
+          "Y": "00",
+          "flag_B": false,
+          "flag_C": false,
+          "flag_D": false,
+          "flag_I": false,
+          "flag_N": true,
+          "flag_V": false,
+          "flag_Z": false,
+          "last_ticks": 13,
+          "mikey_visible": true,
+          "rom_visible": false,
+          "suzy_visible": true,
+          "total_ticks": 22188614,
+          "vectors_visible": false
+        },
+        "data1": [
+          "0x03",
+          "0x84",
+          "0x00",
+          "0x00"
+        ],
+        "data2": [
+          "0x03",
+          "0x84",
+          "0x00",
+          "0x00"
+        ],
+        "fastcall_candidates": {
+          "AX_little_endian": "0xB36D",
+          "XA_little_endian": "0x6DB3"
+        },
+        "fastcall_pointer_matches_scb_head": true,
+        "injected_chain": [
+          {
+            "address": "0xB36D",
+            "data": "0xB39B",
+            "hpos": 20,
+            "hsize": "0x0100",
+            "next": "0xB384",
+            "penpal": [
+              "0x00",
+              "0x0F",
+              "0x0F",
+              "0x03",
+              "0x00",
+              "0x00",
+              "0x00",
+              "0x00"
+            ],
+            "sprcoll": "0x20",
+            "sprctl0": "0x05",
+            "sprctl1": "0x10",
+            "vpos": 30,
+            "vsize": "0x0100"
+          },
+          {
+            "address": "0xB384",
+            "data": "0xB39F",
+            "hpos": 40,
+            "hsize": "0x0100",
+            "next": "0x0000",
+            "penpal": [
+              "0x00",
+              "0x0F",
+              "0x0F",
+              "0x03",
+              "0x00",
+              "0x00",
+              "0x00",
+              "0x00"
+            ],
+            "sprcoll": "0x20",
+            "sprctl0": "0x05",
+            "sprctl1": "0x10",
+            "vpos": 30,
+            "vsize": "0x0100"
+          }
+        ],
+        "injected_chain_bytes": 54,
+        "injected_chain_sha256": "af87f8e6cb7351d3cdc6dded898b290068315359dcbe19d984335d6209fa6d88",
+        "injected_chain_write_readback_match": true,
+        "original_chain_sha256": "d33f6706e66e581f634c7587e13e9df5dd9ede3e377772bad3bdba96b4a04c7f",
+        "pc_matches_ioctl": true,
+        "penpal": [
+          [
+            "0x00",
+            "0x0F",
+            "0x0F",
+            "0x03",
+            "0x00",
+            "0x00",
+            "0x00",
+            "0x00"
+          ],
+          [
+            "0x00",
+            "0x0F",
+            "0x0F",
+            "0x03",
+            "0x00",
+            "0x00",
+            "0x00",
+            "0x00"
+          ]
+        ],
+        "registers": {
+          "mikey_registers": {
+            "ATTEN_A": {
+              "address": "FD40",
+              "int": 0,
+              "value": "00"
+            },
+            "ATTEN_B": {
+              "address": "FD41",
+              "int": 0,
+              "value": "00"
+            },
+            "ATTEN_C": {
+              "address": "FD42",
+              "int": 0,
+              "value": "00"
+            },
+            "ATTEN_D": {
+              "address": "FD43",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD0COUNT": {
+              "address": "FD26",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD0CTL": {
+              "address": "FD25",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD0L8SHFT": {
+              "address": "FD23",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD0MISC": {
+              "address": "FD27",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD0OUTVAL": {
+              "address": "FD22",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD0SHFTFB": {
+              "address": "FD21",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD0TBACK": {
+              "address": "FD24",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD0VOL": {
+              "address": "FD20",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD1COUNT": {
+              "address": "FD2E",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD1CTL": {
+              "address": "FD2D",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD1L8SHFT": {
+              "address": "FD2B",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD1MISC": {
+              "address": "FD2F",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD1OUTVAL": {
+              "address": "FD2A",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD1SHFTFB": {
+              "address": "FD29",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD1TBACK": {
+              "address": "FD2C",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD1VOL": {
+              "address": "FD28",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD2COUNT": {
+              "address": "FD36",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD2CTL": {
+              "address": "FD35",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD2L8SHFT": {
+              "address": "FD33",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD2MISC": {
+              "address": "FD37",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD2OUTVAL": {
+              "address": "FD32",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD2SHFTFB": {
+              "address": "FD31",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD2TBACK": {
+              "address": "FD34",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD2VOL": {
+              "address": "FD30",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD3COUNT": {
+              "address": "FD3E",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD3CTL": {
+              "address": "FD3D",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD3L8SHFT": {
+              "address": "FD3B",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD3MISC": {
+              "address": "FD3F",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD3OUTVAL": {
+              "address": "FD3A",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD3SHFTFB": {
+              "address": "FD39",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD3TBACK": {
+              "address": "FD3C",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD3VOL": {
+              "address": "FD38",
+              "int": 0,
+              "value": "00"
+            },
+            "AUDIN": {
+              "address": "FD86",
+              "int": 128,
+              "value": "80"
+            },
+            "BLUERED0": {
+              "address": "FDB0",
+              "int": 0,
+              "value": "00"
+            },
+            "BLUERED1": {
+              "address": "FDB1",
+              "int": 19,
+              "value": "13"
+            },
+            "BLUERED2": {
+              "address": "FDB2",
+              "int": 37,
+              "value": "25"
+            },
+            "BLUERED3": {
+              "address": "FDB3",
+              "int": 70,
+              "value": "46"
+            },
+            "BLUERED4": {
+              "address": "FDB4",
+              "int": 103,
+              "value": "67"
+            },
+            "BLUERED5": {
+              "address": "FDB5",
+              "int": 121,
+              "value": "79"
+            },
+            "BLUERED6": {
+              "address": "FDB6",
+              "int": 44,
+              "value": "2C"
+            },
+            "BLUERED7": {
+              "address": "FDB7",
+              "int": 254,
+              "value": "FE"
+            },
+            "BLUERED8": {
+              "address": "FDB8",
+              "int": 100,
+              "value": "64"
+            },
+            "BLUERED9": {
+              "address": "FDB9",
+              "int": 72,
+              "value": "48"
+            },
+            "BLUEREDA": {
+              "address": "FDBA",
+              "int": 147,
+              "value": "93"
+            },
+            "BLUEREDB": {
+              "address": "FDBB",
+              "int": 66,
+              "value": "42"
+            },
+            "BLUEREDC": {
+              "address": "FDBC",
+              "int": 213,
+              "value": "D5"
+            },
+            "BLUEREDD": {
+              "address": "FDBD",
+              "int": 77,
+              "value": "4D"
+            },
+            "BLUEREDE": {
+              "address": "FDBE",
+              "int": 203,
+              "value": "CB"
+            },
+            "BLUEREDF": {
+              "address": "FDBF",
+              "int": 255,
+              "value": "FF"
+            },
+            "CPUSLEEP": {
+              "address": "FD91",
+              "int": 0,
+              "value": "00"
+            },
+            "DISPADR": {
+              "address": "FD94",
+              "int": 49208,
+              "value": "C038"
+            },
+            "DISPCTL": {
+              "address": "FD92",
+              "int": 13,
+              "value": "0D"
+            },
+            "GREEN0": {
+              "address": "FDA0",
+              "int": 0,
+              "value": "00"
+            },
+            "GREEN1": {
+              "address": "FDA1",
+              "int": 1,
+              "value": "01"
+            },
+            "GREEN2": {
+              "address": "FDA2",
+              "int": 2,
+              "value": "02"
+            },
+            "GREEN3": {
+              "address": "FDA3",
+              "int": 3,
+              "value": "03"
+            },
+            "GREEN4": {
+              "address": "FDA4",
+              "int": 4,
+              "value": "04"
+            },
+            "GREEN5": {
+              "address": "FDA5",
+              "int": 5,
+              "value": "05"
+            },
+            "GREEN6": {
+              "address": "FDA6",
+              "int": 15,
+              "value": "0F"
+            },
+            "GREEN7": {
+              "address": "FDA7",
+              "int": 9,
+              "value": "09"
+            },
+            "GREEN8": {
+              "address": "FDA8",
+              "int": 15,
+              "value": "0F"
+            },
+            "GREEN9": {
+              "address": "FDA9",
+              "int": 3,
+              "value": "03"
+            },
+            "GREENA": {
+              "address": "FDAA",
+              "int": 14,
+              "value": "0E"
+            },
+            "GREENB": {
+              "address": "FDAB",
+              "int": 8,
+              "value": "08"
+            },
+            "GREENC": {
+              "address": "FDAC",
+              "int": 15,
+              "value": "0F"
+            },
+            "GREEND": {
+              "address": "FDAD",
+              "int": 8,
+              "value": "08"
+            },
+            "GREENE": {
+              "address": "FDAE",
+              "int": 3,
+              "value": "03"
+            },
+            "GREENF": {
+              "address": "FDAF",
+              "int": 15,
+              "value": "0F"
+            },
+            "INTRST": {
+              "address": "FD80",
+              "int": 0,
+              "value": "00"
+            },
+            "INTSET": {
+              "address": "FD81",
+              "int": 0,
+              "value": "00"
+            },
+            "IODAT": {
+              "address": "FD8B",
+              "int": 27,
+              "value": "1B"
+            },
+            "IODIR": {
+              "address": "FD8A",
+              "int": 26,
+              "value": "1A"
+            },
+            "MAGRDY0": {
+              "address": "FD84",
+              "int": 0,
+              "value": "00"
+            },
+            "MAGRDY1": {
+              "address": "FD85",
+              "int": 0,
+              "value": "00"
+            },
+            "MIKEYHREV": {
+              "address": "FD88",
+              "int": 2,
+              "value": "02"
+            },
+            "MIKEYSREV": {
+              "address": "FD89",
+              "int": 255,
+              "value": "FF"
+            },
+            "MPAN": {
+              "address": "FD44",
+              "int": 0,
+              "value": "00"
+            },
+            "MSTEREO": {
+              "address": "FD50",
+              "int": 0,
+              "value": "00"
+            },
+            "MTEST0": {
+              "address": "FD9C",
+              "int": 255,
+              "value": "FF"
+            },
+            "MTEST1": {
+              "address": "FD9D",
+              "int": 255,
+              "value": "FF"
+            },
+            "MTEST2": {
+              "address": "FD9E",
+              "int": 255,
+              "value": "FF"
+            },
+            "PBKUP": {
+              "address": "FD93",
+              "int": 32,
+              "value": "20"
+            },
+            "SDONEACK": {
+              "address": "FD90",
+              "int": 0,
+              "value": "00"
+            },
+            "SERCTL": {
+              "address": "FD8C",
+              "int": 4,
+              "value": "04"
+            },
+            "SERDAT": {
+              "address": "FD8D",
+              "int": 0,
+              "value": "00"
+            },
+            "SYSCTL1": {
+              "address": "FD87",
+              "int": 246,
+              "value": "F6"
+            },
+            "TIM0BKUP": {
+              "address": "FD00",
+              "int": 126,
+              "value": "7E"
+            },
+            "TIM0CNT": {
+              "address": "FD02",
+              "int": 65,
+              "value": "41"
+            },
+            "TIM0CTLA": {
+              "address": "FD01",
+              "int": 24,
+              "value": "18"
+            },
+            "TIM0CTLB": {
+              "address": "FD03",
+              "int": 10,
+              "value": "0A"
+            },
+            "TIM1BKUP": {
+              "address": "FD04",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM1CNT": {
+              "address": "FD06",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM1CTLA": {
+              "address": "FD05",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM1CTLB": {
+              "address": "FD07",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM2BKUP": {
+              "address": "FD08",
+              "int": 104,
+              "value": "68"
+            },
+            "TIM2CNT": {
+              "address": "FD0A",
+              "int": 16,
+              "value": "10"
+            },
+            "TIM2CTLA": {
+              "address": "FD09",
+              "int": 159,
+              "value": "9F"
+            },
+            "TIM2CTLB": {
+              "address": "FD0B",
+              "int": 8,
+              "value": "08"
+            },
+            "TIM3BKUP": {
+              "address": "FD0C",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM3CNT": {
+              "address": "FD0E",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM3CTLA": {
+              "address": "FD0D",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM3CTLB": {
+              "address": "FD0F",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM4BKUP": {
+              "address": "FD10",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM4CNT": {
+              "address": "FD12",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM4CTLA": {
+              "address": "FD11",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM4CTLB": {
+              "address": "FD13",
+              "int": 2,
+              "value": "02"
+            },
+            "TIM5BKUP": {
+              "address": "FD14",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM5CNT": {
+              "address": "FD16",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM5CTLA": {
+              "address": "FD15",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM5CTLB": {
+              "address": "FD17",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM6BKUP": {
+              "address": "FD18",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM6CNT": {
+              "address": "FD1A",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM6CTLA": {
+              "address": "FD19",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM6CTLB": {
+              "address": "FD1B",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM7BKUP": {
+              "address": "FD1C",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM7CNT": {
+              "address": "FD1E",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM7CTLA": {
+              "address": "FD1D",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM7CTLB": {
+              "address": "FD1F",
+              "int": 0,
+              "value": "00"
+            }
+          },
+          "readback_available": true,
+          "selected": {
+            "DISPADR": {
+              "address": "FD94",
+              "int": 49208,
+              "value": "C038"
+            },
+            "SCBNEXT": {
+              "address": "FC10",
+              "int": 0,
+              "value": "0000"
+            },
+            "SPRGO": {
+              "address": "FC91",
+              "int": 0,
+              "value": "00"
+            },
+            "SPRSYS": {
+              "address": "FC92",
+              "int": 0,
+              "value": "00"
+            },
+            "VIDBAS": {
+              "address": "FC08",
+              "int": 49208,
+              "value": "C038"
+            }
+          },
+          "suzy_registers": {
+            "COLLADR": {
+              "address": "FC0E",
+              "int": 0,
+              "value": "0000"
+            },
+            "COLLBAS": {
+              "address": "FC0A",
+              "int": 41048,
+              "value": "A058"
+            },
+            "COLLOFF": {
+              "address": "FC24",
+              "int": 65535,
+              "value": "FFFF"
+            },
+            "HOFF": {
+              "address": "FC04",
+              "int": 0,
+              "value": "0000"
+            },
+            "HOWIE": {
+              "address": "FCC4",
+              "int": 255,
+              "value": "FF"
+            },
+            "HPOSSTRT": {
+              "address": "FC14",
+              "int": 52,
+              "value": "0034"
+            },
+            "HSIZOFF": {
+              "address": "FC28",
+              "int": 127,
+              "value": "007F"
+            },
+            "JOYSTICK": {
+              "address": "FCB0",
+              "int": 0,
+              "value": "00"
+            },
+            "LEDS": {
+              "address": "FCC0",
+              "int": 255,
+              "value": "FF"
+            },
+            "MATHA": {
+              "address": "FC55",
+              "int": 0,
+              "value": "00"
+            },
+            "MATHB": {
+              "address": "FC54",
+              "int": 52,
+              "value": "34"
+            },
+            "MATHC": {
+              "address": "FC53",
+              "int": 181,
+              "value": "B5"
+            },
+            "MATHD": {
+              "address": "FC52",
+              "int": 135,
+              "value": "87"
+            },
+            "MATHE": {
+              "address": "FC63",
+              "int": 0,
+              "value": "00"
+            },
+            "MATHF": {
+              "address": "FC62",
+              "int": 95,
+              "value": "5F"
+            },
+            "MATHG": {
+              "address": "FC61",
+              "int": 0,
+              "value": "00"
+            },
+            "MATHH": {
+              "address": "FC60",
+              "int": 0,
+              "value": "00"
+            },
+            "MATHJ": {
+              "address": "FC6F",
+              "int": 181,
+              "value": "B5"
+            },
+            "MATHK": {
+              "address": "FC6E",
+              "int": 135,
+              "value": "87"
+            },
+            "MATHL": {
+              "address": "FC6D",
+              "int": 180,
+              "value": "B4"
+            },
+            "MATHM": {
+              "address": "FC6C",
+              "int": 14,
+              "value": "0E"
+            },
+            "MATHN": {
+              "address": "FC57",
+              "int": 0,
+              "value": "00"
+            },
+            "MATHP": {
+              "address": "FC56",
+              "int": 90,
+              "value": "5A"
+            },
+            "PPORTDATA": {
+              "address": "FCC3",
+              "int": 255,
+              "value": "FF"
+            },
+            "PPORTSTAT": {
+              "address": "FCC2",
+              "int": 255,
+              "value": "FF"
+            },
+            "PROCADR": {
+              "address": "FC2E",
+              "int": 46471,
+              "value": "B587"
+            },
+            "RCART0": {
+              "address": "FCB2",
+              "int": 16,
+              "value": "10"
+            },
+            "RCART1": {
+              "address": "FCB3",
+              "int": 255,
+              "value": "FF"
+            },
+            "SCBADR": {
+              "address": "FC2C",
+              "int": 46094,
+              "value": "B40E"
+            },
+            "SCBNEXT": {
+              "address": "FC10",
+              "int": 0,
+              "value": "0000"
+            },
+            "SPRCOLL": {
+              "address": "FC82",
+              "int": 32,
+              "value": "20"
+            },
+            "SPRCTL0": {
+              "address": "FC80",
+              "int": 5,
+              "value": "05"
+            },
+            "SPRCTL1": {
+              "address": "FC81",
+              "int": 144,
+              "value": "90"
+            },
+            "SPRDLINE": {
+              "address": "FC12",
+              "int": 46471,
+              "value": "B587"
+            },
+            "SPRDOFF": {
+              "address": "FC20",
+              "int": 0,
+              "value": "0000"
+            },
+            "SPRGO": {
+              "address": "FC91",
+              "int": 0,
+              "value": "00"
+            },
+            "SPRHSIZ": {
+              "address": "FC18",
+              "int": 256,
+              "value": "0100"
+            },
+            "SPRINIT": {
+              "address": "FC83",
+              "int": 243,
+              "value": "F3"
+            },
+            "SPRSYS": {
+              "address": "FC92",
+              "int": 0,
+              "value": "00"
+            },
+            "SPRVPOS": {
+              "address": "FC22",
+              "int": 95,
+              "value": "005F"
+            },
+            "SPRVSIZ": {
+              "address": "FC1A",
+              "int": 256,
+              "value": "0100"
+            },
+            "STRETCH": {
+              "address": "FC1C",
+              "int": 0,
+              "value": "0000"
+            },
+            "SUZYBUSEN": {
+              "address": "FC90",
+              "int": 1,
+              "value": "01"
+            },
+            "SUZYHREV": {
+              "address": "FC88",
+              "int": 1,
+              "value": "01"
+            },
+            "SUZYSREV": {
+              "address": "FC89",
+              "int": 255,
+              "value": "FF"
+            },
+            "SWITCHES": {
+              "address": "FCB1",
+              "int": 0,
+              "value": "00"
+            },
+            "TILT": {
+              "address": "FC1E",
+              "int": 0,
+              "value": "0000"
+            },
+            "TILTACUM": {
+              "address": "FC02",
+              "int": 0,
+              "value": "0000"
+            },
+            "TMPADR": {
+              "address": "FC00",
+              "int": 46472,
+              "value": "B588"
+            },
+            "VIDADR": {
+              "address": "FC0C",
+              "int": 0,
+              "value": "0000"
+            },
+            "VIDBAS": {
+              "address": "FC08",
+              "int": 49208,
+              "value": "C038"
+            },
+            "VOFF": {
+              "address": "FC06",
+              "int": 0,
+              "value": "0000"
+            },
+            "VPOSSTRT": {
+              "address": "FC16",
+              "int": 90,
+              "value": "005A"
+            },
+            "VSIZACUM": {
+              "address": "FC26",
+              "int": 127,
+              "value": "007F"
+            },
+            "VSIZOFF": {
+              "address": "FC2A",
+              "int": 127,
+              "value": "007F"
+            }
+          }
+        }
+      },
+      "process_isolated": true,
+      "return": {
+        "cpu": {
+          "A": "00",
+          "IRQ_line_asserted": false,
+          "IRQ_mask": "04",
+          "IRQ_pending": "00",
+          "IRQs": [
+            {
+              "asserted": false,
+              "enabled": false,
+              "index": 0,
+              "masked": false
+            },
+            {
+              "asserted": false,
+              "enabled": false,
+              "index": 1,
+              "masked": false
+            },
+            {
+              "asserted": false,
+              "enabled": true,
+              "index": 2,
+              "masked": true
+            },
+            {
+              "asserted": false,
+              "enabled": false,
+              "index": 3,
+              "masked": false
+            },
+            {
+              "asserted": false,
+              "enabled": false,
+              "index": 4,
+              "masked": false
+            },
+            {
+              "asserted": false,
+              "enabled": false,
+              "index": 5,
+              "masked": false
+            },
+            {
+              "asserted": false,
+              "enabled": false,
+              "index": 6,
+              "masked": false
+            },
+            {
+              "asserted": false,
+              "enabled": false,
+              "index": 7,
+              "masked": false
+            }
+          ],
+          "MAPCTL": "0C",
+          "P": "22",
+          "PC": "73EE",
+          "S": "F9",
+          "SP": "01F9",
+          "X": "E0",
+          "Y": "00",
+          "flag_B": false,
+          "flag_C": false,
+          "flag_D": false,
+          "flag_I": false,
+          "flag_N": false,
+          "flag_V": false,
+          "flag_Z": true,
+          "last_ticks": 30,
+          "mikey_visible": true,
+          "rom_visible": false,
+          "suzy_visible": true,
+          "total_ticks": 22189594,
+          "vectors_visible": false
+        },
+        "expected_pixel_positions": [
+          {
+            "address": "0xE982",
+            "expected_byte": "0x0A",
+            "x": 20,
+            "y": 30
+          },
+          {
+            "address": "0xE98C",
+            "expected_byte": "0x0A",
+            "x": 40,
+            "y": 30
+          }
+        ],
+        "pages": {
+          "0xC038": {
+            "bytes": 8160,
+            "changed_byte_count": 0,
+            "changed_bytes": [],
+            "cpu_address": "0xC038",
+            "expected_target_bytes": [],
+            "raw_file": "phase-2r-o5-run-b-c038.bin",
+            "raw_sha256": "7d03eb8a4abf137a4c09a20c62a47d3cbcaafacf90681fa42eeed57c3b388c17",
+            "sentinel": "0xAA"
+          },
+          "0xE018": {
+            "bytes": 8160,
+            "changed_byte_count": 0,
+            "changed_bytes": [],
+            "cpu_address": "0xE018",
+            "expected_target_bytes": [
+              {
+                "actual": "0xAA",
+                "address": "0xE982",
+                "expected": "0x0A"
+              },
+              {
+                "actual": "0xAA",
+                "address": "0xE98C",
+                "expected": "0x0A"
+              }
+            ],
+            "raw_file": "phase-2r-o5-run-b-e018.bin",
+            "raw_sha256": "7d03eb8a4abf137a4c09a20c62a47d3cbcaafacf90681fa42eeed57c3b388c17",
+            "sentinel": "0xAA"
+          }
+        },
+        "physical_page_mapping": {
+          "DISPADR": "0xC038",
+          "VIDBAS": "0xE018",
+          "draw_page_selected_from_return_VIDBAS": true,
+          "hardcoded_draw_page_used": false,
+          "target_page_cpu_address": "0xE018"
+        },
+        "registers": {
+          "mikey_registers": {
+            "ATTEN_A": {
+              "address": "FD40",
+              "int": 0,
+              "value": "00"
+            },
+            "ATTEN_B": {
+              "address": "FD41",
+              "int": 0,
+              "value": "00"
+            },
+            "ATTEN_C": {
+              "address": "FD42",
+              "int": 0,
+              "value": "00"
+            },
+            "ATTEN_D": {
+              "address": "FD43",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD0COUNT": {
+              "address": "FD26",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD0CTL": {
+              "address": "FD25",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD0L8SHFT": {
+              "address": "FD23",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD0MISC": {
+              "address": "FD27",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD0OUTVAL": {
+              "address": "FD22",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD0SHFTFB": {
+              "address": "FD21",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD0TBACK": {
+              "address": "FD24",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD0VOL": {
+              "address": "FD20",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD1COUNT": {
+              "address": "FD2E",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD1CTL": {
+              "address": "FD2D",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD1L8SHFT": {
+              "address": "FD2B",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD1MISC": {
+              "address": "FD2F",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD1OUTVAL": {
+              "address": "FD2A",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD1SHFTFB": {
+              "address": "FD29",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD1TBACK": {
+              "address": "FD2C",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD1VOL": {
+              "address": "FD28",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD2COUNT": {
+              "address": "FD36",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD2CTL": {
+              "address": "FD35",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD2L8SHFT": {
+              "address": "FD33",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD2MISC": {
+              "address": "FD37",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD2OUTVAL": {
+              "address": "FD32",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD2SHFTFB": {
+              "address": "FD31",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD2TBACK": {
+              "address": "FD34",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD2VOL": {
+              "address": "FD30",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD3COUNT": {
+              "address": "FD3E",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD3CTL": {
+              "address": "FD3D",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD3L8SHFT": {
+              "address": "FD3B",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD3MISC": {
+              "address": "FD3F",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD3OUTVAL": {
+              "address": "FD3A",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD3SHFTFB": {
+              "address": "FD39",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD3TBACK": {
+              "address": "FD3C",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD3VOL": {
+              "address": "FD38",
+              "int": 0,
+              "value": "00"
+            },
+            "AUDIN": {
+              "address": "FD86",
+              "int": 128,
+              "value": "80"
+            },
+            "BLUERED0": {
+              "address": "FDB0",
+              "int": 0,
+              "value": "00"
+            },
+            "BLUERED1": {
+              "address": "FDB1",
+              "int": 19,
+              "value": "13"
+            },
+            "BLUERED2": {
+              "address": "FDB2",
+              "int": 37,
+              "value": "25"
+            },
+            "BLUERED3": {
+              "address": "FDB3",
+              "int": 70,
+              "value": "46"
+            },
+            "BLUERED4": {
+              "address": "FDB4",
+              "int": 103,
+              "value": "67"
+            },
+            "BLUERED5": {
+              "address": "FDB5",
+              "int": 121,
+              "value": "79"
+            },
+            "BLUERED6": {
+              "address": "FDB6",
+              "int": 44,
+              "value": "2C"
+            },
+            "BLUERED7": {
+              "address": "FDB7",
+              "int": 254,
+              "value": "FE"
+            },
+            "BLUERED8": {
+              "address": "FDB8",
+              "int": 100,
+              "value": "64"
+            },
+            "BLUERED9": {
+              "address": "FDB9",
+              "int": 72,
+              "value": "48"
+            },
+            "BLUEREDA": {
+              "address": "FDBA",
+              "int": 147,
+              "value": "93"
+            },
+            "BLUEREDB": {
+              "address": "FDBB",
+              "int": 66,
+              "value": "42"
+            },
+            "BLUEREDC": {
+              "address": "FDBC",
+              "int": 213,
+              "value": "D5"
+            },
+            "BLUEREDD": {
+              "address": "FDBD",
+              "int": 77,
+              "value": "4D"
+            },
+            "BLUEREDE": {
+              "address": "FDBE",
+              "int": 203,
+              "value": "CB"
+            },
+            "BLUEREDF": {
+              "address": "FDBF",
+              "int": 255,
+              "value": "FF"
+            },
+            "CPUSLEEP": {
+              "address": "FD91",
+              "int": 0,
+              "value": "00"
+            },
+            "DISPADR": {
+              "address": "FD94",
+              "int": 49208,
+              "value": "C038"
+            },
+            "DISPCTL": {
+              "address": "FD92",
+              "int": 13,
+              "value": "0D"
+            },
+            "GREEN0": {
+              "address": "FDA0",
+              "int": 0,
+              "value": "00"
+            },
+            "GREEN1": {
+              "address": "FDA1",
+              "int": 1,
+              "value": "01"
+            },
+            "GREEN2": {
+              "address": "FDA2",
+              "int": 2,
+              "value": "02"
+            },
+            "GREEN3": {
+              "address": "FDA3",
+              "int": 3,
+              "value": "03"
+            },
+            "GREEN4": {
+              "address": "FDA4",
+              "int": 4,
+              "value": "04"
+            },
+            "GREEN5": {
+              "address": "FDA5",
+              "int": 5,
+              "value": "05"
+            },
+            "GREEN6": {
+              "address": "FDA6",
+              "int": 15,
+              "value": "0F"
+            },
+            "GREEN7": {
+              "address": "FDA7",
+              "int": 9,
+              "value": "09"
+            },
+            "GREEN8": {
+              "address": "FDA8",
+              "int": 15,
+              "value": "0F"
+            },
+            "GREEN9": {
+              "address": "FDA9",
+              "int": 3,
+              "value": "03"
+            },
+            "GREENA": {
+              "address": "FDAA",
+              "int": 14,
+              "value": "0E"
+            },
+            "GREENB": {
+              "address": "FDAB",
+              "int": 8,
+              "value": "08"
+            },
+            "GREENC": {
+              "address": "FDAC",
+              "int": 15,
+              "value": "0F"
+            },
+            "GREEND": {
+              "address": "FDAD",
+              "int": 8,
+              "value": "08"
+            },
+            "GREENE": {
+              "address": "FDAE",
+              "int": 3,
+              "value": "03"
+            },
+            "GREENF": {
+              "address": "FDAF",
+              "int": 15,
+              "value": "0F"
+            },
+            "INTRST": {
+              "address": "FD80",
+              "int": 0,
+              "value": "00"
+            },
+            "INTSET": {
+              "address": "FD81",
+              "int": 0,
+              "value": "00"
+            },
+            "IODAT": {
+              "address": "FD8B",
+              "int": 27,
+              "value": "1B"
+            },
+            "IODIR": {
+              "address": "FD8A",
+              "int": 26,
+              "value": "1A"
+            },
+            "MAGRDY0": {
+              "address": "FD84",
+              "int": 0,
+              "value": "00"
+            },
+            "MAGRDY1": {
+              "address": "FD85",
+              "int": 0,
+              "value": "00"
+            },
+            "MIKEYHREV": {
+              "address": "FD88",
+              "int": 2,
+              "value": "02"
+            },
+            "MIKEYSREV": {
+              "address": "FD89",
+              "int": 255,
+              "value": "FF"
+            },
+            "MPAN": {
+              "address": "FD44",
+              "int": 0,
+              "value": "00"
+            },
+            "MSTEREO": {
+              "address": "FD50",
+              "int": 0,
+              "value": "00"
+            },
+            "MTEST0": {
+              "address": "FD9C",
+              "int": 255,
+              "value": "FF"
+            },
+            "MTEST1": {
+              "address": "FD9D",
+              "int": 255,
+              "value": "FF"
+            },
+            "MTEST2": {
+              "address": "FD9E",
+              "int": 255,
+              "value": "FF"
+            },
+            "PBKUP": {
+              "address": "FD93",
+              "int": 32,
+              "value": "20"
+            },
+            "SDONEACK": {
+              "address": "FD90",
+              "int": 0,
+              "value": "00"
+            },
+            "SERCTL": {
+              "address": "FD8C",
+              "int": 4,
+              "value": "04"
+            },
+            "SERDAT": {
+              "address": "FD8D",
+              "int": 0,
+              "value": "00"
+            },
+            "SYSCTL1": {
+              "address": "FD87",
+              "int": 246,
+              "value": "F6"
+            },
+            "TIM0BKUP": {
+              "address": "FD00",
+              "int": 126,
+              "value": "7E"
+            },
+            "TIM0CNT": {
+              "address": "FD02",
+              "int": 122,
+              "value": "7A"
+            },
+            "TIM0CTLA": {
+              "address": "FD01",
+              "int": 24,
+              "value": "18"
+            },
+            "TIM0CTLB": {
+              "address": "FD03",
+              "int": 10,
+              "value": "0A"
+            },
+            "TIM1BKUP": {
+              "address": "FD04",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM1CNT": {
+              "address": "FD06",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM1CTLA": {
+              "address": "FD05",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM1CTLB": {
+              "address": "FD07",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM2BKUP": {
+              "address": "FD08",
+              "int": 104,
+              "value": "68"
+            },
+            "TIM2CNT": {
+              "address": "FD0A",
+              "int": 15,
+              "value": "0F"
+            },
+            "TIM2CTLA": {
+              "address": "FD09",
+              "int": 159,
+              "value": "9F"
+            },
+            "TIM2CTLB": {
+              "address": "FD0B",
+              "int": 8,
+              "value": "08"
+            },
+            "TIM3BKUP": {
+              "address": "FD0C",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM3CNT": {
+              "address": "FD0E",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM3CTLA": {
+              "address": "FD0D",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM3CTLB": {
+              "address": "FD0F",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM4BKUP": {
+              "address": "FD10",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM4CNT": {
+              "address": "FD12",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM4CTLA": {
+              "address": "FD11",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM4CTLB": {
+              "address": "FD13",
+              "int": 2,
+              "value": "02"
+            },
+            "TIM5BKUP": {
+              "address": "FD14",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM5CNT": {
+              "address": "FD16",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM5CTLA": {
+              "address": "FD15",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM5CTLB": {
+              "address": "FD17",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM6BKUP": {
+              "address": "FD18",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM6CNT": {
+              "address": "FD1A",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM6CTLA": {
+              "address": "FD19",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM6CTLB": {
+              "address": "FD1B",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM7BKUP": {
+              "address": "FD1C",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM7CNT": {
+              "address": "FD1E",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM7CTLA": {
+              "address": "FD1D",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM7CTLB": {
+              "address": "FD1F",
+              "int": 0,
+              "value": "00"
+            }
+          },
+          "readback_available": true,
+          "selected": {
+            "DISPADR": {
+              "address": "FD94",
+              "int": 49208,
+              "value": "C038"
+            },
+            "SCBNEXT": {
+              "address": "FC10",
+              "int": 0,
+              "value": "0000"
+            },
+            "SPRGO": {
+              "address": "FC91",
+              "int": 0,
+              "value": "00"
+            },
+            "SPRSYS": {
+              "address": "FC92",
+              "int": 0,
+              "value": "00"
+            },
+            "VIDBAS": {
+              "address": "FC08",
+              "int": 57368,
+              "value": "E018"
+            }
+          },
+          "suzy_registers": {
+            "COLLADR": {
+              "address": "FC0E",
+              "int": 0,
+              "value": "0000"
+            },
+            "COLLBAS": {
+              "address": "FC0A",
+              "int": 41048,
+              "value": "A058"
+            },
+            "COLLOFF": {
+              "address": "FC24",
+              "int": 65535,
+              "value": "FFFF"
+            },
+            "HOFF": {
+              "address": "FC04",
+              "int": 0,
+              "value": "0000"
+            },
+            "HOWIE": {
+              "address": "FCC4",
+              "int": 255,
+              "value": "FF"
+            },
+            "HPOSSTRT": {
+              "address": "FC14",
+              "int": 40,
+              "value": "0028"
+            },
+            "HSIZOFF": {
+              "address": "FC28",
+              "int": 127,
+              "value": "007F"
+            },
+            "JOYSTICK": {
+              "address": "FCB0",
+              "int": 0,
+              "value": "00"
+            },
+            "LEDS": {
+              "address": "FCC0",
+              "int": 255,
+              "value": "FF"
+            },
+            "MATHA": {
+              "address": "FC55",
+              "int": 0,
+              "value": "00"
+            },
+            "MATHB": {
+              "address": "FC54",
+              "int": 40,
+              "value": "28"
+            },
+            "MATHC": {
+              "address": "FC53",
+              "int": 179,
+              "value": "B3"
+            },
+            "MATHD": {
+              "address": "FC52",
+              "int": 162,
+              "value": "A2"
+            },
+            "MATHE": {
+              "address": "FC63",
+              "int": 0,
+              "value": "00"
+            },
+            "MATHF": {
+              "address": "FC62",
+              "int": 31,
+              "value": "1F"
+            },
+            "MATHG": {
+              "address": "FC61",
+              "int": 0,
+              "value": "00"
+            },
+            "MATHH": {
+              "address": "FC60",
+              "int": 0,
+              "value": "00"
+            },
+            "MATHJ": {
+              "address": "FC6F",
+              "int": 179,
+              "value": "B3"
+            },
+            "MATHK": {
+              "address": "FC6E",
+              "int": 162,
+              "value": "A2"
+            },
+            "MATHL": {
+              "address": "FC6D",
+              "int": 179,
+              "value": "B3"
+            },
+            "MATHM": {
+              "address": "FC6C",
+              "int": 132,
+              "value": "84"
+            },
+            "MATHN": {
+              "address": "FC57",
+              "int": 0,
+              "value": "00"
+            },
+            "MATHP": {
+              "address": "FC56",
+              "int": 30,
+              "value": "1E"
+            },
+            "PPORTDATA": {
+              "address": "FCC3",
+              "int": 255,
+              "value": "FF"
+            },
+            "PPORTSTAT": {
+              "address": "FCC2",
+              "int": 255,
+              "value": "FF"
+            },
+            "PROCADR": {
+              "address": "FC2E",
+              "int": 45986,
+              "value": "B3A2"
+            },
+            "RCART0": {
+              "address": "FCB2",
+              "int": 16,
+              "value": "10"
+            },
+            "RCART1": {
+              "address": "FCB3",
+              "int": 255,
+              "value": "FF"
+            },
+            "SCBADR": {
+              "address": "FC2C",
+              "int": 45956,
+              "value": "B384"
+            },
+            "SCBNEXT": {
+              "address": "FC10",
+              "int": 0,
+              "value": "0000"
+            },
+            "SPRCOLL": {
+              "address": "FC82",
+              "int": 32,
+              "value": "20"
+            },
+            "SPRCTL0": {
+              "address": "FC80",
+              "int": 5,
+              "value": "05"
+            },
+            "SPRCTL1": {
+              "address": "FC81",
+              "int": 16,
+              "value": "10"
+            },
+            "SPRDLINE": {
+              "address": "FC12",
+              "int": 45986,
+              "value": "B3A2"
+            },
+            "SPRDOFF": {
+              "address": "FC20",
+              "int": 0,
+              "value": "0000"
+            },
+            "SPRGO": {
+              "address": "FC91",
+              "int": 0,
+              "value": "00"
+            },
+            "SPRHSIZ": {
+              "address": "FC18",
+              "int": 256,
+              "value": "0100"
+            },
+            "SPRINIT": {
+              "address": "FC83",
+              "int": 243,
+              "value": "F3"
+            },
+            "SPRSYS": {
+              "address": "FC92",
+              "int": 0,
+              "value": "00"
+            },
+            "SPRVPOS": {
+              "address": "FC22",
+              "int": 31,
+              "value": "001F"
+            },
+            "SPRVSIZ": {
+              "address": "FC1A",
+              "int": 256,
+              "value": "0100"
+            },
+            "STRETCH": {
+              "address": "FC1C",
+              "int": 0,
+              "value": "0000"
+            },
+            "SUZYBUSEN": {
+              "address": "FC90",
+              "int": 1,
+              "value": "01"
+            },
+            "SUZYHREV": {
+              "address": "FC88",
+              "int": 1,
+              "value": "01"
+            },
+            "SUZYSREV": {
+              "address": "FC89",
+              "int": 255,
+              "value": "FF"
+            },
+            "SWITCHES": {
+              "address": "FCB1",
+              "int": 0,
+              "value": "00"
+            },
+            "TILT": {
+              "address": "FC1E",
+              "int": 0,
+              "value": "0000"
+            },
+            "TILTACUM": {
+              "address": "FC02",
+              "int": 0,
+              "value": "0000"
+            },
+            "TMPADR": {
+              "address": "FC00",
+              "int": 45987,
+              "value": "B3A3"
+            },
+            "VIDADR": {
+              "address": "FC0C",
+              "int": 0,
+              "value": "0000"
+            },
+            "VIDBAS": {
+              "address": "FC08",
+              "int": 57368,
+              "value": "E018"
+            },
+            "VOFF": {
+              "address": "FC06",
+              "int": 0,
+              "value": "0000"
+            },
+            "VPOSSTRT": {
+              "address": "FC16",
+              "int": 30,
+              "value": "001E"
+            },
+            "VSIZACUM": {
+              "address": "FC26",
+              "int": 127,
+              "value": "007F"
+            },
+            "VSIZOFF": {
+              "address": "FC2A",
+              "int": 127,
+              "value": "007F"
+            }
+          }
+        },
+        "return_register_readback_available": true,
+        "target_page_actual_bytes": [
+          "0xAA",
+          "0xAA"
+        ],
+        "target_page_both_pixels_match": false,
+        "target_page_expected_bytes": [
+          "0x0A",
+          "0x0A"
+        ],
+        "target_page_expected_values_match": false
+      },
+      "rom_sha256": "19bffae3019e1fe64c5578e8c581a3201c93ad0fdafa9ea2735da056f9d94f0c",
+      "run": "B",
+      "scratch_address": "0xB36D",
+      "sentinel_prefill": {
+        "page_c038_all_sentinel": true,
+        "page_c038_sha256": "7d03eb8a4abf137a4c09a20c62a47d3cbcaafacf90681fa42eeed57c3b388c17",
+        "page_e018_all_sentinel": true,
+        "page_e018_sha256": "7d03eb8a4abf137a4c09a20c62a47d3cbcaafacf90681fa42eeed57c3b388c17",
+        "value": "0xAA"
+      }
+    },
+    {
+      "diagnosis": {
+        "changed_byte_addresses_recorded": true,
+        "classification": "expected_values_match",
+        "other_physical_page_read": true,
+        "run_expected_bytes_match": true
+      },
+      "entry": {
+        "bisect_differences": [
+          "sprctl0: 0x05 -> 0x01 (TYPE_NONCOLL -> TYPE_BACKNONCOLL)"
+        ],
+        "breakpoint": "0x8C70",
+        "cpu": {
+          "A": "6D",
+          "IRQ_line_asserted": false,
+          "IRQ_mask": "04",
+          "IRQ_pending": "00",
+          "IRQs": [
+            {
+              "asserted": false,
+              "enabled": false,
+              "index": 0,
+              "masked": false
+            },
+            {
+              "asserted": false,
+              "enabled": false,
+              "index": 1,
+              "masked": false
+            },
+            {
+              "asserted": false,
+              "enabled": true,
+              "index": 2,
+              "masked": true
+            },
+            {
+              "asserted": false,
+              "enabled": false,
+              "index": 3,
+              "masked": false
+            },
+            {
+              "asserted": false,
+              "enabled": false,
+              "index": 4,
+              "masked": false
+            },
+            {
+              "asserted": false,
+              "enabled": false,
+              "index": 5,
+              "masked": false
+            },
+            {
+              "asserted": false,
+              "enabled": false,
+              "index": 6,
+              "masked": false
+            },
+            {
+              "asserted": false,
+              "enabled": false,
+              "index": 7,
+              "masked": false
+            }
+          ],
+          "MAPCTL": "0C",
+          "P": "A0",
+          "PC": "8C70",
+          "S": "F7",
+          "SP": "01F7",
+          "X": "B3",
+          "Y": "00",
+          "flag_B": false,
+          "flag_C": false,
+          "flag_D": false,
+          "flag_I": false,
+          "flag_N": true,
+          "flag_V": false,
+          "flag_Z": false,
+          "last_ticks": 13,
+          "mikey_visible": true,
+          "rom_visible": false,
+          "suzy_visible": true,
+          "total_ticks": 22188614,
+          "vectors_visible": false
+        },
+        "data1": [
+          "0x03",
+          "0x84",
+          "0x00",
+          "0x00"
+        ],
+        "data2": [
+          "0x03",
+          "0x84",
+          "0x00",
+          "0x00"
+        ],
+        "fastcall_candidates": {
+          "AX_little_endian": "0xB36D",
+          "XA_little_endian": "0x6DB3"
+        },
+        "fastcall_pointer_matches_scb_head": true,
+        "injected_chain": [
+          {
+            "address": "0xB36D",
+            "data": "0xB39B",
+            "hpos": 20,
+            "hsize": "0x0100",
+            "next": "0xB384",
+            "penpal": [
+              "0x00",
+              "0x0F",
+              "0x0F",
+              "0x03",
+              "0x00",
+              "0x00",
+              "0x00",
+              "0x00"
+            ],
+            "sprcoll": "0x20",
+            "sprctl0": "0x01",
+            "sprctl1": "0x10",
+            "vpos": 30,
+            "vsize": "0x0100"
+          },
+          {
+            "address": "0xB384",
+            "data": "0xB39F",
+            "hpos": 40,
+            "hsize": "0x0100",
+            "next": "0x0000",
+            "penpal": [
+              "0x00",
+              "0x0F",
+              "0x0F",
+              "0x03",
+              "0x00",
+              "0x00",
+              "0x00",
+              "0x00"
+            ],
+            "sprcoll": "0x20",
+            "sprctl0": "0x01",
+            "sprctl1": "0x10",
+            "vpos": 30,
+            "vsize": "0x0100"
+          }
+        ],
+        "injected_chain_bytes": 54,
+        "injected_chain_sha256": "d43208c894287305fd2ff176db7b165bebd47d8083141b9008ec7f8807631447",
+        "injected_chain_write_readback_match": true,
+        "original_chain_sha256": "d33f6706e66e581f634c7587e13e9df5dd9ede3e377772bad3bdba96b4a04c7f",
+        "pc_matches_ioctl": true,
+        "penpal": [
+          [
+            "0x00",
+            "0x0F",
+            "0x0F",
+            "0x03",
+            "0x00",
+            "0x00",
+            "0x00",
+            "0x00"
+          ],
+          [
+            "0x00",
+            "0x0F",
+            "0x0F",
+            "0x03",
+            "0x00",
+            "0x00",
+            "0x00",
+            "0x00"
+          ]
+        ],
+        "registers": {
+          "mikey_registers": {
+            "ATTEN_A": {
+              "address": "FD40",
+              "int": 0,
+              "value": "00"
+            },
+            "ATTEN_B": {
+              "address": "FD41",
+              "int": 0,
+              "value": "00"
+            },
+            "ATTEN_C": {
+              "address": "FD42",
+              "int": 0,
+              "value": "00"
+            },
+            "ATTEN_D": {
+              "address": "FD43",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD0COUNT": {
+              "address": "FD26",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD0CTL": {
+              "address": "FD25",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD0L8SHFT": {
+              "address": "FD23",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD0MISC": {
+              "address": "FD27",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD0OUTVAL": {
+              "address": "FD22",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD0SHFTFB": {
+              "address": "FD21",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD0TBACK": {
+              "address": "FD24",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD0VOL": {
+              "address": "FD20",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD1COUNT": {
+              "address": "FD2E",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD1CTL": {
+              "address": "FD2D",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD1L8SHFT": {
+              "address": "FD2B",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD1MISC": {
+              "address": "FD2F",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD1OUTVAL": {
+              "address": "FD2A",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD1SHFTFB": {
+              "address": "FD29",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD1TBACK": {
+              "address": "FD2C",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD1VOL": {
+              "address": "FD28",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD2COUNT": {
+              "address": "FD36",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD2CTL": {
+              "address": "FD35",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD2L8SHFT": {
+              "address": "FD33",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD2MISC": {
+              "address": "FD37",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD2OUTVAL": {
+              "address": "FD32",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD2SHFTFB": {
+              "address": "FD31",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD2TBACK": {
+              "address": "FD34",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD2VOL": {
+              "address": "FD30",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD3COUNT": {
+              "address": "FD3E",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD3CTL": {
+              "address": "FD3D",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD3L8SHFT": {
+              "address": "FD3B",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD3MISC": {
+              "address": "FD3F",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD3OUTVAL": {
+              "address": "FD3A",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD3SHFTFB": {
+              "address": "FD39",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD3TBACK": {
+              "address": "FD3C",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD3VOL": {
+              "address": "FD38",
+              "int": 0,
+              "value": "00"
+            },
+            "AUDIN": {
+              "address": "FD86",
+              "int": 128,
+              "value": "80"
+            },
+            "BLUERED0": {
+              "address": "FDB0",
+              "int": 0,
+              "value": "00"
+            },
+            "BLUERED1": {
+              "address": "FDB1",
+              "int": 19,
+              "value": "13"
+            },
+            "BLUERED2": {
+              "address": "FDB2",
+              "int": 37,
+              "value": "25"
+            },
+            "BLUERED3": {
+              "address": "FDB3",
+              "int": 70,
+              "value": "46"
+            },
+            "BLUERED4": {
+              "address": "FDB4",
+              "int": 103,
+              "value": "67"
+            },
+            "BLUERED5": {
+              "address": "FDB5",
+              "int": 121,
+              "value": "79"
+            },
+            "BLUERED6": {
+              "address": "FDB6",
+              "int": 44,
+              "value": "2C"
+            },
+            "BLUERED7": {
+              "address": "FDB7",
+              "int": 254,
+              "value": "FE"
+            },
+            "BLUERED8": {
+              "address": "FDB8",
+              "int": 100,
+              "value": "64"
+            },
+            "BLUERED9": {
+              "address": "FDB9",
+              "int": 72,
+              "value": "48"
+            },
+            "BLUEREDA": {
+              "address": "FDBA",
+              "int": 147,
+              "value": "93"
+            },
+            "BLUEREDB": {
+              "address": "FDBB",
+              "int": 66,
+              "value": "42"
+            },
+            "BLUEREDC": {
+              "address": "FDBC",
+              "int": 213,
+              "value": "D5"
+            },
+            "BLUEREDD": {
+              "address": "FDBD",
+              "int": 77,
+              "value": "4D"
+            },
+            "BLUEREDE": {
+              "address": "FDBE",
+              "int": 203,
+              "value": "CB"
+            },
+            "BLUEREDF": {
+              "address": "FDBF",
+              "int": 255,
+              "value": "FF"
+            },
+            "CPUSLEEP": {
+              "address": "FD91",
+              "int": 0,
+              "value": "00"
+            },
+            "DISPADR": {
+              "address": "FD94",
+              "int": 49208,
+              "value": "C038"
+            },
+            "DISPCTL": {
+              "address": "FD92",
+              "int": 13,
+              "value": "0D"
+            },
+            "GREEN0": {
+              "address": "FDA0",
+              "int": 0,
+              "value": "00"
+            },
+            "GREEN1": {
+              "address": "FDA1",
+              "int": 1,
+              "value": "01"
+            },
+            "GREEN2": {
+              "address": "FDA2",
+              "int": 2,
+              "value": "02"
+            },
+            "GREEN3": {
+              "address": "FDA3",
+              "int": 3,
+              "value": "03"
+            },
+            "GREEN4": {
+              "address": "FDA4",
+              "int": 4,
+              "value": "04"
+            },
+            "GREEN5": {
+              "address": "FDA5",
+              "int": 5,
+              "value": "05"
+            },
+            "GREEN6": {
+              "address": "FDA6",
+              "int": 15,
+              "value": "0F"
+            },
+            "GREEN7": {
+              "address": "FDA7",
+              "int": 9,
+              "value": "09"
+            },
+            "GREEN8": {
+              "address": "FDA8",
+              "int": 15,
+              "value": "0F"
+            },
+            "GREEN9": {
+              "address": "FDA9",
+              "int": 3,
+              "value": "03"
+            },
+            "GREENA": {
+              "address": "FDAA",
+              "int": 14,
+              "value": "0E"
+            },
+            "GREENB": {
+              "address": "FDAB",
+              "int": 8,
+              "value": "08"
+            },
+            "GREENC": {
+              "address": "FDAC",
+              "int": 15,
+              "value": "0F"
+            },
+            "GREEND": {
+              "address": "FDAD",
+              "int": 8,
+              "value": "08"
+            },
+            "GREENE": {
+              "address": "FDAE",
+              "int": 3,
+              "value": "03"
+            },
+            "GREENF": {
+              "address": "FDAF",
+              "int": 15,
+              "value": "0F"
+            },
+            "INTRST": {
+              "address": "FD80",
+              "int": 0,
+              "value": "00"
+            },
+            "INTSET": {
+              "address": "FD81",
+              "int": 0,
+              "value": "00"
+            },
+            "IODAT": {
+              "address": "FD8B",
+              "int": 27,
+              "value": "1B"
+            },
+            "IODIR": {
+              "address": "FD8A",
+              "int": 26,
+              "value": "1A"
+            },
+            "MAGRDY0": {
+              "address": "FD84",
+              "int": 0,
+              "value": "00"
+            },
+            "MAGRDY1": {
+              "address": "FD85",
+              "int": 0,
+              "value": "00"
+            },
+            "MIKEYHREV": {
+              "address": "FD88",
+              "int": 2,
+              "value": "02"
+            },
+            "MIKEYSREV": {
+              "address": "FD89",
+              "int": 255,
+              "value": "FF"
+            },
+            "MPAN": {
+              "address": "FD44",
+              "int": 0,
+              "value": "00"
+            },
+            "MSTEREO": {
+              "address": "FD50",
+              "int": 0,
+              "value": "00"
+            },
+            "MTEST0": {
+              "address": "FD9C",
+              "int": 255,
+              "value": "FF"
+            },
+            "MTEST1": {
+              "address": "FD9D",
+              "int": 255,
+              "value": "FF"
+            },
+            "MTEST2": {
+              "address": "FD9E",
+              "int": 255,
+              "value": "FF"
+            },
+            "PBKUP": {
+              "address": "FD93",
+              "int": 32,
+              "value": "20"
+            },
+            "SDONEACK": {
+              "address": "FD90",
+              "int": 0,
+              "value": "00"
+            },
+            "SERCTL": {
+              "address": "FD8C",
+              "int": 4,
+              "value": "04"
+            },
+            "SERDAT": {
+              "address": "FD8D",
+              "int": 0,
+              "value": "00"
+            },
+            "SYSCTL1": {
+              "address": "FD87",
+              "int": 246,
+              "value": "F6"
+            },
+            "TIM0BKUP": {
+              "address": "FD00",
+              "int": 126,
+              "value": "7E"
+            },
+            "TIM0CNT": {
+              "address": "FD02",
+              "int": 65,
+              "value": "41"
+            },
+            "TIM0CTLA": {
+              "address": "FD01",
+              "int": 24,
+              "value": "18"
+            },
+            "TIM0CTLB": {
+              "address": "FD03",
+              "int": 10,
+              "value": "0A"
+            },
+            "TIM1BKUP": {
+              "address": "FD04",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM1CNT": {
+              "address": "FD06",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM1CTLA": {
+              "address": "FD05",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM1CTLB": {
+              "address": "FD07",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM2BKUP": {
+              "address": "FD08",
+              "int": 104,
+              "value": "68"
+            },
+            "TIM2CNT": {
+              "address": "FD0A",
+              "int": 16,
+              "value": "10"
+            },
+            "TIM2CTLA": {
+              "address": "FD09",
+              "int": 159,
+              "value": "9F"
+            },
+            "TIM2CTLB": {
+              "address": "FD0B",
+              "int": 8,
+              "value": "08"
+            },
+            "TIM3BKUP": {
+              "address": "FD0C",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM3CNT": {
+              "address": "FD0E",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM3CTLA": {
+              "address": "FD0D",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM3CTLB": {
+              "address": "FD0F",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM4BKUP": {
+              "address": "FD10",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM4CNT": {
+              "address": "FD12",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM4CTLA": {
+              "address": "FD11",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM4CTLB": {
+              "address": "FD13",
+              "int": 2,
+              "value": "02"
+            },
+            "TIM5BKUP": {
+              "address": "FD14",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM5CNT": {
+              "address": "FD16",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM5CTLA": {
+              "address": "FD15",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM5CTLB": {
+              "address": "FD17",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM6BKUP": {
+              "address": "FD18",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM6CNT": {
+              "address": "FD1A",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM6CTLA": {
+              "address": "FD19",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM6CTLB": {
+              "address": "FD1B",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM7BKUP": {
+              "address": "FD1C",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM7CNT": {
+              "address": "FD1E",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM7CTLA": {
+              "address": "FD1D",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM7CTLB": {
+              "address": "FD1F",
+              "int": 0,
+              "value": "00"
+            }
+          },
+          "readback_available": true,
+          "selected": {
+            "DISPADR": {
+              "address": "FD94",
+              "int": 49208,
+              "value": "C038"
+            },
+            "SCBNEXT": {
+              "address": "FC10",
+              "int": 0,
+              "value": "0000"
+            },
+            "SPRGO": {
+              "address": "FC91",
+              "int": 0,
+              "value": "00"
+            },
+            "SPRSYS": {
+              "address": "FC92",
+              "int": 0,
+              "value": "00"
+            },
+            "VIDBAS": {
+              "address": "FC08",
+              "int": 49208,
+              "value": "C038"
+            }
+          },
+          "suzy_registers": {
+            "COLLADR": {
+              "address": "FC0E",
+              "int": 0,
+              "value": "0000"
+            },
+            "COLLBAS": {
+              "address": "FC0A",
+              "int": 41048,
+              "value": "A058"
+            },
+            "COLLOFF": {
+              "address": "FC24",
+              "int": 65535,
+              "value": "FFFF"
+            },
+            "HOFF": {
+              "address": "FC04",
+              "int": 0,
+              "value": "0000"
+            },
+            "HOWIE": {
+              "address": "FCC4",
+              "int": 255,
+              "value": "FF"
+            },
+            "HPOSSTRT": {
+              "address": "FC14",
+              "int": 52,
+              "value": "0034"
+            },
+            "HSIZOFF": {
+              "address": "FC28",
+              "int": 127,
+              "value": "007F"
+            },
+            "JOYSTICK": {
+              "address": "FCB0",
+              "int": 0,
+              "value": "00"
+            },
+            "LEDS": {
+              "address": "FCC0",
+              "int": 255,
+              "value": "FF"
+            },
+            "MATHA": {
+              "address": "FC55",
+              "int": 0,
+              "value": "00"
+            },
+            "MATHB": {
+              "address": "FC54",
+              "int": 52,
+              "value": "34"
+            },
+            "MATHC": {
+              "address": "FC53",
+              "int": 181,
+              "value": "B5"
+            },
+            "MATHD": {
+              "address": "FC52",
+              "int": 135,
+              "value": "87"
+            },
+            "MATHE": {
+              "address": "FC63",
+              "int": 0,
+              "value": "00"
+            },
+            "MATHF": {
+              "address": "FC62",
+              "int": 95,
+              "value": "5F"
+            },
+            "MATHG": {
+              "address": "FC61",
+              "int": 0,
+              "value": "00"
+            },
+            "MATHH": {
+              "address": "FC60",
+              "int": 0,
+              "value": "00"
+            },
+            "MATHJ": {
+              "address": "FC6F",
+              "int": 181,
+              "value": "B5"
+            },
+            "MATHK": {
+              "address": "FC6E",
+              "int": 135,
+              "value": "87"
+            },
+            "MATHL": {
+              "address": "FC6D",
+              "int": 180,
+              "value": "B4"
+            },
+            "MATHM": {
+              "address": "FC6C",
+              "int": 14,
+              "value": "0E"
+            },
+            "MATHN": {
+              "address": "FC57",
+              "int": 0,
+              "value": "00"
+            },
+            "MATHP": {
+              "address": "FC56",
+              "int": 90,
+              "value": "5A"
+            },
+            "PPORTDATA": {
+              "address": "FCC3",
+              "int": 255,
+              "value": "FF"
+            },
+            "PPORTSTAT": {
+              "address": "FCC2",
+              "int": 255,
+              "value": "FF"
+            },
+            "PROCADR": {
+              "address": "FC2E",
+              "int": 46471,
+              "value": "B587"
+            },
+            "RCART0": {
+              "address": "FCB2",
+              "int": 16,
+              "value": "10"
+            },
+            "RCART1": {
+              "address": "FCB3",
+              "int": 255,
+              "value": "FF"
+            },
+            "SCBADR": {
+              "address": "FC2C",
+              "int": 46094,
+              "value": "B40E"
+            },
+            "SCBNEXT": {
+              "address": "FC10",
+              "int": 0,
+              "value": "0000"
+            },
+            "SPRCOLL": {
+              "address": "FC82",
+              "int": 32,
+              "value": "20"
+            },
+            "SPRCTL0": {
+              "address": "FC80",
+              "int": 5,
+              "value": "05"
+            },
+            "SPRCTL1": {
+              "address": "FC81",
+              "int": 144,
+              "value": "90"
+            },
+            "SPRDLINE": {
+              "address": "FC12",
+              "int": 46471,
+              "value": "B587"
+            },
+            "SPRDOFF": {
+              "address": "FC20",
+              "int": 0,
+              "value": "0000"
+            },
+            "SPRGO": {
+              "address": "FC91",
+              "int": 0,
+              "value": "00"
+            },
+            "SPRHSIZ": {
+              "address": "FC18",
+              "int": 256,
+              "value": "0100"
+            },
+            "SPRINIT": {
+              "address": "FC83",
+              "int": 243,
+              "value": "F3"
+            },
+            "SPRSYS": {
+              "address": "FC92",
+              "int": 0,
+              "value": "00"
+            },
+            "SPRVPOS": {
+              "address": "FC22",
+              "int": 95,
+              "value": "005F"
+            },
+            "SPRVSIZ": {
+              "address": "FC1A",
+              "int": 256,
+              "value": "0100"
+            },
+            "STRETCH": {
+              "address": "FC1C",
+              "int": 0,
+              "value": "0000"
+            },
+            "SUZYBUSEN": {
+              "address": "FC90",
+              "int": 1,
+              "value": "01"
+            },
+            "SUZYHREV": {
+              "address": "FC88",
+              "int": 1,
+              "value": "01"
+            },
+            "SUZYSREV": {
+              "address": "FC89",
+              "int": 255,
+              "value": "FF"
+            },
+            "SWITCHES": {
+              "address": "FCB1",
+              "int": 0,
+              "value": "00"
+            },
+            "TILT": {
+              "address": "FC1E",
+              "int": 0,
+              "value": "0000"
+            },
+            "TILTACUM": {
+              "address": "FC02",
+              "int": 0,
+              "value": "0000"
+            },
+            "TMPADR": {
+              "address": "FC00",
+              "int": 46472,
+              "value": "B588"
+            },
+            "VIDADR": {
+              "address": "FC0C",
+              "int": 0,
+              "value": "0000"
+            },
+            "VIDBAS": {
+              "address": "FC08",
+              "int": 49208,
+              "value": "C038"
+            },
+            "VOFF": {
+              "address": "FC06",
+              "int": 0,
+              "value": "0000"
+            },
+            "VPOSSTRT": {
+              "address": "FC16",
+              "int": 90,
+              "value": "005A"
+            },
+            "VSIZACUM": {
+              "address": "FC26",
+              "int": 127,
+              "value": "007F"
+            },
+            "VSIZOFF": {
+              "address": "FC2A",
+              "int": 127,
+              "value": "007F"
+            }
+          }
+        }
+      },
+      "process_isolated": true,
+      "return": {
+        "cpu": {
+          "A": "00",
+          "IRQ_line_asserted": false,
+          "IRQ_mask": "04",
+          "IRQ_pending": "00",
+          "IRQs": [
+            {
+              "asserted": false,
+              "enabled": false,
+              "index": 0,
+              "masked": false
+            },
+            {
+              "asserted": false,
+              "enabled": false,
+              "index": 1,
+              "masked": false
+            },
+            {
+              "asserted": false,
+              "enabled": true,
+              "index": 2,
+              "masked": true
+            },
+            {
+              "asserted": false,
+              "enabled": false,
+              "index": 3,
+              "masked": false
+            },
+            {
+              "asserted": false,
+              "enabled": false,
+              "index": 4,
+              "masked": false
+            },
+            {
+              "asserted": false,
+              "enabled": false,
+              "index": 5,
+              "masked": false
+            },
+            {
+              "asserted": false,
+              "enabled": false,
+              "index": 6,
+              "masked": false
+            },
+            {
+              "asserted": false,
+              "enabled": false,
+              "index": 7,
+              "masked": false
+            }
+          ],
+          "MAPCTL": "0C",
+          "P": "22",
+          "PC": "73EE",
+          "S": "F9",
+          "SP": "01F9",
+          "X": "E0",
+          "Y": "00",
+          "flag_B": false,
+          "flag_C": false,
+          "flag_D": false,
+          "flag_I": false,
+          "flag_N": false,
+          "flag_V": false,
+          "flag_Z": true,
+          "last_ticks": 30,
+          "mikey_visible": true,
+          "rom_visible": false,
+          "suzy_visible": true,
+          "total_ticks": 22189594,
+          "vectors_visible": false
+        },
+        "expected_pixel_positions": [
+          {
+            "address": "0xE982",
+            "expected_byte": "0x0A",
+            "x": 20,
+            "y": 30
+          },
+          {
+            "address": "0xE98C",
+            "expected_byte": "0x0A",
+            "x": 40,
+            "y": 30
+          }
+        ],
+        "pages": {
+          "0xC038": {
+            "bytes": 8160,
+            "changed_byte_count": 0,
+            "changed_bytes": [],
+            "cpu_address": "0xC038",
+            "expected_target_bytes": [],
+            "raw_file": "phase-2r-o5-run-c1-c038.bin",
+            "raw_sha256": "7d03eb8a4abf137a4c09a20c62a47d3cbcaafacf90681fa42eeed57c3b388c17",
+            "sentinel": "0xAA"
+          },
+          "0xE018": {
+            "bytes": 8160,
+            "changed_byte_count": 2,
+            "changed_bytes": [
+              {
+                "address": "0xE982",
+                "after": "0x0A",
+                "before": "0xAA",
+                "offset": 2410
+              },
+              {
+                "address": "0xE98C",
+                "after": "0x0A",
+                "before": "0xAA",
+                "offset": 2420
+              }
+            ],
+            "cpu_address": "0xE018",
+            "expected_target_bytes": [
+              {
+                "actual": "0x0A",
+                "address": "0xE982",
+                "expected": "0x0A"
+              },
+              {
+                "actual": "0x0A",
+                "address": "0xE98C",
+                "expected": "0x0A"
+              }
+            ],
+            "raw_file": "phase-2r-o5-run-c1-e018.bin",
+            "raw_sha256": "080eabfecc91a6f60096341ff641f5f80e053a788f136cf171f660a9d168b828",
+            "sentinel": "0xAA"
+          }
+        },
+        "physical_page_mapping": {
+          "DISPADR": "0xC038",
+          "VIDBAS": "0xE018",
+          "draw_page_selected_from_return_VIDBAS": true,
+          "hardcoded_draw_page_used": false,
+          "target_page_cpu_address": "0xE018"
+        },
+        "registers": {
+          "mikey_registers": {
+            "ATTEN_A": {
+              "address": "FD40",
+              "int": 0,
+              "value": "00"
+            },
+            "ATTEN_B": {
+              "address": "FD41",
+              "int": 0,
+              "value": "00"
+            },
+            "ATTEN_C": {
+              "address": "FD42",
+              "int": 0,
+              "value": "00"
+            },
+            "ATTEN_D": {
+              "address": "FD43",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD0COUNT": {
+              "address": "FD26",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD0CTL": {
+              "address": "FD25",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD0L8SHFT": {
+              "address": "FD23",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD0MISC": {
+              "address": "FD27",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD0OUTVAL": {
+              "address": "FD22",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD0SHFTFB": {
+              "address": "FD21",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD0TBACK": {
+              "address": "FD24",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD0VOL": {
+              "address": "FD20",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD1COUNT": {
+              "address": "FD2E",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD1CTL": {
+              "address": "FD2D",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD1L8SHFT": {
+              "address": "FD2B",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD1MISC": {
+              "address": "FD2F",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD1OUTVAL": {
+              "address": "FD2A",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD1SHFTFB": {
+              "address": "FD29",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD1TBACK": {
+              "address": "FD2C",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD1VOL": {
+              "address": "FD28",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD2COUNT": {
+              "address": "FD36",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD2CTL": {
+              "address": "FD35",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD2L8SHFT": {
+              "address": "FD33",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD2MISC": {
+              "address": "FD37",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD2OUTVAL": {
+              "address": "FD32",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD2SHFTFB": {
+              "address": "FD31",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD2TBACK": {
+              "address": "FD34",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD2VOL": {
+              "address": "FD30",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD3COUNT": {
+              "address": "FD3E",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD3CTL": {
+              "address": "FD3D",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD3L8SHFT": {
+              "address": "FD3B",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD3MISC": {
+              "address": "FD3F",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD3OUTVAL": {
+              "address": "FD3A",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD3SHFTFB": {
+              "address": "FD39",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD3TBACK": {
+              "address": "FD3C",
+              "int": 0,
+              "value": "00"
+            },
+            "AUD3VOL": {
+              "address": "FD38",
+              "int": 0,
+              "value": "00"
+            },
+            "AUDIN": {
+              "address": "FD86",
+              "int": 128,
+              "value": "80"
+            },
+            "BLUERED0": {
+              "address": "FDB0",
+              "int": 0,
+              "value": "00"
+            },
+            "BLUERED1": {
+              "address": "FDB1",
+              "int": 19,
+              "value": "13"
+            },
+            "BLUERED2": {
+              "address": "FDB2",
+              "int": 37,
+              "value": "25"
+            },
+            "BLUERED3": {
+              "address": "FDB3",
+              "int": 70,
+              "value": "46"
+            },
+            "BLUERED4": {
+              "address": "FDB4",
+              "int": 103,
+              "value": "67"
+            },
+            "BLUERED5": {
+              "address": "FDB5",
+              "int": 121,
+              "value": "79"
+            },
+            "BLUERED6": {
+              "address": "FDB6",
+              "int": 44,
+              "value": "2C"
+            },
+            "BLUERED7": {
+              "address": "FDB7",
+              "int": 254,
+              "value": "FE"
+            },
+            "BLUERED8": {
+              "address": "FDB8",
+              "int": 100,
+              "value": "64"
+            },
+            "BLUERED9": {
+              "address": "FDB9",
+              "int": 72,
+              "value": "48"
+            },
+            "BLUEREDA": {
+              "address": "FDBA",
+              "int": 147,
+              "value": "93"
+            },
+            "BLUEREDB": {
+              "address": "FDBB",
+              "int": 66,
+              "value": "42"
+            },
+            "BLUEREDC": {
+              "address": "FDBC",
+              "int": 213,
+              "value": "D5"
+            },
+            "BLUEREDD": {
+              "address": "FDBD",
+              "int": 77,
+              "value": "4D"
+            },
+            "BLUEREDE": {
+              "address": "FDBE",
+              "int": 203,
+              "value": "CB"
+            },
+            "BLUEREDF": {
+              "address": "FDBF",
+              "int": 255,
+              "value": "FF"
+            },
+            "CPUSLEEP": {
+              "address": "FD91",
+              "int": 0,
+              "value": "00"
+            },
+            "DISPADR": {
+              "address": "FD94",
+              "int": 49208,
+              "value": "C038"
+            },
+            "DISPCTL": {
+              "address": "FD92",
+              "int": 13,
+              "value": "0D"
+            },
+            "GREEN0": {
+              "address": "FDA0",
+              "int": 0,
+              "value": "00"
+            },
+            "GREEN1": {
+              "address": "FDA1",
+              "int": 1,
+              "value": "01"
+            },
+            "GREEN2": {
+              "address": "FDA2",
+              "int": 2,
+              "value": "02"
+            },
+            "GREEN3": {
+              "address": "FDA3",
+              "int": 3,
+              "value": "03"
+            },
+            "GREEN4": {
+              "address": "FDA4",
+              "int": 4,
+              "value": "04"
+            },
+            "GREEN5": {
+              "address": "FDA5",
+              "int": 5,
+              "value": "05"
+            },
+            "GREEN6": {
+              "address": "FDA6",
+              "int": 15,
+              "value": "0F"
+            },
+            "GREEN7": {
+              "address": "FDA7",
+              "int": 9,
+              "value": "09"
+            },
+            "GREEN8": {
+              "address": "FDA8",
+              "int": 15,
+              "value": "0F"
+            },
+            "GREEN9": {
+              "address": "FDA9",
+              "int": 3,
+              "value": "03"
+            },
+            "GREENA": {
+              "address": "FDAA",
+              "int": 14,
+              "value": "0E"
+            },
+            "GREENB": {
+              "address": "FDAB",
+              "int": 8,
+              "value": "08"
+            },
+            "GREENC": {
+              "address": "FDAC",
+              "int": 15,
+              "value": "0F"
+            },
+            "GREEND": {
+              "address": "FDAD",
+              "int": 8,
+              "value": "08"
+            },
+            "GREENE": {
+              "address": "FDAE",
+              "int": 3,
+              "value": "03"
+            },
+            "GREENF": {
+              "address": "FDAF",
+              "int": 15,
+              "value": "0F"
+            },
+            "INTRST": {
+              "address": "FD80",
+              "int": 0,
+              "value": "00"
+            },
+            "INTSET": {
+              "address": "FD81",
+              "int": 0,
+              "value": "00"
+            },
+            "IODAT": {
+              "address": "FD8B",
+              "int": 27,
+              "value": "1B"
+            },
+            "IODIR": {
+              "address": "FD8A",
+              "int": 26,
+              "value": "1A"
+            },
+            "MAGRDY0": {
+              "address": "FD84",
+              "int": 0,
+              "value": "00"
+            },
+            "MAGRDY1": {
+              "address": "FD85",
+              "int": 0,
+              "value": "00"
+            },
+            "MIKEYHREV": {
+              "address": "FD88",
+              "int": 2,
+              "value": "02"
+            },
+            "MIKEYSREV": {
+              "address": "FD89",
+              "int": 255,
+              "value": "FF"
+            },
+            "MPAN": {
+              "address": "FD44",
+              "int": 0,
+              "value": "00"
+            },
+            "MSTEREO": {
+              "address": "FD50",
+              "int": 0,
+              "value": "00"
+            },
+            "MTEST0": {
+              "address": "FD9C",
+              "int": 255,
+              "value": "FF"
+            },
+            "MTEST1": {
+              "address": "FD9D",
+              "int": 255,
+              "value": "FF"
+            },
+            "MTEST2": {
+              "address": "FD9E",
+              "int": 255,
+              "value": "FF"
+            },
+            "PBKUP": {
+              "address": "FD93",
+              "int": 32,
+              "value": "20"
+            },
+            "SDONEACK": {
+              "address": "FD90",
+              "int": 0,
+              "value": "00"
+            },
+            "SERCTL": {
+              "address": "FD8C",
+              "int": 4,
+              "value": "04"
+            },
+            "SERDAT": {
+              "address": "FD8D",
+              "int": 0,
+              "value": "00"
+            },
+            "SYSCTL1": {
+              "address": "FD87",
+              "int": 246,
+              "value": "F6"
+            },
+            "TIM0BKUP": {
+              "address": "FD00",
+              "int": 126,
+              "value": "7E"
+            },
+            "TIM0CNT": {
+              "address": "FD02",
+              "int": 122,
+              "value": "7A"
+            },
+            "TIM0CTLA": {
+              "address": "FD01",
+              "int": 24,
+              "value": "18"
+            },
+            "TIM0CTLB": {
+              "address": "FD03",
+              "int": 10,
+              "value": "0A"
+            },
+            "TIM1BKUP": {
+              "address": "FD04",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM1CNT": {
+              "address": "FD06",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM1CTLA": {
+              "address": "FD05",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM1CTLB": {
+              "address": "FD07",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM2BKUP": {
+              "address": "FD08",
+              "int": 104,
+              "value": "68"
+            },
+            "TIM2CNT": {
+              "address": "FD0A",
+              "int": 15,
+              "value": "0F"
+            },
+            "TIM2CTLA": {
+              "address": "FD09",
+              "int": 159,
+              "value": "9F"
+            },
+            "TIM2CTLB": {
+              "address": "FD0B",
+              "int": 8,
+              "value": "08"
+            },
+            "TIM3BKUP": {
+              "address": "FD0C",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM3CNT": {
+              "address": "FD0E",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM3CTLA": {
+              "address": "FD0D",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM3CTLB": {
+              "address": "FD0F",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM4BKUP": {
+              "address": "FD10",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM4CNT": {
+              "address": "FD12",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM4CTLA": {
+              "address": "FD11",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM4CTLB": {
+              "address": "FD13",
+              "int": 2,
+              "value": "02"
+            },
+            "TIM5BKUP": {
+              "address": "FD14",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM5CNT": {
+              "address": "FD16",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM5CTLA": {
+              "address": "FD15",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM5CTLB": {
+              "address": "FD17",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM6BKUP": {
+              "address": "FD18",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM6CNT": {
+              "address": "FD1A",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM6CTLA": {
+              "address": "FD19",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM6CTLB": {
+              "address": "FD1B",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM7BKUP": {
+              "address": "FD1C",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM7CNT": {
+              "address": "FD1E",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM7CTLA": {
+              "address": "FD1D",
+              "int": 0,
+              "value": "00"
+            },
+            "TIM7CTLB": {
+              "address": "FD1F",
+              "int": 0,
+              "value": "00"
+            }
+          },
+          "readback_available": true,
+          "selected": {
+            "DISPADR": {
+              "address": "FD94",
+              "int": 49208,
+              "value": "C038"
+            },
+            "SCBNEXT": {
+              "address": "FC10",
+              "int": 0,
+              "value": "0000"
+            },
+            "SPRGO": {
+              "address": "FC91",
+              "int": 0,
+              "value": "00"
+            },
+            "SPRSYS": {
+              "address": "FC92",
+              "int": 0,
+              "value": "00"
+            },
+            "VIDBAS": {
+              "address": "FC08",
+              "int": 57368,
+              "value": "E018"
+            }
+          },
+          "suzy_registers": {
+            "COLLADR": {
+              "address": "FC0E",
+              "int": 0,
+              "value": "0000"
+            },
+            "COLLBAS": {
+              "address": "FC0A",
+              "int": 41048,
+              "value": "A058"
+            },
+            "COLLOFF": {
+              "address": "FC24",
+              "int": 65535,
+              "value": "FFFF"
+            },
+            "HOFF": {
+              "address": "FC04",
+              "int": 0,
+              "value": "0000"
+            },
+            "HOWIE": {
+              "address": "FCC4",
+              "int": 255,
+              "value": "FF"
+            },
+            "HPOSSTRT": {
+              "address": "FC14",
+              "int": 40,
+              "value": "0028"
+            },
+            "HSIZOFF": {
+              "address": "FC28",
+              "int": 127,
+              "value": "007F"
+            },
+            "JOYSTICK": {
+              "address": "FCB0",
+              "int": 0,
+              "value": "00"
+            },
+            "LEDS": {
+              "address": "FCC0",
+              "int": 255,
+              "value": "FF"
+            },
+            "MATHA": {
+              "address": "FC55",
+              "int": 0,
+              "value": "00"
+            },
+            "MATHB": {
+              "address": "FC54",
+              "int": 40,
+              "value": "28"
+            },
+            "MATHC": {
+              "address": "FC53",
+              "int": 179,
+              "value": "B3"
+            },
+            "MATHD": {
+              "address": "FC52",
+              "int": 162,
+              "value": "A2"
+            },
+            "MATHE": {
+              "address": "FC63",
+              "int": 0,
+              "value": "00"
+            },
+            "MATHF": {
+              "address": "FC62",
+              "int": 31,
+              "value": "1F"
+            },
+            "MATHG": {
+              "address": "FC61",
+              "int": 0,
+              "value": "00"
+            },
+            "MATHH": {
+              "address": "FC60",
+              "int": 0,
+              "value": "00"
+            },
+            "MATHJ": {
+              "address": "FC6F",
+              "int": 179,
+              "value": "B3"
+            },
+            "MATHK": {
+              "address": "FC6E",
+              "int": 162,
+              "value": "A2"
+            },
+            "MATHL": {
+              "address": "FC6D",
+              "int": 179,
+              "value": "B3"
+            },
+            "MATHM": {
+              "address": "FC6C",
+              "int": 132,
+              "value": "84"
+            },
+            "MATHN": {
+              "address": "FC57",
+              "int": 0,
+              "value": "00"
+            },
+            "MATHP": {
+              "address": "FC56",
+              "int": 30,
+              "value": "1E"
+            },
+            "PPORTDATA": {
+              "address": "FCC3",
+              "int": 255,
+              "value": "FF"
+            },
+            "PPORTSTAT": {
+              "address": "FCC2",
+              "int": 255,
+              "value": "FF"
+            },
+            "PROCADR": {
+              "address": "FC2E",
+              "int": 45986,
+              "value": "B3A2"
+            },
+            "RCART0": {
+              "address": "FCB2",
+              "int": 16,
+              "value": "10"
+            },
+            "RCART1": {
+              "address": "FCB3",
+              "int": 255,
+              "value": "FF"
+            },
+            "SCBADR": {
+              "address": "FC2C",
+              "int": 45956,
+              "value": "B384"
+            },
+            "SCBNEXT": {
+              "address": "FC10",
+              "int": 0,
+              "value": "0000"
+            },
+            "SPRCOLL": {
+              "address": "FC82",
+              "int": 32,
+              "value": "20"
+            },
+            "SPRCTL0": {
+              "address": "FC80",
+              "int": 1,
+              "value": "01"
+            },
+            "SPRCTL1": {
+              "address": "FC81",
+              "int": 16,
+              "value": "10"
+            },
+            "SPRDLINE": {
+              "address": "FC12",
+              "int": 45986,
+              "value": "B3A2"
+            },
+            "SPRDOFF": {
+              "address": "FC20",
+              "int": 0,
+              "value": "0000"
+            },
+            "SPRGO": {
+              "address": "FC91",
+              "int": 0,
+              "value": "00"
+            },
+            "SPRHSIZ": {
+              "address": "FC18",
+              "int": 256,
+              "value": "0100"
+            },
+            "SPRINIT": {
+              "address": "FC83",
+              "int": 243,
+              "value": "F3"
+            },
+            "SPRSYS": {
+              "address": "FC92",
+              "int": 0,
+              "value": "00"
+            },
+            "SPRVPOS": {
+              "address": "FC22",
+              "int": 31,
+              "value": "001F"
+            },
+            "SPRVSIZ": {
+              "address": "FC1A",
+              "int": 256,
+              "value": "0100"
+            },
+            "STRETCH": {
+              "address": "FC1C",
+              "int": 0,
+              "value": "0000"
+            },
+            "SUZYBUSEN": {
+              "address": "FC90",
+              "int": 1,
+              "value": "01"
+            },
+            "SUZYHREV": {
+              "address": "FC88",
+              "int": 1,
+              "value": "01"
+            },
+            "SUZYSREV": {
+              "address": "FC89",
+              "int": 255,
+              "value": "FF"
+            },
+            "SWITCHES": {
+              "address": "FCB1",
+              "int": 0,
+              "value": "00"
+            },
+            "TILT": {
+              "address": "FC1E",
+              "int": 0,
+              "value": "0000"
+            },
+            "TILTACUM": {
+              "address": "FC02",
+              "int": 0,
+              "value": "0000"
+            },
+            "TMPADR": {
+              "address": "FC00",
+              "int": 45987,
+              "value": "B3A3"
+            },
+            "VIDADR": {
+              "address": "FC0C",
+              "int": 0,
+              "value": "0000"
+            },
+            "VIDBAS": {
+              "address": "FC08",
+              "int": 57368,
+              "value": "E018"
+            },
+            "VOFF": {
+              "address": "FC06",
+              "int": 0,
+              "value": "0000"
+            },
+            "VPOSSTRT": {
+              "address": "FC16",
+              "int": 30,
+              "value": "001E"
+            },
+            "VSIZACUM": {
+              "address": "FC26",
+              "int": 127,
+              "value": "007F"
+            },
+            "VSIZOFF": {
+              "address": "FC2A",
+              "int": 127,
+              "value": "007F"
+            }
+          }
+        },
+        "return_register_readback_available": true,
+        "target_page_actual_bytes": [
+          "0x0A",
+          "0x0A"
+        ],
+        "target_page_both_pixels_match": true,
+        "target_page_expected_bytes": [
+          "0x0A",
+          "0x0A"
+        ],
+        "target_page_expected_values_match": true
+      },
+      "rom_sha256": "19bffae3019e1fe64c5578e8c581a3201c93ad0fdafa9ea2735da056f9d94f0c",
+      "run": "C1",
+      "scratch_address": "0xB36D",
+      "sentinel_prefill": {
+        "page_c038_all_sentinel": true,
+        "page_c038_sha256": "7d03eb8a4abf137a4c09a20c62a47d3cbcaafacf90681fa42eeed57c3b388c17",
+        "page_e018_all_sentinel": true,
+        "page_e018_sha256": "7d03eb8a4abf137a4c09a20c62a47d3cbcaafacf90681fa42eeed57c3b388c17",
+        "value": "0xAA"
+      }
+    }
+  ],
+  "status": "done",
+  "symbols": {
+    "_game": "0xB219",
+    "_game_display_sync_complete": "0x02A7",
+    "_game_enemies": "0xB304",
+    "_tgi_ioctl": "0x8C70",
+    "_title_voice_scratch_buffer": "0xB36D"
+  },
+  "version": "0.53.2"
+}

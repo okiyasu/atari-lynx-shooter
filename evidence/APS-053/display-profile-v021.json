@@ -1,0 +1,299 @@
+{
+  "aps": "APS-053",
+  "branch_decisions": {
+    "optimization_gate": "BLOCKED; no timing result accepted",
+    "phase_3r": "BLOCKED",
+    "public_boundary_capture": "FAIL; see failure_diagnostics/error",
+    "repair_or_threshold_change": "NOT STARTED",
+    "safe_fail": true
+  },
+  "diagnostic_only": true,
+  "error": "FileNotFoundError: [Errno 2] No such file or directory: 'build/asteroid-patrol-cadence.lbl'",
+  "failure_diagnostics": {
+    "capture_progress": {
+      "batch": 1,
+      "fixture": "4-enemy NORMAL",
+      "interval": 10,
+      "last_successful_boundary": {
+        "cpu_total_ticks": 241720304,
+        "description": "consume interval 10 end batch 1",
+        "pc": "0x7F5A"
+      }
+    },
+    "mcp_port": 17779,
+    "reproduction_command": "make phase-2r-display-profile-gearlynx"
+  },
+  "method": {
+    "batches_per_fixture": 2,
+    "breakpoint_protocol": "one public breakpoint at a time; set -> hit -> snapshot -> remove; wait after required tgi_ioctl step_out",
+    "combat_readback": {
+      "enemy_bullets": "all 16 slots: active count and active x/y",
+      "enemy_slots": "all 8 slots: active/type/x/y"
+    },
+    "fixture_live_readback": true,
+    "interval_delimiter": "consecutive _game_timing_consume_vblanks entries",
+    "intervals_per_fixture_batch": 10,
+    "no_reinject": true,
+    "public_symbols": [
+      "_game_timing_consume_vblanks",
+      "_game_update_logic",
+      "_game_sound_tick",
+      "_static_layer_draw",
+      "_tgi_ioctl",
+      "_game_display_request"
+    ],
+    "same_frame_boundary_chain": [
+      "consume",
+      "tgi_busy",
+      "static_layer_draw",
+      "tgi_sprite",
+      "game_display_request",
+      "tgi_updatedisplay",
+      "next consume"
+    ]
+  },
+  "mode": "4-enemy NORMAL no-reinject",
+  "release_runtime_modified": false,
+  "rom_after_error": "[Errno 2] No such file or directory: 'build/asteroid-patrol-cadence.lbl'",
+  "rom_before": {
+    "cadence_rom": {
+      "layout": {
+        "bss_end_inclusive": 47359,
+        "bss_size": 1358,
+        "bss_stack_nonoverlap": true,
+        "bss_start": 46002,
+        "bss_to_stack_residual_bytes": 264,
+        "c_stack_start": 47624,
+        "cadence_probe_intervals": {
+          "end_exclusive": 47110,
+          "inside_bss": true,
+          "inside_main": true,
+          "size": 75,
+          "start": 47035
+        },
+        "main_end_exclusive": 47624,
+        "main_size": 47112,
+        "main_start": 512,
+        "probe_symbols_present": true,
+        "segments": {
+          "BSS": {
+            "end": 47359,
+            "size": 1358,
+            "start": 46002
+          },
+          "CODE": {
+            "end": 37803,
+            "size": 37140,
+            "start": 664
+          },
+          "DATA": {
+            "end": 46001,
+            "size": 308,
+            "start": 45694
+          },
+          "RODATA": {
+            "end": 45693,
+            "size": 7890,
+            "start": 37804
+          },
+          "STARTUP": {
+            "end": 620,
+            "size": 109,
+            "start": 512
+          }
+        },
+        "stack_end_exclusive": 49208,
+        "stack_reserved_size": 1584
+      },
+      "path": "dist/asteroid-patrol-cadence.lnx",
+      "sha256": "8d40092eb11e6f43b16a404dc7795644896305f59dd4133bbd0aa812bb646cab",
+      "size_bytes": 60331
+    },
+    "files": {
+      "cadence_map": {
+        "path": "build/asteroid-patrol-cadence.map",
+        "sha256": "3bc8cba2000797c72da9155b5ddb35ab2b39f748f135e798e63c591d9f961136"
+      },
+      "release_map": {
+        "path": "build/asteroid-patrol.map",
+        "sha256": "d8bb6ef95cae7675ef2c117da19e439485fe893dbe6af0173ea7f18004bbde24"
+      }
+    },
+    "map_layout": {
+      "cadence": {
+        "bss_end_inclusive": 47359,
+        "bss_size": 1358,
+        "bss_stack_nonoverlap": true,
+        "bss_start": 46002,
+        "bss_to_stack_residual_bytes": 264,
+        "c_stack_start": 47624,
+        "cadence_probe_intervals": {
+          "end_exclusive": 47110,
+          "inside_bss": true,
+          "inside_main": true,
+          "size": 75,
+          "start": 47035
+        },
+        "main_end_exclusive": 47624,
+        "main_size": 47112,
+        "main_start": 512,
+        "probe_symbols_present": true,
+        "segments": {
+          "BSS": {
+            "end": 47359,
+            "size": 1358,
+            "start": 46002
+          },
+          "CODE": {
+            "end": 37803,
+            "size": 37140,
+            "start": 664
+          },
+          "DATA": {
+            "end": 46001,
+            "size": 308,
+            "start": 45694
+          },
+          "RODATA": {
+            "end": 45693,
+            "size": 7890,
+            "start": 37804
+          },
+          "STARTUP": {
+            "end": 620,
+            "size": 109,
+            "start": 512
+          }
+        },
+        "stack_end_exclusive": 49208,
+        "stack_reserved_size": 1584
+      },
+      "normal": {
+        "bss_end_inclusive": 46837,
+        "bss_size": 1264,
+        "bss_stack_nonoverlap": true,
+        "bss_start": 45574,
+        "bss_to_stack_residual_bytes": 450,
+        "c_stack_start": 47288,
+        "cadence_probe_intervals": null,
+        "main_end_exclusive": 47288,
+        "main_size": 46776,
+        "main_start": 512,
+        "probe_symbols_present": false,
+        "segments": {
+          "BSS": {
+            "end": 46837,
+            "size": 1264,
+            "start": 45574
+          },
+          "CODE": {
+            "end": 37377,
+            "size": 36714,
+            "start": 664
+          },
+          "DATA": {
+            "end": 45573,
+            "size": 308,
+            "start": 45266
+          },
+          "RODATA": {
+            "end": 45265,
+            "size": 7888,
+            "start": 37378
+          },
+          "STARTUP": {
+            "end": 620,
+            "size": 109,
+            "start": 512
+          }
+        },
+        "stack_end_exclusive": 49208,
+        "stack_reserved_size": 1920
+      }
+    },
+    "release_rom": {
+      "layout": {
+        "bss_end_inclusive": 46837,
+        "bss_size": 1264,
+        "bss_stack_nonoverlap": true,
+        "bss_start": 45574,
+        "bss_to_stack_residual_bytes": 450,
+        "c_stack_start": 47288,
+        "cadence_probe_intervals": null,
+        "main_end_exclusive": 47288,
+        "main_size": 46776,
+        "main_start": 512,
+        "probe_symbols_present": false,
+        "segments": {
+          "BSS": {
+            "end": 46837,
+            "size": 1264,
+            "start": 45574
+          },
+          "CODE": {
+            "end": 37377,
+            "size": 36714,
+            "start": 664
+          },
+          "DATA": {
+            "end": 45573,
+            "size": 308,
+            "start": 45266
+          },
+          "RODATA": {
+            "end": 45265,
+            "size": 7888,
+            "start": 37378
+          },
+          "STARTUP": {
+            "end": 620,
+            "size": 109,
+            "start": 512
+          }
+        },
+        "stack_end_exclusive": 49208,
+        "stack_reserved_size": 1920
+      },
+      "path": "dist/asteroid-patrol.lnx",
+      "sha256": "0c200312f9426b0cd8039ca3a374e8e782f9573b30bc19b0fb5d5c8b73dcafeb",
+      "size_bytes": 59903
+    }
+  },
+  "status": "FAIL",
+  "symbol_resolution": {
+    "internal_function_address_inference": false,
+    "public_only": true,
+    "required_all_resolved": true,
+    "resolved": {
+      "_game_display_request": "0x0298",
+      "_game_sound_tick": "0x20AA",
+      "_game_timing_consume_vblanks": "0x7F5A",
+      "_game_update_logic": "0x1D09",
+      "_static_layer_draw": "0x7355",
+      "_tgi_ioctl": "0x8E13"
+    }
+  },
+  "tgi_ioctl_abi": {
+    "classification": {
+      "code_0": "tgi_sprite",
+      "code_4_data_0": "tgi_busy",
+      "code_4_data_1": "tgi_updatedisplay"
+    },
+    "existing_o2_basis": "evidence/APS-053/phase-2r-gate-a-v009.json: entry PC _tgi_ioctl and AX pointer matches SCB head",
+    "prototype": "unsigned __fastcall__ tgi_ioctl(unsigned char code, void* data)",
+    "safe_classification": true,
+    "source_files": {
+      "driver": ".cache/cc65-2.19/source/libsrc/lynx/tgi/lynx-160-102-16.s:277-405",
+      "header": ".cache/cc65-2.19/source/include/tgi.h:271",
+      "runtime_popa": ".cache/cc65-2.19/source/libsrc/runtime/popa.s:12-27",
+      "wrapper": ".cache/cc65-2.19/source/libsrc/tgi/tgi_ioctl.s:17-23"
+    },
+    "wrapper_abi": {
+      "entry_A_X": "data pointer little-endian; tgi_ioctl.s stores A/X into ptr1",
+      "entry_sp_value": "sp is a zero-page pointer; popa reads the code byte at (sp), then advances sp",
+      "sp_label": "0x0027"
+    }
+  },
+  "traceback": "Traceback (most recent call last):\n  File \"/Users/mammycloud-m4/Documents/develop-m4/atari-lynx-shooter/./scripts/verify-display-profile-gearlynx.py\", line 1049, in main\n    batches = [run_display_batch(\n  File \"/Users/mammycloud-m4/Documents/develop-m4/atari-lynx-shooter/./scripts/verify-display-profile-gearlynx.py\", line 1049, in <listcomp>\n    batches = [run_display_batch(\n  File \"/Users/mammycloud-m4/Documents/develop-m4/atari-lynx-shooter/./scripts/verify-display-profile-gearlynx.py\", line 421, in run_display_batch\n    game_address = frame.symbol_address(symbols, \"_game\")\n  File \"/Users/mammycloud-m4/Documents/develop-m4/atari-lynx-shooter/scripts/verify-frame-pacing-gearlynx.py\", line 99, in symbol_address\n    text = symbols_path.read_text(encoding=\"utf-8\")\n  File \"/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/pathlib.py\", line 1256, in read_text\n    with self.open(mode='r', encoding=encoding, errors=errors) as f:\n  File \"/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/pathlib.py\", line 1242, in open\n    return io.open(self, mode, buffering, encoding, errors, newline,\n  File \"/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/pathlib.py\", line 1110, in _opener\n    return self._accessor.open(self, flags, mode)\nFileNotFoundError: [Errno 2] No such file or directory: 'build/asteroid-patrol-cadence.lbl'\n",
+  "version": "v021"
+}

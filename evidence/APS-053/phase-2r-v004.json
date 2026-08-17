@@ -1,0 +1,41 @@
+{
+  "aps": "APS-053",
+  "phase": "2R-0/2R-1",
+  "status": "linked_but_acceptance_incomplete",
+  "version": "0.53.2",
+  "cfg": {
+    "normal_stacksize": "0x0780",
+    "cadence_stacksize": "0x0630",
+    "main_upper_normal": "0xB8B8",
+    "main_upper_cadence": "0xBA08"
+  },
+  "normal": {
+    "segments": {"CODE": 36721, "RODATA": 7888, "DATA": 308, "BSS": 1264},
+    "bss_end": "0xB6FC",
+    "main_spare": 444,
+    "lnx_bytes": 59910,
+    "sha256": "19bffae3019e1fe64c5578e8c581a3201c93ad0fdafa9ea2735da056f9d94f0c"
+  },
+  "cadence": {
+    "segments": {"CODE": 37059, "RODATA": 7890, "DATA": 308, "BSS": 1298},
+    "bss_end": "0xB872",
+    "main_spare": 406,
+    "lnx_bytes": 60250,
+    "sha256": "ad3a39dc3acbe705b3cf1cff2dd70b5f0e250b5fc0875847c0657f8947af7f85"
+  },
+  "requirements": {
+    "normal_hsize_vsize": "0x0100",
+    "clear_hsize_vsize": ["0xA000", "0x6600"],
+    "scb_penpal_initialized": "0..7",
+    "shared_scratch_guard_bytes": 539,
+    "outtextxy_calls": 0
+  },
+  "tests": {
+    "verify": "PASS",
+    "smoke_host": "PASS: 19",
+    "perf_host": "PASS",
+    "title_calibration": "PASS: median 3.0/3.0 VBlank, raw 3/4",
+    "cadence_contract_g": "FAIL: 0/4/8/boss fixtures over budget",
+    "gearlynx_pixel_readback": "not_run"
+  }
+}

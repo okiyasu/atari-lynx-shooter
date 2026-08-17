@@ -3,6 +3,6 @@
 
 /* Single source of truth for the game version shown on the title
  * screen (APS-027). Bump here only. */
-#define GAME_VERSION_STRING "0.52.4"
+#define GAME_VERSION_STRING "0.53.9"
 
 #endif

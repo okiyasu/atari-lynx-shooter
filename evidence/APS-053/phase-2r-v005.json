@@ -1,0 +1,34 @@
+{
+  "aps": "APS-053",
+  "phase": "2R-0/2R-1",
+  "status": "acceptance_completed",
+  "version": "0.53.2",
+  "debug_contract": {
+    "macro": "STATIC_LAYER_DEBUG_ASSERT",
+    "shared_scratch_prefix_bytes": 539,
+    "static_layer_api_scope": [
+      "static_layer_draw",
+      "static_layer_title_text",
+      "static_layer_text",
+      "static_layer_text_flush",
+      "static_layer_credit_suffix"
+    ],
+    "debug_object": "build/static_layer-debug.o",
+    "debug_fail_fast_import": "__afailed",
+    "release_object_has_debug_import": false,
+    "intentional_violation_detection": "debug object contains cc65 assert fail-fast path; release object omits it"
+  },
+  "gearlynx": {
+    "title_voice": "PASS: channel D varied, exact 17408 DAC samples, underrun=0, 38 tick wait, static API non-competition path",
+    "game_over_voice": "PASS: channel D varied, exact 11691 DAC samples, underrun=0, input gate released after voice",
+    "audio_channel_0": "PASS: 2 pitch changes / 8s, gain 11->8 and 13->9",
+    "audio_channel_1": "PASS: 1 pitch change / 8s, gain 28->21",
+    "audio_channel_2": "PASS: 2 pitch changes / 20s, gain 1->1 and 15->11"
+  },
+  "tests": {
+    "debug_contract": "PASS",
+    "title_voice_regression": "PASS",
+    "game_over_voice_regression": "PASS",
+    "audio_channels_0_1_2": "PASS"
+  }
+}

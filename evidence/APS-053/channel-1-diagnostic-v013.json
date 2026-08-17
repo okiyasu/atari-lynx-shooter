@@ -1,0 +1,2760 @@
+{
+  "channel": 1,
+  "diagnostic": "MIKEY audio channel boundary",
+  "events": [
+    {
+      "event": "stable_title",
+      "game": {
+        "armed": 1,
+        "bgm_active": 0,
+        "pending": 0,
+        "phase": 6,
+        "stage": 1
+      },
+      "sound": {
+        "bass_remaining": 135,
+        "bass_step": 0,
+        "bgm_active": 0,
+        "bgm_id": 0,
+        "bgm_remaining": 15,
+        "bgm_step": 0,
+        "output_bgm": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "output_bgm_bass": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "output_sfx": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "pending_stage_clear": 0,
+        "raw": "0000000f008700000000000000000000000000000000",
+        "sfx_id": 0,
+        "sfx_remaining": 0,
+        "sfx_step": 0
+      },
+      "voice": {
+        "active": 0,
+        "remaining": 0,
+        "underrun": 0
+      }
+    },
+    {
+      "event": "stage1_bgm_started",
+      "game": {
+        "armed": 0,
+        "bgm_active": 1,
+        "pending": 0,
+        "phase": 0,
+        "stage": 1
+      },
+      "sound": {
+        "bass_remaining": 127,
+        "bass_step": 0,
+        "bgm_active": 1,
+        "bgm_id": 0,
+        "bgm_remaining": 7,
+        "bgm_step": 0,
+        "output_bgm": [
+          1,
+          1,
+          17,
+          0
+        ],
+        "output_bgm_bass": [
+          1,
+          1,
+          2,
+          0
+        ],
+        "output_sfx": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "pending_stage_clear": 0,
+        "raw": "01000007007f00000000010111000101020000000000",
+        "sfx_id": 0,
+        "sfx_remaining": 0,
+        "sfx_step": 0
+      },
+      "voice": {
+        "active": 0,
+        "remaining": 0,
+        "underrun": 0
+      }
+    },
+    {
+      "event": "before_sfx_injection",
+      "game": {
+        "armed": 0,
+        "bgm_active": 1,
+        "pending": 0,
+        "phase": 1,
+        "stage": 1
+      },
+      "mikey": {
+        "borrow_in": true,
+        "borrow_out": false,
+        "enabled": false,
+        "fields": [
+          "name",
+          "address",
+          "value"
+        ],
+        "frequency": "1 MHz (1us)",
+        "index": 1,
+        "integrate": false,
+        "left_attenuation_enabled": false,
+        "left_enabled": true,
+        "left_volume": 0,
+        "linked": false,
+        "period_value": 0,
+        "registers": [
+          [
+            "volume",
+            "FD28",
+            "00"
+          ],
+          [
+            "feedback",
+            "FD29",
+            "00"
+          ],
+          [
+            "output",
+            "FD2A",
+            "00"
+          ],
+          [
+            "lfsr_low",
+            "FD2B",
+            "00"
+          ],
+          [
+            "backup",
+            "FD2C",
+            "00"
+          ],
+          [
+            "control",
+            "FD2D",
+            "00"
+          ],
+          [
+            "counter",
+            "FD2E",
+            "00"
+          ],
+          [
+            "other",
+            "FD2F",
+            "02"
+          ],
+          [
+            "atten",
+            "FD41",
+            "00"
+          ]
+        ],
+        "reload": false,
+        "reset_done": false,
+        "right_attenuation_enabled": false,
+        "right_enabled": true,
+        "right_volume": 0,
+        "stereo": {
+          "mpan": "00",
+          "mstereo": "00"
+        },
+        "timer_done": false
+      },
+      "sound": {
+        "bass_remaining": 134,
+        "bass_step": 1,
+        "bgm_active": 1,
+        "bgm_id": 0,
+        "bgm_remaining": 14,
+        "bgm_step": 8,
+        "output_bgm": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "output_bgm_bass": [
+          1,
+          1,
+          12,
+          0
+        ],
+        "output_sfx": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "pending_stage_clear": 0,
+        "raw": "0100080e0186000000000000000001010c0000000000",
+        "sfx_id": 0,
+        "sfx_remaining": 0,
+        "sfx_step": 0
+      },
+      "voice": {
+        "active": 0,
+        "remaining": 0,
+        "underrun": 0
+      }
+    },
+    {
+      "event": "after_sfx_injection",
+      "game": {
+        "armed": 0,
+        "bgm_active": 1,
+        "pending": 0,
+        "phase": 1,
+        "stage": 1
+      },
+      "mikey": {
+        "borrow_in": true,
+        "borrow_out": false,
+        "enabled": false,
+        "fields": [
+          "name",
+          "address",
+          "value"
+        ],
+        "frequency": "1 MHz (1us)",
+        "index": 1,
+        "integrate": false,
+        "left_attenuation_enabled": false,
+        "left_enabled": true,
+        "left_volume": 0,
+        "linked": false,
+        "period_value": 0,
+        "registers": [
+          [
+            "volume",
+            "FD28",
+            "00"
+          ],
+          [
+            "feedback",
+            "FD29",
+            "00"
+          ],
+          [
+            "output",
+            "FD2A",
+            "00"
+          ],
+          [
+            "lfsr_low",
+            "FD2B",
+            "00"
+          ],
+          [
+            "backup",
+            "FD2C",
+            "00"
+          ],
+          [
+            "control",
+            "FD2D",
+            "00"
+          ],
+          [
+            "counter",
+            "FD2E",
+            "00"
+          ],
+          [
+            "other",
+            "FD2F",
+            "02"
+          ],
+          [
+            "atten",
+            "FD41",
+            "00"
+          ]
+        ],
+        "reload": false,
+        "reset_done": false,
+        "right_attenuation_enabled": false,
+        "right_enabled": true,
+        "right_volume": 0,
+        "stereo": {
+          "mpan": "00",
+          "mstereo": "00"
+        },
+        "timer_done": false
+      },
+      "sound": {
+        "bass_remaining": 134,
+        "bass_step": 1,
+        "bgm_active": 1,
+        "bgm_id": 0,
+        "bgm_remaining": 14,
+        "bgm_step": 8,
+        "output_bgm": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "output_bgm_bass": [
+          1,
+          1,
+          12,
+          0
+        ],
+        "output_sfx": [
+          1,
+          15,
+          28,
+          3
+        ],
+        "pending_stage_clear": 0,
+        "raw": "0100080e0186010004000000000001010c00010f1c03",
+        "sfx_id": 1,
+        "sfx_remaining": 4,
+        "sfx_step": 0
+      },
+      "voice": {
+        "active": 0,
+        "remaining": 0,
+        "underrun": 0
+      }
+    },
+    {
+      "event": "apply_boundary",
+      "expected_hardware_volume": 21,
+      "game": {
+        "armed": 0,
+        "bgm_active": 1,
+        "pending": 0,
+        "phase": 1,
+        "stage": 1
+      },
+      "logical_memory_readback": "1c",
+      "logical_volume": 28,
+      "mikey": {
+        "borrow_in": true,
+        "borrow_out": false,
+        "enabled": true,
+        "fields": [
+          "name",
+          "address",
+          "value"
+        ],
+        "frequency": "1 MHz (1us)",
+        "index": 1,
+        "integrate": true,
+        "left_attenuation_enabled": false,
+        "left_enabled": true,
+        "left_volume": 0,
+        "linked": false,
+        "period_value": 0,
+        "registers": [
+          [
+            "volume",
+            "FD28",
+            "15"
+          ],
+          [
+            "feedback",
+            "FD29",
+            "08"
+          ],
+          [
+            "output",
+            "FD2A",
+            "D6"
+          ],
+          [
+            "lfsr_low",
+            "FD2B",
+            "3C"
+          ],
+          [
+            "backup",
+            "FD2C",
+            "76"
+          ],
+          [
+            "control",
+            "FD2D",
+            "38"
+          ],
+          [
+            "counter",
+            "FD2E",
+            "0A"
+          ],
+          [
+            "other",
+            "FD2F",
+            "0A"
+          ],
+          [
+            "atten",
+            "FD41",
+            "00"
+          ]
+        ],
+        "reload": true,
+        "reset_done": false,
+        "right_attenuation_enabled": false,
+        "right_enabled": true,
+        "right_volume": 0,
+        "stereo": {
+          "mpan": "00",
+          "mstereo": "00"
+        },
+        "timer_done": true
+      },
+      "registers": {
+        "atten": "00",
+        "backup": "76",
+        "control": "38",
+        "counter": "0A",
+        "feedback": "08",
+        "lfsr_low": "3C",
+        "other": "0A",
+        "output": "D6",
+        "volume": "15"
+      },
+      "sample_index": 1,
+      "sound": {
+        "bass_remaining": 134,
+        "bass_step": 1,
+        "bgm_active": 1,
+        "bgm_id": 0,
+        "bgm_remaining": 14,
+        "bgm_step": 8,
+        "output_bgm": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "output_bgm_bass": [
+          1,
+          1,
+          12,
+          0
+        ],
+        "output_sfx": [
+          1,
+          15,
+          28,
+          3
+        ],
+        "pending_stage_clear": 0,
+        "raw": "0100080e0186010004000000000001010c00010f1c03",
+        "sfx_id": 1,
+        "sfx_remaining": 4,
+        "sfx_step": 0
+      },
+      "voice": {
+        "active": 0,
+        "remaining": 0,
+        "underrun": 0
+      }
+    },
+    {
+      "event": "sfx_rearm",
+      "game": {
+        "armed": 0,
+        "bgm_active": 1,
+        "pending": 0,
+        "phase": 1,
+        "stage": 1
+      },
+      "logical_memory_before_rearm": "13",
+      "mikey_before_rearm": {
+        "borrow_in": true,
+        "borrow_out": false,
+        "enabled": true,
+        "fields": [
+          "name",
+          "address",
+          "value"
+        ],
+        "frequency": "1 MHz (1us)",
+        "index": 1,
+        "integrate": true,
+        "left_attenuation_enabled": false,
+        "left_enabled": true,
+        "left_volume": 0,
+        "linked": false,
+        "period_value": 0,
+        "registers": [
+          [
+            "volume",
+            "FD28",
+            "15"
+          ],
+          [
+            "feedback",
+            "FD29",
+            "08"
+          ],
+          [
+            "output",
+            "FD2A",
+            "D6"
+          ],
+          [
+            "lfsr_low",
+            "FD2B",
+            "3C"
+          ],
+          [
+            "backup",
+            "FD2C",
+            "76"
+          ],
+          [
+            "control",
+            "FD2D",
+            "38"
+          ],
+          [
+            "counter",
+            "FD2E",
+            "0A"
+          ],
+          [
+            "other",
+            "FD2F",
+            "0A"
+          ],
+          [
+            "atten",
+            "FD41",
+            "00"
+          ]
+        ],
+        "reload": true,
+        "reset_done": false,
+        "right_attenuation_enabled": false,
+        "right_enabled": true,
+        "right_volume": 0,
+        "stereo": {
+          "mpan": "00",
+          "mstereo": "00"
+        },
+        "timer_done": true
+      },
+      "sample_index": 1,
+      "sfx_step": 1,
+      "sound_before_rearm": {
+        "bass_remaining": 118,
+        "bass_step": 1,
+        "bgm_active": 1,
+        "bgm_id": 0,
+        "bgm_remaining": 13,
+        "bgm_step": 9,
+        "output_bgm": [
+          1,
+          4,
+          12,
+          0
+        ],
+        "output_bgm_bass": [
+          1,
+          4,
+          8,
+          0
+        ],
+        "output_sfx": [
+          1,
+          15,
+          19,
+          3
+        ],
+        "pending_stage_clear": 0,
+        "raw": "0100090d01760101040001040c0001040800010f1303",
+        "sfx_id": 1,
+        "sfx_remaining": 4,
+        "sfx_step": 1
+      },
+      "voice": {
+        "active": 0,
+        "remaining": 0,
+        "underrun": 0
+      }
+    },
+    {
+      "event": "apply_boundary",
+      "expected_hardware_volume": 16,
+      "game": {
+        "armed": 0,
+        "bgm_active": 1,
+        "pending": 0,
+        "phase": 1,
+        "stage": 1
+      },
+      "logical_memory_readback": "16",
+      "logical_volume": 22,
+      "mikey": {
+        "borrow_in": true,
+        "borrow_out": false,
+        "enabled": true,
+        "fields": [
+          "name",
+          "address",
+          "value"
+        ],
+        "frequency": "1 MHz (1us)",
+        "index": 1,
+        "integrate": true,
+        "left_attenuation_enabled": false,
+        "left_enabled": true,
+        "left_volume": 0,
+        "linked": false,
+        "period_value": 0,
+        "registers": [
+          [
+            "volume",
+            "FD28",
+            "10"
+          ],
+          [
+            "feedback",
+            "FD29",
+            "08"
+          ],
+          [
+            "output",
+            "FD2A",
+            "F0"
+          ],
+          [
+            "lfsr_low",
+            "FD2B",
+            "1E"
+          ],
+          [
+            "backup",
+            "FD2C",
+            "9E"
+          ],
+          [
+            "control",
+            "FD2D",
+            "38"
+          ],
+          [
+            "counter",
+            "FD2E",
+            "21"
+          ],
+          [
+            "other",
+            "FD2F",
+            "0A"
+          ],
+          [
+            "atten",
+            "FD41",
+            "00"
+          ]
+        ],
+        "reload": true,
+        "reset_done": false,
+        "right_attenuation_enabled": false,
+        "right_enabled": true,
+        "right_volume": 0,
+        "stereo": {
+          "mpan": "00",
+          "mstereo": "00"
+        },
+        "timer_done": true
+      },
+      "registers": {
+        "atten": "00",
+        "backup": "9E",
+        "control": "38",
+        "counter": "21",
+        "feedback": "08",
+        "lfsr_low": "1E",
+        "other": "0A",
+        "output": "F0",
+        "volume": "10"
+      },
+      "sample_index": 2,
+      "sound": {
+        "bass_remaining": 118,
+        "bass_step": 1,
+        "bgm_active": 1,
+        "bgm_id": 0,
+        "bgm_remaining": 13,
+        "bgm_step": 9,
+        "output_bgm": [
+          1,
+          4,
+          12,
+          0
+        ],
+        "output_bgm_bass": [
+          1,
+          4,
+          8,
+          0
+        ],
+        "output_sfx": [
+          1,
+          12,
+          22,
+          3
+        ],
+        "pending_stage_clear": 0,
+        "raw": "0100090d01760101040001040c0001040800010c1603",
+        "sfx_id": 1,
+        "sfx_remaining": 4,
+        "sfx_step": 1
+      },
+      "voice": {
+        "active": 0,
+        "remaining": 0,
+        "underrun": 0
+      }
+    },
+    {
+      "event": "sfx_rearm",
+      "game": {
+        "armed": 0,
+        "bgm_active": 1,
+        "pending": 0,
+        "phase": 1,
+        "stage": 1
+      },
+      "logical_memory_before_rearm": "0f",
+      "mikey_before_rearm": {
+        "borrow_in": true,
+        "borrow_out": false,
+        "enabled": true,
+        "fields": [
+          "name",
+          "address",
+          "value"
+        ],
+        "frequency": "1 MHz (1us)",
+        "index": 1,
+        "integrate": true,
+        "left_attenuation_enabled": false,
+        "left_enabled": true,
+        "left_volume": 0,
+        "linked": false,
+        "period_value": 0,
+        "registers": [
+          [
+            "volume",
+            "FD28",
+            "10"
+          ],
+          [
+            "feedback",
+            "FD29",
+            "08"
+          ],
+          [
+            "output",
+            "FD2A",
+            "F0"
+          ],
+          [
+            "lfsr_low",
+            "FD2B",
+            "1E"
+          ],
+          [
+            "backup",
+            "FD2C",
+            "9E"
+          ],
+          [
+            "control",
+            "FD2D",
+            "38"
+          ],
+          [
+            "counter",
+            "FD2E",
+            "21"
+          ],
+          [
+            "other",
+            "FD2F",
+            "0A"
+          ],
+          [
+            "atten",
+            "FD41",
+            "00"
+          ]
+        ],
+        "reload": true,
+        "reset_done": false,
+        "right_attenuation_enabled": false,
+        "right_enabled": true,
+        "right_volume": 0,
+        "stereo": {
+          "mpan": "00",
+          "mstereo": "00"
+        },
+        "timer_done": true
+      },
+      "sample_index": 2,
+      "sfx_step": 0,
+      "sound_before_rearm": {
+        "bass_remaining": 102,
+        "bass_step": 1,
+        "bgm_active": 1,
+        "bgm_id": 0,
+        "bgm_remaining": 12,
+        "bgm_step": 10,
+        "output_bgm": [
+          1,
+          4,
+          11,
+          0
+        ],
+        "output_bgm_bass": [
+          1,
+          4,
+          16,
+          0
+        ],
+        "output_sfx": [
+          1,
+          12,
+          15,
+          3
+        ],
+        "pending_stage_clear": 0,
+        "raw": "01000a0c01660000000001040b0001041000010c0f03",
+        "sfx_id": 0,
+        "sfx_remaining": 0,
+        "sfx_step": 0
+      },
+      "voice": {
+        "active": 0,
+        "remaining": 0,
+        "underrun": 0
+      }
+    },
+    {
+      "event": "apply_boundary",
+      "expected_hardware_volume": 21,
+      "game": {
+        "armed": 0,
+        "bgm_active": 1,
+        "pending": 0,
+        "phase": 1,
+        "stage": 1
+      },
+      "logical_memory_readback": "1c",
+      "logical_volume": 28,
+      "mikey": {
+        "borrow_in": true,
+        "borrow_out": false,
+        "enabled": true,
+        "fields": [
+          "name",
+          "address",
+          "value"
+        ],
+        "frequency": "1 MHz (1us)",
+        "index": 1,
+        "integrate": true,
+        "left_attenuation_enabled": false,
+        "left_enabled": true,
+        "left_volume": 0,
+        "linked": false,
+        "period_value": 0,
+        "registers": [
+          [
+            "volume",
+            "FD28",
+            "15"
+          ],
+          [
+            "feedback",
+            "FD29",
+            "08"
+          ],
+          [
+            "output",
+            "FD2A",
+            "D6"
+          ],
+          [
+            "lfsr_low",
+            "FD2B",
+            "3C"
+          ],
+          [
+            "backup",
+            "FD2C",
+            "76"
+          ],
+          [
+            "control",
+            "FD2D",
+            "38"
+          ],
+          [
+            "counter",
+            "FD2E",
+            "29"
+          ],
+          [
+            "other",
+            "FD2F",
+            "0A"
+          ],
+          [
+            "atten",
+            "FD41",
+            "00"
+          ]
+        ],
+        "reload": true,
+        "reset_done": false,
+        "right_attenuation_enabled": false,
+        "right_enabled": true,
+        "right_volume": 0,
+        "stereo": {
+          "mpan": "00",
+          "mstereo": "00"
+        },
+        "timer_done": true
+      },
+      "registers": {
+        "atten": "00",
+        "backup": "76",
+        "control": "38",
+        "counter": "29",
+        "feedback": "08",
+        "lfsr_low": "3C",
+        "other": "0A",
+        "output": "D6",
+        "volume": "15"
+      },
+      "sample_index": 3,
+      "sound": {
+        "bass_remaining": 102,
+        "bass_step": 1,
+        "bgm_active": 1,
+        "bgm_id": 0,
+        "bgm_remaining": 12,
+        "bgm_step": 10,
+        "output_bgm": [
+          1,
+          4,
+          11,
+          0
+        ],
+        "output_bgm_bass": [
+          1,
+          4,
+          16,
+          0
+        ],
+        "output_sfx": [
+          1,
+          15,
+          28,
+          3
+        ],
+        "pending_stage_clear": 0,
+        "raw": "01000a0c01660100040001040b0001041000010f1c03",
+        "sfx_id": 1,
+        "sfx_remaining": 4,
+        "sfx_step": 0
+      },
+      "voice": {
+        "active": 0,
+        "remaining": 0,
+        "underrun": 0
+      }
+    },
+    {
+      "event": "sfx_rearm",
+      "game": {
+        "armed": 0,
+        "bgm_active": 1,
+        "pending": 0,
+        "phase": 1,
+        "stage": 1
+      },
+      "logical_memory_before_rearm": "13",
+      "mikey_before_rearm": {
+        "borrow_in": true,
+        "borrow_out": false,
+        "enabled": true,
+        "fields": [
+          "name",
+          "address",
+          "value"
+        ],
+        "frequency": "1 MHz (1us)",
+        "index": 1,
+        "integrate": true,
+        "left_attenuation_enabled": false,
+        "left_enabled": true,
+        "left_volume": 0,
+        "linked": false,
+        "period_value": 0,
+        "registers": [
+          [
+            "volume",
+            "FD28",
+            "15"
+          ],
+          [
+            "feedback",
+            "FD29",
+            "08"
+          ],
+          [
+            "output",
+            "FD2A",
+            "D6"
+          ],
+          [
+            "lfsr_low",
+            "FD2B",
+            "3C"
+          ],
+          [
+            "backup",
+            "FD2C",
+            "76"
+          ],
+          [
+            "control",
+            "FD2D",
+            "38"
+          ],
+          [
+            "counter",
+            "FD2E",
+            "29"
+          ],
+          [
+            "other",
+            "FD2F",
+            "0A"
+          ],
+          [
+            "atten",
+            "FD41",
+            "00"
+          ]
+        ],
+        "reload": true,
+        "reset_done": false,
+        "right_attenuation_enabled": false,
+        "right_enabled": true,
+        "right_volume": 0,
+        "stereo": {
+          "mpan": "00",
+          "mstereo": "00"
+        },
+        "timer_done": true
+      },
+      "sample_index": 3,
+      "sfx_step": 1,
+      "sound_before_rearm": {
+        "bass_remaining": 86,
+        "bass_step": 1,
+        "bgm_active": 1,
+        "bgm_id": 0,
+        "bgm_remaining": 11,
+        "bgm_step": 11,
+        "output_bgm": [
+          1,
+          3,
+          5,
+          0
+        ],
+        "output_bgm_bass": [
+          1,
+          4,
+          16,
+          0
+        ],
+        "output_sfx": [
+          1,
+          15,
+          19,
+          3
+        ],
+        "pending_stage_clear": 0,
+        "raw": "01000b0b0156010104000103050001041000010f1303",
+        "sfx_id": 1,
+        "sfx_remaining": 4,
+        "sfx_step": 1
+      },
+      "voice": {
+        "active": 0,
+        "remaining": 0,
+        "underrun": 0
+      }
+    },
+    {
+      "event": "apply_boundary",
+      "expected_hardware_volume": 16,
+      "game": {
+        "armed": 0,
+        "bgm_active": 1,
+        "pending": 0,
+        "phase": 1,
+        "stage": 1
+      },
+      "logical_memory_readback": "16",
+      "logical_volume": 22,
+      "mikey": {
+        "borrow_in": true,
+        "borrow_out": false,
+        "enabled": true,
+        "fields": [
+          "name",
+          "address",
+          "value"
+        ],
+        "frequency": "1 MHz (1us)",
+        "index": 1,
+        "integrate": true,
+        "left_attenuation_enabled": false,
+        "left_enabled": true,
+        "left_volume": 0,
+        "linked": false,
+        "period_value": 0,
+        "registers": [
+          [
+            "volume",
+            "FD28",
+            "10"
+          ],
+          [
+            "feedback",
+            "FD29",
+            "08"
+          ],
+          [
+            "output",
+            "FD2A",
+            "F0"
+          ],
+          [
+            "lfsr_low",
+            "FD2B",
+            "1E"
+          ],
+          [
+            "backup",
+            "FD2C",
+            "9E"
+          ],
+          [
+            "control",
+            "FD2D",
+            "38"
+          ],
+          [
+            "counter",
+            "FD2E",
+            "1C"
+          ],
+          [
+            "other",
+            "FD2F",
+            "0A"
+          ],
+          [
+            "atten",
+            "FD41",
+            "00"
+          ]
+        ],
+        "reload": true,
+        "reset_done": false,
+        "right_attenuation_enabled": false,
+        "right_enabled": true,
+        "right_volume": 0,
+        "stereo": {
+          "mpan": "00",
+          "mstereo": "00"
+        },
+        "timer_done": true
+      },
+      "registers": {
+        "atten": "00",
+        "backup": "9E",
+        "control": "38",
+        "counter": "1C",
+        "feedback": "08",
+        "lfsr_low": "1E",
+        "other": "0A",
+        "output": "F0",
+        "volume": "10"
+      },
+      "sample_index": 4,
+      "sound": {
+        "bass_remaining": 86,
+        "bass_step": 1,
+        "bgm_active": 1,
+        "bgm_id": 0,
+        "bgm_remaining": 11,
+        "bgm_step": 11,
+        "output_bgm": [
+          1,
+          3,
+          5,
+          0
+        ],
+        "output_bgm_bass": [
+          1,
+          4,
+          16,
+          0
+        ],
+        "output_sfx": [
+          1,
+          12,
+          22,
+          3
+        ],
+        "pending_stage_clear": 0,
+        "raw": "01000b0b0156010104000103050001041000010c1603",
+        "sfx_id": 1,
+        "sfx_remaining": 4,
+        "sfx_step": 1
+      },
+      "voice": {
+        "active": 0,
+        "remaining": 0,
+        "underrun": 0
+      }
+    },
+    {
+      "event": "sfx_rearm",
+      "game": {
+        "armed": 0,
+        "bgm_active": 1,
+        "pending": 0,
+        "phase": 1,
+        "stage": 1
+      },
+      "logical_memory_before_rearm": "0f",
+      "mikey_before_rearm": {
+        "borrow_in": true,
+        "borrow_out": false,
+        "enabled": true,
+        "fields": [
+          "name",
+          "address",
+          "value"
+        ],
+        "frequency": "1 MHz (1us)",
+        "index": 1,
+        "integrate": true,
+        "left_attenuation_enabled": false,
+        "left_enabled": true,
+        "left_volume": 0,
+        "linked": false,
+        "period_value": 0,
+        "registers": [
+          [
+            "volume",
+            "FD28",
+            "10"
+          ],
+          [
+            "feedback",
+            "FD29",
+            "08"
+          ],
+          [
+            "output",
+            "FD2A",
+            "F0"
+          ],
+          [
+            "lfsr_low",
+            "FD2B",
+            "1E"
+          ],
+          [
+            "backup",
+            "FD2C",
+            "9E"
+          ],
+          [
+            "control",
+            "FD2D",
+            "38"
+          ],
+          [
+            "counter",
+            "FD2E",
+            "1C"
+          ],
+          [
+            "other",
+            "FD2F",
+            "0A"
+          ],
+          [
+            "atten",
+            "FD41",
+            "00"
+          ]
+        ],
+        "reload": true,
+        "reset_done": false,
+        "right_attenuation_enabled": false,
+        "right_enabled": true,
+        "right_volume": 0,
+        "stereo": {
+          "mpan": "00",
+          "mstereo": "00"
+        },
+        "timer_done": true
+      },
+      "sample_index": 4,
+      "sfx_step": 0,
+      "sound_before_rearm": {
+        "bass_remaining": 70,
+        "bass_step": 1,
+        "bgm_active": 1,
+        "bgm_id": 0,
+        "bgm_remaining": 10,
+        "bgm_step": 12,
+        "output_bgm": [
+          1,
+          2,
+          11,
+          0
+        ],
+        "output_bgm_bass": [
+          1,
+          4,
+          15,
+          0
+        ],
+        "output_sfx": [
+          1,
+          12,
+          15,
+          3
+        ],
+        "pending_stage_clear": 0,
+        "raw": "01000c0a01460000000001020b0001040f00010c0f03",
+        "sfx_id": 0,
+        "sfx_remaining": 0,
+        "sfx_step": 0
+      },
+      "voice": {
+        "active": 0,
+        "remaining": 0,
+        "underrun": 0
+      }
+    },
+    {
+      "event": "apply_boundary",
+      "expected_hardware_volume": 21,
+      "game": {
+        "armed": 0,
+        "bgm_active": 1,
+        "pending": 0,
+        "phase": 1,
+        "stage": 1
+      },
+      "logical_memory_readback": "1c",
+      "logical_volume": 28,
+      "mikey": {
+        "borrow_in": true,
+        "borrow_out": false,
+        "enabled": true,
+        "fields": [
+          "name",
+          "address",
+          "value"
+        ],
+        "frequency": "1 MHz (1us)",
+        "index": 1,
+        "integrate": true,
+        "left_attenuation_enabled": false,
+        "left_enabled": true,
+        "left_volume": 0,
+        "linked": false,
+        "period_value": 0,
+        "registers": [
+          [
+            "volume",
+            "FD28",
+            "15"
+          ],
+          [
+            "feedback",
+            "FD29",
+            "08"
+          ],
+          [
+            "output",
+            "FD2A",
+            "D6"
+          ],
+          [
+            "lfsr_low",
+            "FD2B",
+            "3C"
+          ],
+          [
+            "backup",
+            "FD2C",
+            "76"
+          ],
+          [
+            "control",
+            "FD2D",
+            "38"
+          ],
+          [
+            "counter",
+            "FD2E",
+            "2F"
+          ],
+          [
+            "other",
+            "FD2F",
+            "0A"
+          ],
+          [
+            "atten",
+            "FD41",
+            "00"
+          ]
+        ],
+        "reload": true,
+        "reset_done": false,
+        "right_attenuation_enabled": false,
+        "right_enabled": true,
+        "right_volume": 0,
+        "stereo": {
+          "mpan": "00",
+          "mstereo": "00"
+        },
+        "timer_done": true
+      },
+      "registers": {
+        "atten": "00",
+        "backup": "76",
+        "control": "38",
+        "counter": "2F",
+        "feedback": "08",
+        "lfsr_low": "3C",
+        "other": "0A",
+        "output": "D6",
+        "volume": "15"
+      },
+      "sample_index": 5,
+      "sound": {
+        "bass_remaining": 70,
+        "bass_step": 1,
+        "bgm_active": 1,
+        "bgm_id": 0,
+        "bgm_remaining": 10,
+        "bgm_step": 12,
+        "output_bgm": [
+          1,
+          2,
+          11,
+          0
+        ],
+        "output_bgm_bass": [
+          1,
+          4,
+          15,
+          0
+        ],
+        "output_sfx": [
+          1,
+          15,
+          28,
+          3
+        ],
+        "pending_stage_clear": 0,
+        "raw": "01000c0a01460100040001020b0001040f00010f1c03",
+        "sfx_id": 1,
+        "sfx_remaining": 4,
+        "sfx_step": 0
+      },
+      "voice": {
+        "active": 0,
+        "remaining": 0,
+        "underrun": 0
+      }
+    },
+    {
+      "event": "sfx_rearm",
+      "game": {
+        "armed": 0,
+        "bgm_active": 1,
+        "pending": 0,
+        "phase": 1,
+        "stage": 1
+      },
+      "logical_memory_before_rearm": "13",
+      "mikey_before_rearm": {
+        "borrow_in": true,
+        "borrow_out": false,
+        "enabled": true,
+        "fields": [
+          "name",
+          "address",
+          "value"
+        ],
+        "frequency": "1 MHz (1us)",
+        "index": 1,
+        "integrate": true,
+        "left_attenuation_enabled": false,
+        "left_enabled": true,
+        "left_volume": 0,
+        "linked": false,
+        "period_value": 0,
+        "registers": [
+          [
+            "volume",
+            "FD28",
+            "15"
+          ],
+          [
+            "feedback",
+            "FD29",
+            "08"
+          ],
+          [
+            "output",
+            "FD2A",
+            "D6"
+          ],
+          [
+            "lfsr_low",
+            "FD2B",
+            "3C"
+          ],
+          [
+            "backup",
+            "FD2C",
+            "76"
+          ],
+          [
+            "control",
+            "FD2D",
+            "38"
+          ],
+          [
+            "counter",
+            "FD2E",
+            "2F"
+          ],
+          [
+            "other",
+            "FD2F",
+            "0A"
+          ],
+          [
+            "atten",
+            "FD41",
+            "00"
+          ]
+        ],
+        "reload": true,
+        "reset_done": false,
+        "right_attenuation_enabled": false,
+        "right_enabled": true,
+        "right_volume": 0,
+        "stereo": {
+          "mpan": "00",
+          "mstereo": "00"
+        },
+        "timer_done": true
+      },
+      "sample_index": 5,
+      "sfx_step": 1,
+      "sound_before_rearm": {
+        "bass_remaining": 54,
+        "bass_step": 1,
+        "bgm_active": 1,
+        "bgm_id": 0,
+        "bgm_remaining": 9,
+        "bgm_step": 13,
+        "output_bgm": [
+          1,
+          2,
+          17,
+          0
+        ],
+        "output_bgm_bass": [
+          1,
+          4,
+          14,
+          0
+        ],
+        "output_sfx": [
+          1,
+          15,
+          19,
+          3
+        ],
+        "pending_stage_clear": 0,
+        "raw": "01000d090136010104000102110001040e00010f1303",
+        "sfx_id": 1,
+        "sfx_remaining": 4,
+        "sfx_step": 1
+      },
+      "voice": {
+        "active": 0,
+        "remaining": 0,
+        "underrun": 0
+      }
+    },
+    {
+      "event": "apply_boundary",
+      "expected_hardware_volume": 16,
+      "game": {
+        "armed": 0,
+        "bgm_active": 1,
+        "pending": 0,
+        "phase": 1,
+        "stage": 1
+      },
+      "logical_memory_readback": "16",
+      "logical_volume": 22,
+      "mikey": {
+        "borrow_in": true,
+        "borrow_out": false,
+        "enabled": true,
+        "fields": [
+          "name",
+          "address",
+          "value"
+        ],
+        "frequency": "1 MHz (1us)",
+        "index": 1,
+        "integrate": true,
+        "left_attenuation_enabled": false,
+        "left_enabled": true,
+        "left_volume": 0,
+        "linked": false,
+        "period_value": 0,
+        "registers": [
+          [
+            "volume",
+            "FD28",
+            "10"
+          ],
+          [
+            "feedback",
+            "FD29",
+            "08"
+          ],
+          [
+            "output",
+            "FD2A",
+            "E0"
+          ],
+          [
+            "lfsr_low",
+            "FD2B",
+            "3C"
+          ],
+          [
+            "backup",
+            "FD2C",
+            "9E"
+          ],
+          [
+            "control",
+            "FD2D",
+            "38"
+          ],
+          [
+            "counter",
+            "FD2E",
+            "99"
+          ],
+          [
+            "other",
+            "FD2F",
+            "0A"
+          ],
+          [
+            "atten",
+            "FD41",
+            "00"
+          ]
+        ],
+        "reload": true,
+        "reset_done": false,
+        "right_attenuation_enabled": false,
+        "right_enabled": true,
+        "right_volume": 0,
+        "stereo": {
+          "mpan": "00",
+          "mstereo": "00"
+        },
+        "timer_done": true
+      },
+      "registers": {
+        "atten": "00",
+        "backup": "9E",
+        "control": "38",
+        "counter": "99",
+        "feedback": "08",
+        "lfsr_low": "3C",
+        "other": "0A",
+        "output": "E0",
+        "volume": "10"
+      },
+      "sample_index": 6,
+      "sound": {
+        "bass_remaining": 54,
+        "bass_step": 1,
+        "bgm_active": 1,
+        "bgm_id": 0,
+        "bgm_remaining": 9,
+        "bgm_step": 13,
+        "output_bgm": [
+          1,
+          2,
+          17,
+          0
+        ],
+        "output_bgm_bass": [
+          1,
+          4,
+          14,
+          0
+        ],
+        "output_sfx": [
+          1,
+          12,
+          22,
+          3
+        ],
+        "pending_stage_clear": 0,
+        "raw": "01000d090136010104000102110001040e00010c1603",
+        "sfx_id": 1,
+        "sfx_remaining": 4,
+        "sfx_step": 1
+      },
+      "voice": {
+        "active": 0,
+        "remaining": 0,
+        "underrun": 0
+      }
+    },
+    {
+      "event": "sfx_rearm",
+      "game": {
+        "armed": 0,
+        "bgm_active": 1,
+        "pending": 0,
+        "phase": 1,
+        "stage": 1
+      },
+      "logical_memory_before_rearm": "0f",
+      "mikey_before_rearm": {
+        "borrow_in": true,
+        "borrow_out": false,
+        "enabled": true,
+        "fields": [
+          "name",
+          "address",
+          "value"
+        ],
+        "frequency": "1 MHz (1us)",
+        "index": 1,
+        "integrate": true,
+        "left_attenuation_enabled": false,
+        "left_enabled": true,
+        "left_volume": 0,
+        "linked": false,
+        "period_value": 0,
+        "registers": [
+          [
+            "volume",
+            "FD28",
+            "10"
+          ],
+          [
+            "feedback",
+            "FD29",
+            "08"
+          ],
+          [
+            "output",
+            "FD2A",
+            "E0"
+          ],
+          [
+            "lfsr_low",
+            "FD2B",
+            "3C"
+          ],
+          [
+            "backup",
+            "FD2C",
+            "9E"
+          ],
+          [
+            "control",
+            "FD2D",
+            "38"
+          ],
+          [
+            "counter",
+            "FD2E",
+            "99"
+          ],
+          [
+            "other",
+            "FD2F",
+            "0A"
+          ],
+          [
+            "atten",
+            "FD41",
+            "00"
+          ]
+        ],
+        "reload": true,
+        "reset_done": false,
+        "right_attenuation_enabled": false,
+        "right_enabled": true,
+        "right_volume": 0,
+        "stereo": {
+          "mpan": "00",
+          "mstereo": "00"
+        },
+        "timer_done": true
+      },
+      "sample_index": 6,
+      "sfx_step": 0,
+      "sound_before_rearm": {
+        "bass_remaining": 38,
+        "bass_step": 1,
+        "bgm_active": 1,
+        "bgm_id": 0,
+        "bgm_remaining": 23,
+        "bgm_step": 14,
+        "output_bgm": [
+          1,
+          1,
+          11,
+          0
+        ],
+        "output_bgm_bass": [
+          1,
+          4,
+          13,
+          0
+        ],
+        "output_sfx": [
+          1,
+          12,
+          15,
+          3
+        ],
+        "pending_stage_clear": 0,
+        "raw": "01000e1701260000000001010b0001040d00010c0f03",
+        "sfx_id": 0,
+        "sfx_remaining": 0,
+        "sfx_step": 0
+      },
+      "voice": {
+        "active": 0,
+        "remaining": 0,
+        "underrun": 0
+      }
+    },
+    {
+      "event": "apply_boundary",
+      "expected_hardware_volume": 21,
+      "game": {
+        "armed": 0,
+        "bgm_active": 1,
+        "pending": 0,
+        "phase": 1,
+        "stage": 1
+      },
+      "logical_memory_readback": "1c",
+      "logical_volume": 28,
+      "mikey": {
+        "borrow_in": true,
+        "borrow_out": false,
+        "enabled": true,
+        "fields": [
+          "name",
+          "address",
+          "value"
+        ],
+        "frequency": "1 MHz (1us)",
+        "index": 1,
+        "integrate": true,
+        "left_attenuation_enabled": false,
+        "left_enabled": true,
+        "left_volume": 0,
+        "linked": false,
+        "period_value": 0,
+        "registers": [
+          [
+            "volume",
+            "FD28",
+            "15"
+          ],
+          [
+            "feedback",
+            "FD29",
+            "08"
+          ],
+          [
+            "output",
+            "FD2A",
+            "EB"
+          ],
+          [
+            "lfsr_low",
+            "FD2B",
+            "1E"
+          ],
+          [
+            "backup",
+            "FD2C",
+            "76"
+          ],
+          [
+            "control",
+            "FD2D",
+            "38"
+          ],
+          [
+            "counter",
+            "FD2E",
+            "0B"
+          ],
+          [
+            "other",
+            "FD2F",
+            "0A"
+          ],
+          [
+            "atten",
+            "FD41",
+            "00"
+          ]
+        ],
+        "reload": true,
+        "reset_done": false,
+        "right_attenuation_enabled": false,
+        "right_enabled": true,
+        "right_volume": 0,
+        "stereo": {
+          "mpan": "00",
+          "mstereo": "00"
+        },
+        "timer_done": true
+      },
+      "registers": {
+        "atten": "00",
+        "backup": "76",
+        "control": "38",
+        "counter": "0B",
+        "feedback": "08",
+        "lfsr_low": "1E",
+        "other": "0A",
+        "output": "EB",
+        "volume": "15"
+      },
+      "sample_index": 7,
+      "sound": {
+        "bass_remaining": 38,
+        "bass_step": 1,
+        "bgm_active": 1,
+        "bgm_id": 0,
+        "bgm_remaining": 23,
+        "bgm_step": 14,
+        "output_bgm": [
+          1,
+          1,
+          11,
+          0
+        ],
+        "output_bgm_bass": [
+          1,
+          4,
+          13,
+          0
+        ],
+        "output_sfx": [
+          1,
+          15,
+          28,
+          3
+        ],
+        "pending_stage_clear": 0,
+        "raw": "01000e1701260100040001010b0001040d00010f1c03",
+        "sfx_id": 1,
+        "sfx_remaining": 4,
+        "sfx_step": 0
+      },
+      "voice": {
+        "active": 0,
+        "remaining": 0,
+        "underrun": 0
+      }
+    },
+    {
+      "event": "sfx_rearm",
+      "game": {
+        "armed": 0,
+        "bgm_active": 1,
+        "pending": 0,
+        "phase": 1,
+        "stage": 1
+      },
+      "logical_memory_before_rearm": "13",
+      "mikey_before_rearm": {
+        "borrow_in": true,
+        "borrow_out": false,
+        "enabled": true,
+        "fields": [
+          "name",
+          "address",
+          "value"
+        ],
+        "frequency": "1 MHz (1us)",
+        "index": 1,
+        "integrate": true,
+        "left_attenuation_enabled": false,
+        "left_enabled": true,
+        "left_volume": 0,
+        "linked": false,
+        "period_value": 0,
+        "registers": [
+          [
+            "volume",
+            "FD28",
+            "15"
+          ],
+          [
+            "feedback",
+            "FD29",
+            "08"
+          ],
+          [
+            "output",
+            "FD2A",
+            "EB"
+          ],
+          [
+            "lfsr_low",
+            "FD2B",
+            "1E"
+          ],
+          [
+            "backup",
+            "FD2C",
+            "76"
+          ],
+          [
+            "control",
+            "FD2D",
+            "38"
+          ],
+          [
+            "counter",
+            "FD2E",
+            "0B"
+          ],
+          [
+            "other",
+            "FD2F",
+            "0A"
+          ],
+          [
+            "atten",
+            "FD41",
+            "00"
+          ]
+        ],
+        "reload": true,
+        "reset_done": false,
+        "right_attenuation_enabled": false,
+        "right_enabled": true,
+        "right_volume": 0,
+        "stereo": {
+          "mpan": "00",
+          "mstereo": "00"
+        },
+        "timer_done": true
+      },
+      "sample_index": 7,
+      "sfx_step": 1,
+      "sound_before_rearm": {
+        "bass_remaining": 22,
+        "bass_step": 1,
+        "bgm_active": 1,
+        "bgm_id": 0,
+        "bgm_remaining": 7,
+        "bgm_step": 14,
+        "output_bgm": [
+          1,
+          1,
+          14,
+          0
+        ],
+        "output_bgm_bass": [
+          1,
+          4,
+          13,
+          0
+        ],
+        "output_sfx": [
+          1,
+          15,
+          19,
+          3
+        ],
+        "pending_stage_clear": 0,
+        "raw": "01000e0701160101040001010e0001040d00010f1303",
+        "sfx_id": 1,
+        "sfx_remaining": 4,
+        "sfx_step": 1
+      },
+      "voice": {
+        "active": 0,
+        "remaining": 0,
+        "underrun": 0
+      }
+    },
+    {
+      "event": "apply_boundary",
+      "expected_hardware_volume": 16,
+      "game": {
+        "armed": 0,
+        "bgm_active": 1,
+        "pending": 0,
+        "phase": 1,
+        "stage": 1
+      },
+      "logical_memory_readback": "16",
+      "logical_volume": 22,
+      "mikey": {
+        "borrow_in": true,
+        "borrow_out": false,
+        "enabled": true,
+        "fields": [
+          "name",
+          "address",
+          "value"
+        ],
+        "frequency": "1 MHz (1us)",
+        "index": 1,
+        "integrate": true,
+        "left_attenuation_enabled": false,
+        "left_enabled": true,
+        "left_volume": 0,
+        "linked": false,
+        "period_value": 0,
+        "registers": [
+          [
+            "volume",
+            "FD28",
+            "10"
+          ],
+          [
+            "feedback",
+            "FD29",
+            "08"
+          ],
+          [
+            "output",
+            "FD2A",
+            "E0"
+          ],
+          [
+            "lfsr_low",
+            "FD2B",
+            "3C"
+          ],
+          [
+            "backup",
+            "FD2C",
+            "9E"
+          ],
+          [
+            "control",
+            "FD2D",
+            "38"
+          ],
+          [
+            "counter",
+            "FD2E",
+            "99"
+          ],
+          [
+            "other",
+            "FD2F",
+            "0A"
+          ],
+          [
+            "atten",
+            "FD41",
+            "00"
+          ]
+        ],
+        "reload": true,
+        "reset_done": false,
+        "right_attenuation_enabled": false,
+        "right_enabled": true,
+        "right_volume": 0,
+        "stereo": {
+          "mpan": "00",
+          "mstereo": "00"
+        },
+        "timer_done": true
+      },
+      "registers": {
+        "atten": "00",
+        "backup": "9E",
+        "control": "38",
+        "counter": "99",
+        "feedback": "08",
+        "lfsr_low": "3C",
+        "other": "0A",
+        "output": "E0",
+        "volume": "10"
+      },
+      "sample_index": 8,
+      "sound": {
+        "bass_remaining": 22,
+        "bass_step": 1,
+        "bgm_active": 1,
+        "bgm_id": 0,
+        "bgm_remaining": 7,
+        "bgm_step": 14,
+        "output_bgm": [
+          1,
+          1,
+          14,
+          0
+        ],
+        "output_bgm_bass": [
+          1,
+          4,
+          13,
+          0
+        ],
+        "output_sfx": [
+          1,
+          12,
+          22,
+          3
+        ],
+        "pending_stage_clear": 0,
+        "raw": "01000e0701160101040001010e0001040d00010c1603",
+        "sfx_id": 1,
+        "sfx_remaining": 4,
+        "sfx_step": 1
+      },
+      "voice": {
+        "active": 0,
+        "remaining": 0,
+        "underrun": 0
+      }
+    },
+    {
+      "event": "sfx_rearm",
+      "game": {
+        "armed": 0,
+        "bgm_active": 1,
+        "pending": 0,
+        "phase": 1,
+        "stage": 1
+      },
+      "logical_memory_before_rearm": "0f",
+      "mikey_before_rearm": {
+        "borrow_in": true,
+        "borrow_out": false,
+        "enabled": true,
+        "fields": [
+          "name",
+          "address",
+          "value"
+        ],
+        "frequency": "1 MHz (1us)",
+        "index": 1,
+        "integrate": true,
+        "left_attenuation_enabled": false,
+        "left_enabled": true,
+        "left_volume": 0,
+        "linked": false,
+        "period_value": 0,
+        "registers": [
+          [
+            "volume",
+            "FD28",
+            "10"
+          ],
+          [
+            "feedback",
+            "FD29",
+            "08"
+          ],
+          [
+            "output",
+            "FD2A",
+            "E0"
+          ],
+          [
+            "lfsr_low",
+            "FD2B",
+            "3C"
+          ],
+          [
+            "backup",
+            "FD2C",
+            "9E"
+          ],
+          [
+            "control",
+            "FD2D",
+            "38"
+          ],
+          [
+            "counter",
+            "FD2E",
+            "99"
+          ],
+          [
+            "other",
+            "FD2F",
+            "0A"
+          ],
+          [
+            "atten",
+            "FD41",
+            "00"
+          ]
+        ],
+        "reload": true,
+        "reset_done": false,
+        "right_attenuation_enabled": false,
+        "right_enabled": true,
+        "right_volume": 0,
+        "stereo": {
+          "mpan": "00",
+          "mstereo": "00"
+        },
+        "timer_done": true
+      },
+      "sample_index": 8,
+      "sfx_step": 0,
+      "sound_before_rearm": {
+        "bass_remaining": 6,
+        "bass_step": 1,
+        "bgm_active": 1,
+        "bgm_id": 0,
+        "bgm_remaining": 6,
+        "bgm_step": 15,
+        "output_bgm": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "output_bgm_bass": [
+          1,
+          4,
+          12,
+          0
+        ],
+        "output_sfx": [
+          1,
+          12,
+          15,
+          3
+        ],
+        "pending_stage_clear": 0,
+        "raw": "01000f060106000000000000000001040c00010c0f03",
+        "sfx_id": 0,
+        "sfx_remaining": 0,
+        "sfx_step": 0
+      },
+      "voice": {
+        "active": 0,
+        "remaining": 0,
+        "underrun": 0
+      }
+    },
+    {
+      "event": "apply_boundary",
+      "expected_hardware_volume": 21,
+      "game": {
+        "armed": 0,
+        "bgm_active": 1,
+        "pending": 0,
+        "phase": 1,
+        "stage": 1
+      },
+      "logical_memory_readback": "1c",
+      "logical_volume": 28,
+      "mikey": {
+        "borrow_in": true,
+        "borrow_out": false,
+        "enabled": true,
+        "fields": [
+          "name",
+          "address",
+          "value"
+        ],
+        "frequency": "1 MHz (1us)",
+        "index": 1,
+        "integrate": true,
+        "left_attenuation_enabled": false,
+        "left_enabled": true,
+        "left_volume": 0,
+        "linked": false,
+        "period_value": 0,
+        "registers": [
+          [
+            "volume",
+            "FD28",
+            "15"
+          ],
+          [
+            "feedback",
+            "FD29",
+            "08"
+          ],
+          [
+            "output",
+            "FD2A",
+            "D6"
+          ],
+          [
+            "lfsr_low",
+            "FD2B",
+            "3C"
+          ],
+          [
+            "backup",
+            "FD2C",
+            "76"
+          ],
+          [
+            "control",
+            "FD2D",
+            "38"
+          ],
+          [
+            "counter",
+            "FD2E",
+            "58"
+          ],
+          [
+            "other",
+            "FD2F",
+            "0A"
+          ],
+          [
+            "atten",
+            "FD41",
+            "00"
+          ]
+        ],
+        "reload": true,
+        "reset_done": false,
+        "right_attenuation_enabled": false,
+        "right_enabled": true,
+        "right_volume": 0,
+        "stereo": {
+          "mpan": "00",
+          "mstereo": "00"
+        },
+        "timer_done": true
+      },
+      "registers": {
+        "atten": "00",
+        "backup": "76",
+        "control": "38",
+        "counter": "58",
+        "feedback": "08",
+        "lfsr_low": "3C",
+        "other": "0A",
+        "output": "D6",
+        "volume": "15"
+      },
+      "sample_index": 9,
+      "sound": {
+        "bass_remaining": 6,
+        "bass_step": 1,
+        "bgm_active": 1,
+        "bgm_id": 0,
+        "bgm_remaining": 6,
+        "bgm_step": 15,
+        "output_bgm": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "output_bgm_bass": [
+          1,
+          4,
+          12,
+          0
+        ],
+        "output_sfx": [
+          1,
+          15,
+          28,
+          3
+        ],
+        "pending_stage_clear": 0,
+        "raw": "01000f060106010004000000000001040c00010f1c03",
+        "sfx_id": 1,
+        "sfx_remaining": 4,
+        "sfx_step": 0
+      },
+      "voice": {
+        "active": 0,
+        "remaining": 0,
+        "underrun": 0
+      }
+    },
+    {
+      "event": "sfx_rearm",
+      "game": {
+        "armed": 0,
+        "bgm_active": 0,
+        "pending": 0,
+        "phase": 1,
+        "stage": 1
+      },
+      "logical_memory_before_rearm": "1b",
+      "mikey_before_rearm": {
+        "borrow_in": true,
+        "borrow_out": false,
+        "enabled": true,
+        "fields": [
+          "name",
+          "address",
+          "value"
+        ],
+        "frequency": "1 MHz (1us)",
+        "index": 1,
+        "integrate": true,
+        "left_attenuation_enabled": false,
+        "left_enabled": true,
+        "left_volume": 0,
+        "linked": false,
+        "period_value": 0,
+        "registers": [
+          [
+            "volume",
+            "FD28",
+            "15"
+          ],
+          [
+            "feedback",
+            "FD29",
+            "08"
+          ],
+          [
+            "output",
+            "FD2A",
+            "D6"
+          ],
+          [
+            "lfsr_low",
+            "FD2B",
+            "3C"
+          ],
+          [
+            "backup",
+            "FD2C",
+            "76"
+          ],
+          [
+            "control",
+            "FD2D",
+            "38"
+          ],
+          [
+            "counter",
+            "FD2E",
+            "58"
+          ],
+          [
+            "other",
+            "FD2F",
+            "0A"
+          ],
+          [
+            "atten",
+            "FD41",
+            "00"
+          ]
+        ],
+        "reload": true,
+        "reset_done": false,
+        "right_attenuation_enabled": false,
+        "right_enabled": true,
+        "right_volume": 0,
+        "stereo": {
+          "mpan": "00",
+          "mstereo": "00"
+        },
+        "timer_done": true
+      },
+      "sample_index": 9,
+      "sfx_step": 1,
+      "sound_before_rearm": {
+        "bass_remaining": 6,
+        "bass_step": 1,
+        "bgm_active": 0,
+        "bgm_id": 0,
+        "bgm_remaining": 6,
+        "bgm_step": 15,
+        "output_bgm": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "output_bgm_bass": [
+          0,
+          0,
+          0,
+          0
+        ],
+        "output_sfx": [
+          1,
+          12,
+          27,
+          2
+        ],
+        "pending_stage_clear": 0,
+        "raw": "00000f060106050102000000000000000000010c1b02",
+        "sfx_id": 5,
+        "sfx_remaining": 2,
+        "sfx_step": 1
+      },
+      "voice": {
+        "active": 0,
+        "remaining": 0,
+        "underrun": 0
+      }
+    }
+  ],
+  "exit_code": 0,
+  "game_address": "0xB212",
+  "logical_volume_address": "0xB2FB",
+  "rom": "dist/asteroid-patrol.lnx",
+  "seconds": 8.0,
+  "trace_lines": [
+    "  [MIKEY] AUDIO 1  CTL=$00",
+    "  [MIKEY] AUDIO 1  LFSR=$0F",
+    "  [MIKEY] AUDIO 1  MISC=$00",
+    "  [MIKEY] AUDIO 1  FDBK=$08",
+    "  [MIKEY] AUDIO 1  OUT=$00",
+    "  [MIKEY] AUDIO 1  VOL=$15",
+    "  [MIKEY] AUDIO 1  BKUP=$76",
+    "  [MIKEY] AUDIO 1  CTL=$38",
+    "  [MIKEY] AUDIO 1  CTL=$00",
+    "  [MIKEY] AUDIO 1  LFSR=$0F",
+    "  [MIKEY] AUDIO 1  MISC=$00",
+    "  [MIKEY] AUDIO 1  FDBK=$08",
+    "  [MIKEY] AUDIO 1  OUT=$00",
+    "  [MIKEY] AUDIO 1  VOL=$10",
+    "  [MIKEY] AUDIO 1  BKUP=$9E",
+    "  [MIKEY] AUDIO 1  CTL=$38",
+    "  [MIKEY] AUDIO 1  CTL=$00",
+    "  [MIKEY] AUDIO 1  LFSR=$0F",
+    "  [MIKEY] AUDIO 1  MISC=$00",
+    "  [MIKEY] AUDIO 1  FDBK=$08",
+    "  [MIKEY] AUDIO 1  OUT=$00",
+    "  [MIKEY] AUDIO 1  VOL=$15",
+    "  [MIKEY] AUDIO 1  BKUP=$76",
+    "  [MIKEY] AUDIO 1  CTL=$38",
+    "  [MIKEY] AUDIO 1  CTL=$00",
+    "  [MIKEY] AUDIO 1  LFSR=$0F",
+    "  [MIKEY] AUDIO 1  MISC=$00",
+    "  [MIKEY] AUDIO 1  FDBK=$08",
+    "  [MIKEY] AUDIO 1  OUT=$00",
+    "  [MIKEY] AUDIO 1  VOL=$10",
+    "  [MIKEY] AUDIO 1  BKUP=$9E",
+    "  [MIKEY] AUDIO 1  CTL=$38",
+    "  [MIKEY] AUDIO 1  CTL=$00",
+    "  [MIKEY] AUDIO 1  LFSR=$0F",
+    "  [MIKEY] AUDIO 1  MISC=$00",
+    "  [MIKEY] AUDIO 1  FDBK=$08",
+    "  [MIKEY] AUDIO 1  OUT=$00",
+    "  [MIKEY] AUDIO 1  VOL=$15",
+    "  [MIKEY] AUDIO 1  BKUP=$76",
+    "  [MIKEY] AUDIO 1  CTL=$38",
+    "  [MIKEY] AUDIO 1  CTL=$00",
+    "  [MIKEY] AUDIO 1  LFSR=$0F",
+    "  [MIKEY] AUDIO 1  MISC=$00",
+    "  [MIKEY] AUDIO 1  FDBK=$08",
+    "  [MIKEY] AUDIO 1  OUT=$00",
+    "  [MIKEY] AUDIO 1  VOL=$10",
+    "  [MIKEY] AUDIO 1  BKUP=$9E",
+    "  [MIKEY] AUDIO 1  CTL=$38",
+    "  [MIKEY] AUDIO 1  CTL=$00",
+    "  [MIKEY] AUDIO 1  LFSR=$0F",
+    "  [MIKEY] AUDIO 1  MISC=$00",
+    "  [MIKEY] AUDIO 1  FDBK=$08",
+    "  [MIKEY] AUDIO 1  OUT=$00",
+    "  [MIKEY] AUDIO 1  VOL=$15",
+    "  [MIKEY] AUDIO 1  BKUP=$76",
+    "  [MIKEY] AUDIO 1  CTL=$38",
+    "  [MIKEY] AUDIO 1  CTL=$00",
+    "  [MIKEY] AUDIO 1  LFSR=$0F",
+    "  [MIKEY] AUDIO 1  MISC=$00",
+    "  [MIKEY] AUDIO 1  FDBK=$08",
+    "  [MIKEY] AUDIO 1  OUT=$00",
+    "  [MIKEY] AUDIO 1  VOL=$10",
+    "  [MIKEY] AUDIO 1  BKUP=$9E",
+    "  [MIKEY] AUDIO 1  CTL=$38",
+    "  [MIKEY] AUDIO 1  CTL=$00",
+    "  [MIKEY] AUDIO 1  LFSR=$0F",
+    "  [MIKEY] AUDIO 1  MISC=$00",
+    "  [MIKEY] AUDIO 1  FDBK=$08",
+    "  [MIKEY] AUDIO 1  OUT=$00",
+    "  [MIKEY] AUDIO 1  VOL=$15",
+    "  [MIKEY] AUDIO 1  BKUP=$76",
+    "  [MIKEY] AUDIO 1  CTL=$38"
+  ],
+  "voice_state_address": "0xB5ED"
+}

@@ -1,0 +1,1957 @@
+{
+  "aps": "APS-053",
+  "batches": [
+    {
+      "raw": {
+        "batch": 1,
+        "hits": [
+          {
+            "cpu_total_ticks": 20389283,
+            "hit": 1,
+            "pc": "026D",
+            "timer2": {
+              "backup": "68",
+              "backup_numeric": 104,
+              "current": "68",
+              "current_numeric": 104,
+              "enabled": true,
+              "interrupt": true,
+              "linked": true,
+              "linked_to_index": 0,
+              "linked_to_type": "timer",
+              "name": "VBLANK TIMER",
+              "period_value": 7,
+              "registers": [
+                [
+                  "backup",
+                  "FD08",
+                  "68"
+                ],
+                [
+                  "control_a",
+                  "FD09",
+                  "9F"
+                ],
+                [
+                  "counter",
+                  "FD0A",
+                  "68"
+                ],
+                [
+                  "control_b",
+                  "FD0B",
+                  "08"
+                ]
+              ],
+              "timer": 2
+            }
+          },
+          {
+            "cpu_total_ticks": 20573635,
+            "hit": 2,
+            "pc": "026D",
+            "timer2": {
+              "backup": "68",
+              "backup_numeric": 104,
+              "current": "68",
+              "current_numeric": 104,
+              "enabled": true,
+              "interrupt": true,
+              "linked": true,
+              "linked_to_index": 0,
+              "linked_to_type": "timer",
+              "name": "VBLANK TIMER",
+              "period_value": 7,
+              "registers": [
+                [
+                  "backup",
+                  "FD08",
+                  "68"
+                ],
+                [
+                  "control_a",
+                  "FD09",
+                  "9F"
+                ],
+                [
+                  "counter",
+                  "FD0A",
+                  "68"
+                ],
+                [
+                  "control_b",
+                  "FD0B",
+                  "08"
+                ]
+              ],
+              "timer": 2
+            }
+          },
+          {
+            "cpu_total_ticks": 20758319,
+            "hit": 3,
+            "pc": "026D",
+            "timer2": {
+              "backup": "68",
+              "backup_numeric": 104,
+              "current": "68",
+              "current_numeric": 104,
+              "enabled": true,
+              "interrupt": true,
+              "linked": true,
+              "linked_to_index": 0,
+              "linked_to_type": "timer",
+              "name": "VBLANK TIMER",
+              "period_value": 7,
+              "registers": [
+                [
+                  "backup",
+                  "FD08",
+                  "68"
+                ],
+                [
+                  "control_a",
+                  "FD09",
+                  "9F"
+                ],
+                [
+                  "counter",
+                  "FD0A",
+                  "68"
+                ],
+                [
+                  "control_b",
+                  "FD0B",
+                  "08"
+                ]
+              ],
+              "timer": 2
+            }
+          },
+          {
+            "cpu_total_ticks": 20942987,
+            "hit": 4,
+            "pc": "026D",
+            "timer2": {
+              "backup": "68",
+              "backup_numeric": 104,
+              "current": "68",
+              "current_numeric": 104,
+              "enabled": true,
+              "interrupt": true,
+              "linked": true,
+              "linked_to_index": 0,
+              "linked_to_type": "timer",
+              "name": "VBLANK TIMER",
+              "period_value": 7,
+              "registers": [
+                [
+                  "backup",
+                  "FD08",
+                  "68"
+                ],
+                [
+                  "control_a",
+                  "FD09",
+                  "9F"
+                ],
+                [
+                  "counter",
+                  "FD0A",
+                  "68"
+                ],
+                [
+                  "control_b",
+                  "FD0B",
+                  "08"
+                ]
+              ],
+              "timer": 2
+            }
+          },
+          {
+            "cpu_total_ticks": 21127321,
+            "hit": 5,
+            "pc": "026D",
+            "timer2": {
+              "backup": "68",
+              "backup_numeric": 104,
+              "current": "68",
+              "current_numeric": 104,
+              "enabled": true,
+              "interrupt": true,
+              "linked": true,
+              "linked_to_index": 0,
+              "linked_to_type": "timer",
+              "name": "VBLANK TIMER",
+              "period_value": 7,
+              "registers": [
+                [
+                  "backup",
+                  "FD08",
+                  "68"
+                ],
+                [
+                  "control_a",
+                  "FD09",
+                  "9F"
+                ],
+                [
+                  "counter",
+                  "FD0A",
+                  "68"
+                ],
+                [
+                  "control_b",
+                  "FD0B",
+                  "08"
+                ]
+              ],
+              "timer": 2
+            }
+          },
+          {
+            "cpu_total_ticks": 21312024,
+            "hit": 6,
+            "pc": "026D",
+            "timer2": {
+              "backup": "68",
+              "backup_numeric": 104,
+              "current": "68",
+              "current_numeric": 104,
+              "enabled": true,
+              "interrupt": true,
+              "linked": true,
+              "linked_to_index": 0,
+              "linked_to_type": "timer",
+              "name": "VBLANK TIMER",
+              "period_value": 7,
+              "registers": [
+                [
+                  "backup",
+                  "FD08",
+                  "68"
+                ],
+                [
+                  "control_a",
+                  "FD09",
+                  "9F"
+                ],
+                [
+                  "counter",
+                  "FD0A",
+                  "68"
+                ],
+                [
+                  "control_b",
+                  "FD0B",
+                  "08"
+                ]
+              ],
+              "timer": 2
+            }
+          },
+          {
+            "cpu_total_ticks": 21496696,
+            "hit": 7,
+            "pc": "026D",
+            "timer2": {
+              "backup": "68",
+              "backup_numeric": 104,
+              "current": "68",
+              "current_numeric": 104,
+              "enabled": true,
+              "interrupt": true,
+              "linked": true,
+              "linked_to_index": 0,
+              "linked_to_type": "timer",
+              "name": "VBLANK TIMER",
+              "period_value": 7,
+              "registers": [
+                [
+                  "backup",
+                  "FD08",
+                  "68"
+                ],
+                [
+                  "control_a",
+                  "FD09",
+                  "9F"
+                ],
+                [
+                  "counter",
+                  "FD0A",
+                  "68"
+                ],
+                [
+                  "control_b",
+                  "FD0B",
+                  "08"
+                ]
+              ],
+              "timer": 2
+            }
+          },
+          {
+            "cpu_total_ticks": 21681156,
+            "hit": 8,
+            "pc": "026D",
+            "timer2": {
+              "backup": "68",
+              "backup_numeric": 104,
+              "current": "68",
+              "current_numeric": 104,
+              "enabled": true,
+              "interrupt": true,
+              "linked": true,
+              "linked_to_index": 0,
+              "linked_to_type": "timer",
+              "name": "VBLANK TIMER",
+              "period_value": 7,
+              "registers": [
+                [
+                  "backup",
+                  "FD08",
+                  "68"
+                ],
+                [
+                  "control_a",
+                  "FD09",
+                  "9F"
+                ],
+                [
+                  "counter",
+                  "FD0A",
+                  "68"
+                ],
+                [
+                  "control_b",
+                  "FD0B",
+                  "08"
+                ]
+              ],
+              "timer": 2
+            }
+          },
+          {
+            "cpu_total_ticks": 21865836,
+            "hit": 9,
+            "pc": "026D",
+            "timer2": {
+              "backup": "68",
+              "backup_numeric": 104,
+              "current": "68",
+              "current_numeric": 104,
+              "enabled": true,
+              "interrupt": true,
+              "linked": true,
+              "linked_to_index": 0,
+              "linked_to_type": "timer",
+              "name": "VBLANK TIMER",
+              "period_value": 7,
+              "registers": [
+                [
+                  "backup",
+                  "FD08",
+                  "68"
+                ],
+                [
+                  "control_a",
+                  "FD09",
+                  "9F"
+                ],
+                [
+                  "counter",
+                  "FD0A",
+                  "68"
+                ],
+                [
+                  "control_b",
+                  "FD0B",
+                  "08"
+                ]
+              ],
+              "timer": 2
+            }
+          },
+          {
+            "cpu_total_ticks": 22050521,
+            "hit": 10,
+            "pc": "026D",
+            "timer2": {
+              "backup": "68",
+              "backup_numeric": 104,
+              "current": "68",
+              "current_numeric": 104,
+              "enabled": true,
+              "interrupt": true,
+              "linked": true,
+              "linked_to_index": 0,
+              "linked_to_type": "timer",
+              "name": "VBLANK TIMER",
+              "period_value": 7,
+              "registers": [
+                [
+                  "backup",
+                  "FD08",
+                  "68"
+                ],
+                [
+                  "control_a",
+                  "FD09",
+                  "9F"
+                ],
+                [
+                  "counter",
+                  "FD0A",
+                  "68"
+                ],
+                [
+                  "control_b",
+                  "FD0B",
+                  "08"
+                ]
+              ],
+              "timer": 2
+            }
+          },
+          {
+            "cpu_total_ticks": 22234943,
+            "hit": 11,
+            "pc": "026D",
+            "timer2": {
+              "backup": "68",
+              "backup_numeric": 104,
+              "current": "68",
+              "current_numeric": 104,
+              "enabled": true,
+              "interrupt": true,
+              "linked": true,
+              "linked_to_index": 0,
+              "linked_to_type": "timer",
+              "name": "VBLANK TIMER",
+              "period_value": 7,
+              "registers": [
+                [
+                  "backup",
+                  "FD08",
+                  "68"
+                ],
+                [
+                  "control_a",
+                  "FD09",
+                  "9F"
+                ],
+                [
+                  "counter",
+                  "FD0A",
+                  "68"
+                ],
+                [
+                  "control_b",
+                  "FD0B",
+                  "08"
+                ]
+              ],
+              "timer": 2
+            }
+          },
+          {
+            "cpu_total_ticks": 22419626,
+            "hit": 12,
+            "pc": "026D",
+            "timer2": {
+              "backup": "68",
+              "backup_numeric": 104,
+              "current": "68",
+              "current_numeric": 104,
+              "enabled": true,
+              "interrupt": true,
+              "linked": true,
+              "linked_to_index": 0,
+              "linked_to_type": "timer",
+              "name": "VBLANK TIMER",
+              "period_value": 7,
+              "registers": [
+                [
+                  "backup",
+                  "FD08",
+                  "68"
+                ],
+                [
+                  "control_a",
+                  "FD09",
+                  "9F"
+                ],
+                [
+                  "counter",
+                  "FD0A",
+                  "68"
+                ],
+                [
+                  "control_b",
+                  "FD0B",
+                  "08"
+                ]
+              ],
+              "timer": 2
+            }
+          },
+          {
+            "cpu_total_ticks": 22604293,
+            "hit": 13,
+            "pc": "026D",
+            "timer2": {
+              "backup": "68",
+              "backup_numeric": 104,
+              "current": "68",
+              "current_numeric": 104,
+              "enabled": true,
+              "interrupt": true,
+              "linked": true,
+              "linked_to_index": 0,
+              "linked_to_type": "timer",
+              "name": "VBLANK TIMER",
+              "period_value": 7,
+              "registers": [
+                [
+                  "backup",
+                  "FD08",
+                  "68"
+                ],
+                [
+                  "control_a",
+                  "FD09",
+                  "9F"
+                ],
+                [
+                  "counter",
+                  "FD0A",
+                  "68"
+                ],
+                [
+                  "control_b",
+                  "FD0B",
+                  "08"
+                ]
+              ],
+              "timer": 2
+            }
+          },
+          {
+            "cpu_total_ticks": 22788722,
+            "hit": 14,
+            "pc": "026D",
+            "timer2": {
+              "backup": "68",
+              "backup_numeric": 104,
+              "current": "68",
+              "current_numeric": 104,
+              "enabled": true,
+              "interrupt": true,
+              "linked": true,
+              "linked_to_index": 0,
+              "linked_to_type": "timer",
+              "name": "VBLANK TIMER",
+              "period_value": 7,
+              "registers": [
+                [
+                  "backup",
+                  "FD08",
+                  "68"
+                ],
+                [
+                  "control_a",
+                  "FD09",
+                  "9F"
+                ],
+                [
+                  "counter",
+                  "FD0A",
+                  "68"
+                ],
+                [
+                  "control_b",
+                  "FD0B",
+                  "08"
+                ]
+              ],
+              "timer": 2
+            }
+          },
+          {
+            "cpu_total_ticks": 22973421,
+            "hit": 15,
+            "pc": "026D",
+            "timer2": {
+              "backup": "68",
+              "backup_numeric": 104,
+              "current": "68",
+              "current_numeric": 104,
+              "enabled": true,
+              "interrupt": true,
+              "linked": true,
+              "linked_to_index": 0,
+              "linked_to_type": "timer",
+              "name": "VBLANK TIMER",
+              "period_value": 7,
+              "registers": [
+                [
+                  "backup",
+                  "FD08",
+                  "68"
+                ],
+                [
+                  "control_a",
+                  "FD09",
+                  "9F"
+                ],
+                [
+                  "counter",
+                  "FD0A",
+                  "68"
+                ],
+                [
+                  "control_b",
+                  "FD0B",
+                  "08"
+                ]
+              ],
+              "timer": 2
+            }
+          },
+          {
+            "cpu_total_ticks": 23158067,
+            "hit": 16,
+            "pc": "026D",
+            "timer2": {
+              "backup": "68",
+              "backup_numeric": 104,
+              "current": "68",
+              "current_numeric": 104,
+              "enabled": true,
+              "interrupt": true,
+              "linked": true,
+              "linked_to_index": 0,
+              "linked_to_type": "timer",
+              "name": "VBLANK TIMER",
+              "period_value": 7,
+              "registers": [
+                [
+                  "backup",
+                  "FD08",
+                  "68"
+                ],
+                [
+                  "control_a",
+                  "FD09",
+                  "9F"
+                ],
+                [
+                  "counter",
+                  "FD0A",
+                  "68"
+                ],
+                [
+                  "control_b",
+                  "FD0B",
+                  "08"
+                ]
+              ],
+              "timer": 2
+            }
+          },
+          {
+            "cpu_total_ticks": 23342472,
+            "hit": 17,
+            "pc": "026D",
+            "timer2": {
+              "backup": "68",
+              "backup_numeric": 104,
+              "current": "68",
+              "current_numeric": 104,
+              "enabled": true,
+              "interrupt": true,
+              "linked": true,
+              "linked_to_index": 0,
+              "linked_to_type": "timer",
+              "name": "VBLANK TIMER",
+              "period_value": 7,
+              "registers": [
+                [
+                  "backup",
+                  "FD08",
+                  "68"
+                ],
+                [
+                  "control_a",
+                  "FD09",
+                  "9F"
+                ],
+                [
+                  "counter",
+                  "FD0A",
+                  "68"
+                ],
+                [
+                  "control_b",
+                  "FD0B",
+                  "08"
+                ]
+              ],
+              "timer": 2
+            }
+          },
+          {
+            "cpu_total_ticks": 23527169,
+            "hit": 18,
+            "pc": "026D",
+            "timer2": {
+              "backup": "68",
+              "backup_numeric": 104,
+              "current": "68",
+              "current_numeric": 104,
+              "enabled": true,
+              "interrupt": true,
+              "linked": true,
+              "linked_to_index": 0,
+              "linked_to_type": "timer",
+              "name": "VBLANK TIMER",
+              "period_value": 7,
+              "registers": [
+                [
+                  "backup",
+                  "FD08",
+                  "68"
+                ],
+                [
+                  "control_a",
+                  "FD09",
+                  "9F"
+                ],
+                [
+                  "counter",
+                  "FD0A",
+                  "68"
+                ],
+                [
+                  "control_b",
+                  "FD0B",
+                  "08"
+                ]
+              ],
+              "timer": 2
+            }
+          }
+        ]
+      },
+      "summary": {
+        "cpu_tick_stability": true,
+        "cpu_ticks_per_vblank_coefficient_of_variation": 0.0007415686878036548,
+        "cpu_ticks_per_vblank_median": 184668,
+        "cpu_ticks_per_vblank_stdev": 136.94400643932534,
+        "cpu_total_tick_differences": [
+          184352,
+          184684,
+          184668,
+          184334,
+          184703,
+          184672,
+          184460,
+          184680,
+          184685,
+          184422,
+          184683,
+          184667,
+          184429,
+          184699,
+          184646,
+          184405,
+          184697
+        ],
+        "sample_count": 18,
+        "timer2_counter_period_stable": true,
+        "timer2_counter_period_ticks": [
+          105,
+          105,
+          105,
+          105,
+          105,
+          105,
+          105,
+          105,
+          105,
+          105,
+          105,
+          105,
+          105,
+          105,
+          105,
+          105,
+          105
+        ],
+        "timer2_current_equals_backup_at_irq": true,
+        "timer2_interrupt_flag_at_irq": true,
+        "vblank_differences": [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        "zero_vblank_difference_count": 0
+      }
+    },
+    {
+      "raw": {
+        "batch": 2,
+        "hits": [
+          {
+            "cpu_total_ticks": 20389283,
+            "hit": 1,
+            "pc": "026D",
+            "timer2": {
+              "backup": "68",
+              "backup_numeric": 104,
+              "current": "68",
+              "current_numeric": 104,
+              "enabled": true,
+              "interrupt": true,
+              "linked": true,
+              "linked_to_index": 0,
+              "linked_to_type": "timer",
+              "name": "VBLANK TIMER",
+              "period_value": 7,
+              "registers": [
+                [
+                  "backup",
+                  "FD08",
+                  "68"
+                ],
+                [
+                  "control_a",
+                  "FD09",
+                  "9F"
+                ],
+                [
+                  "counter",
+                  "FD0A",
+                  "68"
+                ],
+                [
+                  "control_b",
+                  "FD0B",
+                  "08"
+                ]
+              ],
+              "timer": 2
+            }
+          },
+          {
+            "cpu_total_ticks": 20573635,
+            "hit": 2,
+            "pc": "026D",
+            "timer2": {
+              "backup": "68",
+              "backup_numeric": 104,
+              "current": "68",
+              "current_numeric": 104,
+              "enabled": true,
+              "interrupt": true,
+              "linked": true,
+              "linked_to_index": 0,
+              "linked_to_type": "timer",
+              "name": "VBLANK TIMER",
+              "period_value": 7,
+              "registers": [
+                [
+                  "backup",
+                  "FD08",
+                  "68"
+                ],
+                [
+                  "control_a",
+                  "FD09",
+                  "9F"
+                ],
+                [
+                  "counter",
+                  "FD0A",
+                  "68"
+                ],
+                [
+                  "control_b",
+                  "FD0B",
+                  "08"
+                ]
+              ],
+              "timer": 2
+            }
+          },
+          {
+            "cpu_total_ticks": 20758319,
+            "hit": 3,
+            "pc": "026D",
+            "timer2": {
+              "backup": "68",
+              "backup_numeric": 104,
+              "current": "68",
+              "current_numeric": 104,
+              "enabled": true,
+              "interrupt": true,
+              "linked": true,
+              "linked_to_index": 0,
+              "linked_to_type": "timer",
+              "name": "VBLANK TIMER",
+              "period_value": 7,
+              "registers": [
+                [
+                  "backup",
+                  "FD08",
+                  "68"
+                ],
+                [
+                  "control_a",
+                  "FD09",
+                  "9F"
+                ],
+                [
+                  "counter",
+                  "FD0A",
+                  "68"
+                ],
+                [
+                  "control_b",
+                  "FD0B",
+                  "08"
+                ]
+              ],
+              "timer": 2
+            }
+          },
+          {
+            "cpu_total_ticks": 20942987,
+            "hit": 4,
+            "pc": "026D",
+            "timer2": {
+              "backup": "68",
+              "backup_numeric": 104,
+              "current": "68",
+              "current_numeric": 104,
+              "enabled": true,
+              "interrupt": true,
+              "linked": true,
+              "linked_to_index": 0,
+              "linked_to_type": "timer",
+              "name": "VBLANK TIMER",
+              "period_value": 7,
+              "registers": [
+                [
+                  "backup",
+                  "FD08",
+                  "68"
+                ],
+                [
+                  "control_a",
+                  "FD09",
+                  "9F"
+                ],
+                [
+                  "counter",
+                  "FD0A",
+                  "68"
+                ],
+                [
+                  "control_b",
+                  "FD0B",
+                  "08"
+                ]
+              ],
+              "timer": 2
+            }
+          },
+          {
+            "cpu_total_ticks": 21127321,
+            "hit": 5,
+            "pc": "026D",
+            "timer2": {
+              "backup": "68",
+              "backup_numeric": 104,
+              "current": "68",
+              "current_numeric": 104,
+              "enabled": true,
+              "interrupt": true,
+              "linked": true,
+              "linked_to_index": 0,
+              "linked_to_type": "timer",
+              "name": "VBLANK TIMER",
+              "period_value": 7,
+              "registers": [
+                [
+                  "backup",
+                  "FD08",
+                  "68"
+                ],
+                [
+                  "control_a",
+                  "FD09",
+                  "9F"
+                ],
+                [
+                  "counter",
+                  "FD0A",
+                  "68"
+                ],
+                [
+                  "control_b",
+                  "FD0B",
+                  "08"
+                ]
+              ],
+              "timer": 2
+            }
+          },
+          {
+            "cpu_total_ticks": 21312024,
+            "hit": 6,
+            "pc": "026D",
+            "timer2": {
+              "backup": "68",
+              "backup_numeric": 104,
+              "current": "68",
+              "current_numeric": 104,
+              "enabled": true,
+              "interrupt": true,
+              "linked": true,
+              "linked_to_index": 0,
+              "linked_to_type": "timer",
+              "name": "VBLANK TIMER",
+              "period_value": 7,
+              "registers": [
+                [
+                  "backup",
+                  "FD08",
+                  "68"
+                ],
+                [
+                  "control_a",
+                  "FD09",
+                  "9F"
+                ],
+                [
+                  "counter",
+                  "FD0A",
+                  "68"
+                ],
+                [
+                  "control_b",
+                  "FD0B",
+                  "08"
+                ]
+              ],
+              "timer": 2
+            }
+          },
+          {
+            "cpu_total_ticks": 21496696,
+            "hit": 7,
+            "pc": "026D",
+            "timer2": {
+              "backup": "68",
+              "backup_numeric": 104,
+              "current": "68",
+              "current_numeric": 104,
+              "enabled": true,
+              "interrupt": true,
+              "linked": true,
+              "linked_to_index": 0,
+              "linked_to_type": "timer",
+              "name": "VBLANK TIMER",
+              "period_value": 7,
+              "registers": [
+                [
+                  "backup",
+                  "FD08",
+                  "68"
+                ],
+                [
+                  "control_a",
+                  "FD09",
+                  "9F"
+                ],
+                [
+                  "counter",
+                  "FD0A",
+                  "68"
+                ],
+                [
+                  "control_b",
+                  "FD0B",
+                  "08"
+                ]
+              ],
+              "timer": 2
+            }
+          },
+          {
+            "cpu_total_ticks": 21681156,
+            "hit": 8,
+            "pc": "026D",
+            "timer2": {
+              "backup": "68",
+              "backup_numeric": 104,
+              "current": "68",
+              "current_numeric": 104,
+              "enabled": true,
+              "interrupt": true,
+              "linked": true,
+              "linked_to_index": 0,
+              "linked_to_type": "timer",
+              "name": "VBLANK TIMER",
+              "period_value": 7,
+              "registers": [
+                [
+                  "backup",
+                  "FD08",
+                  "68"
+                ],
+                [
+                  "control_a",
+                  "FD09",
+                  "9F"
+                ],
+                [
+                  "counter",
+                  "FD0A",
+                  "68"
+                ],
+                [
+                  "control_b",
+                  "FD0B",
+                  "08"
+                ]
+              ],
+              "timer": 2
+            }
+          },
+          {
+            "cpu_total_ticks": 21865836,
+            "hit": 9,
+            "pc": "026D",
+            "timer2": {
+              "backup": "68",
+              "backup_numeric": 104,
+              "current": "68",
+              "current_numeric": 104,
+              "enabled": true,
+              "interrupt": true,
+              "linked": true,
+              "linked_to_index": 0,
+              "linked_to_type": "timer",
+              "name": "VBLANK TIMER",
+              "period_value": 7,
+              "registers": [
+                [
+                  "backup",
+                  "FD08",
+                  "68"
+                ],
+                [
+                  "control_a",
+                  "FD09",
+                  "9F"
+                ],
+                [
+                  "counter",
+                  "FD0A",
+                  "68"
+                ],
+                [
+                  "control_b",
+                  "FD0B",
+                  "08"
+                ]
+              ],
+              "timer": 2
+            }
+          },
+          {
+            "cpu_total_ticks": 22050521,
+            "hit": 10,
+            "pc": "026D",
+            "timer2": {
+              "backup": "68",
+              "backup_numeric": 104,
+              "current": "68",
+              "current_numeric": 104,
+              "enabled": true,
+              "interrupt": true,
+              "linked": true,
+              "linked_to_index": 0,
+              "linked_to_type": "timer",
+              "name": "VBLANK TIMER",
+              "period_value": 7,
+              "registers": [
+                [
+                  "backup",
+                  "FD08",
+                  "68"
+                ],
+                [
+                  "control_a",
+                  "FD09",
+                  "9F"
+                ],
+                [
+                  "counter",
+                  "FD0A",
+                  "68"
+                ],
+                [
+                  "control_b",
+                  "FD0B",
+                  "08"
+                ]
+              ],
+              "timer": 2
+            }
+          },
+          {
+            "cpu_total_ticks": 22234943,
+            "hit": 11,
+            "pc": "026D",
+            "timer2": {
+              "backup": "68",
+              "backup_numeric": 104,
+              "current": "68",
+              "current_numeric": 104,
+              "enabled": true,
+              "interrupt": true,
+              "linked": true,
+              "linked_to_index": 0,
+              "linked_to_type": "timer",
+              "name": "VBLANK TIMER",
+              "period_value": 7,
+              "registers": [
+                [
+                  "backup",
+                  "FD08",
+                  "68"
+                ],
+                [
+                  "control_a",
+                  "FD09",
+                  "9F"
+                ],
+                [
+                  "counter",
+                  "FD0A",
+                  "68"
+                ],
+                [
+                  "control_b",
+                  "FD0B",
+                  "08"
+                ]
+              ],
+              "timer": 2
+            }
+          },
+          {
+            "cpu_total_ticks": 22419626,
+            "hit": 12,
+            "pc": "026D",
+            "timer2": {
+              "backup": "68",
+              "backup_numeric": 104,
+              "current": "68",
+              "current_numeric": 104,
+              "enabled": true,
+              "interrupt": true,
+              "linked": true,
+              "linked_to_index": 0,
+              "linked_to_type": "timer",
+              "name": "VBLANK TIMER",
+              "period_value": 7,
+              "registers": [
+                [
+                  "backup",
+                  "FD08",
+                  "68"
+                ],
+                [
+                  "control_a",
+                  "FD09",
+                  "9F"
+                ],
+                [
+                  "counter",
+                  "FD0A",
+                  "68"
+                ],
+                [
+                  "control_b",
+                  "FD0B",
+                  "08"
+                ]
+              ],
+              "timer": 2
+            }
+          },
+          {
+            "cpu_total_ticks": 22604293,
+            "hit": 13,
+            "pc": "026D",
+            "timer2": {
+              "backup": "68",
+              "backup_numeric": 104,
+              "current": "68",
+              "current_numeric": 104,
+              "enabled": true,
+              "interrupt": true,
+              "linked": true,
+              "linked_to_index": 0,
+              "linked_to_type": "timer",
+              "name": "VBLANK TIMER",
+              "period_value": 7,
+              "registers": [
+                [
+                  "backup",
+                  "FD08",
+                  "68"
+                ],
+                [
+                  "control_a",
+                  "FD09",
+                  "9F"
+                ],
+                [
+                  "counter",
+                  "FD0A",
+                  "68"
+                ],
+                [
+                  "control_b",
+                  "FD0B",
+                  "08"
+                ]
+              ],
+              "timer": 2
+            }
+          },
+          {
+            "cpu_total_ticks": 22788722,
+            "hit": 14,
+            "pc": "026D",
+            "timer2": {
+              "backup": "68",
+              "backup_numeric": 104,
+              "current": "68",
+              "current_numeric": 104,
+              "enabled": true,
+              "interrupt": true,
+              "linked": true,
+              "linked_to_index": 0,
+              "linked_to_type": "timer",
+              "name": "VBLANK TIMER",
+              "period_value": 7,
+              "registers": [
+                [
+                  "backup",
+                  "FD08",
+                  "68"
+                ],
+                [
+                  "control_a",
+                  "FD09",
+                  "9F"
+                ],
+                [
+                  "counter",
+                  "FD0A",
+                  "68"
+                ],
+                [
+                  "control_b",
+                  "FD0B",
+                  "08"
+                ]
+              ],
+              "timer": 2
+            }
+          },
+          {
+            "cpu_total_ticks": 22973421,
+            "hit": 15,
+            "pc": "026D",
+            "timer2": {
+              "backup": "68",
+              "backup_numeric": 104,
+              "current": "68",
+              "current_numeric": 104,
+              "enabled": true,
+              "interrupt": true,
+              "linked": true,
+              "linked_to_index": 0,
+              "linked_to_type": "timer",
+              "name": "VBLANK TIMER",
+              "period_value": 7,
+              "registers": [
+                [
+                  "backup",
+                  "FD08",
+                  "68"
+                ],
+                [
+                  "control_a",
+                  "FD09",
+                  "9F"
+                ],
+                [
+                  "counter",
+                  "FD0A",
+                  "68"
+                ],
+                [
+                  "control_b",
+                  "FD0B",
+                  "08"
+                ]
+              ],
+              "timer": 2
+            }
+          },
+          {
+            "cpu_total_ticks": 23158067,
+            "hit": 16,
+            "pc": "026D",
+            "timer2": {
+              "backup": "68",
+              "backup_numeric": 104,
+              "current": "68",
+              "current_numeric": 104,
+              "enabled": true,
+              "interrupt": true,
+              "linked": true,
+              "linked_to_index": 0,
+              "linked_to_type": "timer",
+              "name": "VBLANK TIMER",
+              "period_value": 7,
+              "registers": [
+                [
+                  "backup",
+                  "FD08",
+                  "68"
+                ],
+                [
+                  "control_a",
+                  "FD09",
+                  "9F"
+                ],
+                [
+                  "counter",
+                  "FD0A",
+                  "68"
+                ],
+                [
+                  "control_b",
+                  "FD0B",
+                  "08"
+                ]
+              ],
+              "timer": 2
+            }
+          },
+          {
+            "cpu_total_ticks": 23342472,
+            "hit": 17,
+            "pc": "026D",
+            "timer2": {
+              "backup": "68",
+              "backup_numeric": 104,
+              "current": "68",
+              "current_numeric": 104,
+              "enabled": true,
+              "interrupt": true,
+              "linked": true,
+              "linked_to_index": 0,
+              "linked_to_type": "timer",
+              "name": "VBLANK TIMER",
+              "period_value": 7,
+              "registers": [
+                [
+                  "backup",
+                  "FD08",
+                  "68"
+                ],
+                [
+                  "control_a",
+                  "FD09",
+                  "9F"
+                ],
+                [
+                  "counter",
+                  "FD0A",
+                  "68"
+                ],
+                [
+                  "control_b",
+                  "FD0B",
+                  "08"
+                ]
+              ],
+              "timer": 2
+            }
+          },
+          {
+            "cpu_total_ticks": 23527169,
+            "hit": 18,
+            "pc": "026D",
+            "timer2": {
+              "backup": "68",
+              "backup_numeric": 104,
+              "current": "68",
+              "current_numeric": 104,
+              "enabled": true,
+              "interrupt": true,
+              "linked": true,
+              "linked_to_index": 0,
+              "linked_to_type": "timer",
+              "name": "VBLANK TIMER",
+              "period_value": 7,
+              "registers": [
+                [
+                  "backup",
+                  "FD08",
+                  "68"
+                ],
+                [
+                  "control_a",
+                  "FD09",
+                  "9F"
+                ],
+                [
+                  "counter",
+                  "FD0A",
+                  "68"
+                ],
+                [
+                  "control_b",
+                  "FD0B",
+                  "08"
+                ]
+              ],
+              "timer": 2
+            }
+          }
+        ]
+      },
+      "summary": {
+        "cpu_tick_stability": true,
+        "cpu_ticks_per_vblank_coefficient_of_variation": 0.0007415686878036548,
+        "cpu_ticks_per_vblank_median": 184668,
+        "cpu_ticks_per_vblank_stdev": 136.94400643932534,
+        "cpu_total_tick_differences": [
+          184352,
+          184684,
+          184668,
+          184334,
+          184703,
+          184672,
+          184460,
+          184680,
+          184685,
+          184422,
+          184683,
+          184667,
+          184429,
+          184699,
+          184646,
+          184405,
+          184697
+        ],
+        "sample_count": 18,
+        "timer2_counter_period_stable": true,
+        "timer2_counter_period_ticks": [
+          105,
+          105,
+          105,
+          105,
+          105,
+          105,
+          105,
+          105,
+          105,
+          105,
+          105,
+          105,
+          105,
+          105,
+          105,
+          105,
+          105
+        ],
+        "timer2_current_equals_backup_at_irq": true,
+        "timer2_interrupt_flag_at_irq": true,
+        "vblank_differences": [
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1,
+          1
+        ],
+        "zero_vblank_difference_count": 0
+      }
+    }
+  ],
+  "branch_decisions": {
+    "debugger_timing_contamination": "PASS",
+    "logic_bound": "PASS",
+    "phase_3r": "not_proven_pending_suzy_draw_bound",
+    "suzy_draw_bound": "UNPROVEN",
+    "timer2_vblank_calibration": "PASS"
+  },
+  "calibration": {
+    "cpu_tick_cross_check_stable": true,
+    "cpu_ticks_per_vblank_median_by_batch": [
+      184668,
+      184668
+    ],
+    "timer2_ticks_per_vblank": 105.0,
+    "timer2_ticks_per_vblank_median": 105.0,
+    "timer2_ticks_per_vblank_samples": [
+      105,
+      105,
+      105,
+      105,
+      105,
+      105,
+      105,
+      105,
+      105,
+      105,
+      105,
+      105,
+      105,
+      105,
+      105,
+      105,
+      105,
+      105,
+      105,
+      105,
+      105,
+      105,
+      105,
+      105,
+      105,
+      105,
+      105,
+      105,
+      105,
+      105,
+      105,
+      105,
+      105,
+      105
+    ],
+    "timer2_ticks_per_vblank_stable": true,
+    "timer2_ticks_per_vblank_stdev": 0.0
+  },
+  "diagnostic_only": true,
+  "logic_cost_source": {
+    "four_enemy_timer2_logic_median_ticks": 86,
+    "pure_increment_timer2_ticks": 68,
+    "source": "evidence/APS-053/logic-profile-v016.json",
+    "source_fixture_names": [
+      "0-enemy NORMAL",
+      "4-enemy NORMAL",
+      "4-enemy+BOSS BOSS"
+    ],
+    "source_sha256": "e13d51bad1bcbdf0ced5f686f621d12070b4c0b74e7fbe185d1751a91eb610cc",
+    "source_values_asserted": true,
+    "source_version": "v016",
+    "zero_enemy_timer2_logic_median_ticks": 18
+  },
+  "method": {
+    "boundary": "Gearlynx set_breakpoint_on_irq irq=2; TIMER2_INTERRUPT=VBL_INTERRUPT; one hit equals one VBlank boundary",
+    "debugger_contamination_policy": "FAIL",
+    "hits_per_batch": 18,
+    "independent_batches": 2,
+    "public_vblank_counter_equivalent": "Timer 2 IRQ boundary; no private address inference",
+    "timer2_wrap_policy": "FAIL",
+    "timer_snapshot": "get_mikey_timers(timer=2) backup/current",
+    "zero_vblank_difference_policy": "FAIL"
+  },
+  "release_runtime_modified": false,
+  "rom_after": {
+    "cadence_rom": {
+      "layout": {
+        "bss_end_inclusive": 47359,
+        "bss_size": 1358,
+        "bss_stack_nonoverlap": true,
+        "bss_start": 46002,
+        "bss_to_stack_residual_bytes": 264,
+        "c_stack_start": 47624,
+        "cadence_probe_intervals": {
+          "end_exclusive": 47110,
+          "inside_bss": true,
+          "inside_main": true,
+          "size": 75,
+          "start": 47035
+        },
+        "main_end_exclusive": 47624,
+        "main_size": 47112,
+        "main_start": 512,
+        "probe_symbols_present": true,
+        "segments": {
+          "BSS": {
+            "end": 47359,
+            "size": 1358,
+            "start": 46002
+          },
+          "CODE": {
+            "end": 37803,
+            "size": 37140,
+            "start": 664
+          },
+          "DATA": {
+            "end": 46001,
+            "size": 308,
+            "start": 45694
+          },
+          "RODATA": {
+            "end": 45693,
+            "size": 7890,
+            "start": 37804
+          },
+          "STARTUP": {
+            "end": 620,
+            "size": 109,
+            "start": 512
+          }
+        },
+        "stack_end_exclusive": 49208,
+        "stack_reserved_size": 1584
+      },
+      "path": "dist/asteroid-patrol-cadence.lnx",
+      "sha256": "a7c45b22d32d6e631035357d1dd5e1129052be1e2f4f8ca41c31368359eac019",
+      "size_bytes": 60331
+    },
+    "files": {
+      "cadence_map": {
+        "path": "build/asteroid-patrol-cadence.map",
+        "sha256": "3bc8cba2000797c72da9155b5ddb35ab2b39f748f135e798e63c591d9f961136",
+        "size_bytes": 146271
+      },
+      "release_map": {
+        "path": "build/asteroid-patrol.map",
+        "sha256": "d8bb6ef95cae7675ef2c117da19e439485fe893dbe6af0173ea7f18004bbde24",
+        "size_bytes": 144309
+      }
+    },
+    "release_rom": {
+      "layout": {
+        "bss_end_inclusive": 46837,
+        "bss_size": 1264,
+        "bss_stack_nonoverlap": true,
+        "bss_start": 45574,
+        "bss_to_stack_residual_bytes": 450,
+        "c_stack_start": 47288,
+        "cadence_probe_intervals": null,
+        "main_end_exclusive": 47288,
+        "main_size": 46776,
+        "main_start": 512,
+        "probe_symbols_present": false,
+        "segments": {
+          "BSS": {
+            "end": 46837,
+            "size": 1264,
+            "start": 45574
+          },
+          "CODE": {
+            "end": 37377,
+            "size": 36714,
+            "start": 664
+          },
+          "DATA": {
+            "end": 45573,
+            "size": 308,
+            "start": 45266
+          },
+          "RODATA": {
+            "end": 45265,
+            "size": 7888,
+            "start": 37378
+          },
+          "STARTUP": {
+            "end": 620,
+            "size": 109,
+            "start": 512
+          }
+        },
+        "stack_end_exclusive": 49208,
+        "stack_reserved_size": 1920
+      },
+      "path": "dist/asteroid-patrol.lnx",
+      "sha256": "323e8fa69f5f8e416290204e489355ca8fc792ac1d4313eac3a678b23d3ebd3c",
+      "size_bytes": 59903
+    }
+  },
+  "rom_before": {
+    "cadence_rom": {
+      "layout": {
+        "bss_end_inclusive": 47359,
+        "bss_size": 1358,
+        "bss_stack_nonoverlap": true,
+        "bss_start": 46002,
+        "bss_to_stack_residual_bytes": 264,
+        "c_stack_start": 47624,
+        "cadence_probe_intervals": {
+          "end_exclusive": 47110,
+          "inside_bss": true,
+          "inside_main": true,
+          "size": 75,
+          "start": 47035
+        },
+        "main_end_exclusive": 47624,
+        "main_size": 47112,
+        "main_start": 512,
+        "probe_symbols_present": true,
+        "segments": {
+          "BSS": {
+            "end": 47359,
+            "size": 1358,
+            "start": 46002
+          },
+          "CODE": {
+            "end": 37803,
+            "size": 37140,
+            "start": 664
+          },
+          "DATA": {
+            "end": 46001,
+            "size": 308,
+            "start": 45694
+          },
+          "RODATA": {
+            "end": 45693,
+            "size": 7890,
+            "start": 37804
+          },
+          "STARTUP": {
+            "end": 620,
+            "size": 109,
+            "start": 512
+          }
+        },
+        "stack_end_exclusive": 49208,
+        "stack_reserved_size": 1584
+      },
+      "path": "dist/asteroid-patrol-cadence.lnx",
+      "sha256": "a7c45b22d32d6e631035357d1dd5e1129052be1e2f4f8ca41c31368359eac019",
+      "size_bytes": 60331
+    },
+    "files": {
+      "cadence_map": {
+        "path": "build/asteroid-patrol-cadence.map",
+        "sha256": "3bc8cba2000797c72da9155b5ddb35ab2b39f748f135e798e63c591d9f961136",
+        "size_bytes": 146271
+      },
+      "release_map": {
+        "path": "build/asteroid-patrol.map",
+        "sha256": "d8bb6ef95cae7675ef2c117da19e439485fe893dbe6af0173ea7f18004bbde24",
+        "size_bytes": 144309
+      }
+    },
+    "release_rom": {
+      "layout": {
+        "bss_end_inclusive": 46837,
+        "bss_size": 1264,
+        "bss_stack_nonoverlap": true,
+        "bss_start": 45574,
+        "bss_to_stack_residual_bytes": 450,
+        "c_stack_start": 47288,
+        "cadence_probe_intervals": null,
+        "main_end_exclusive": 47288,
+        "main_size": 46776,
+        "main_start": 512,
+        "probe_symbols_present": false,
+        "segments": {
+          "BSS": {
+            "end": 46837,
+            "size": 1264,
+            "start": 45574
+          },
+          "CODE": {
+            "end": 37377,
+            "size": 36714,
+            "start": 664
+          },
+          "DATA": {
+            "end": 45573,
+            "size": 308,
+            "start": 45266
+          },
+          "RODATA": {
+            "end": 45265,
+            "size": 7888,
+            "start": 37378
+          },
+          "STARTUP": {
+            "end": 620,
+            "size": 109,
+            "start": 512
+          }
+        },
+        "stack_end_exclusive": 49208,
+        "stack_reserved_size": 1920
+      },
+      "path": "dist/asteroid-patrol.lnx",
+      "sha256": "323e8fa69f5f8e416290204e489355ca8fc792ac1d4313eac3a678b23d3ebd3c",
+      "size_bytes": 59903
+    }
+  },
+  "rom_map_unchanged": true,
+  "status": "PASS",
+  "theoretical_bound": {
+    "gate_next_step": "logic_min_vblank<=2\u3060\u304cSuzy\u63cf\u753b\u4e0b\u9650\u672a\u78ba\u5b9a\u306e\u305f\u3081\u3001Phase 3R\u672c\u5b9f\u88c5\u3067\u306f\u306a\u304fbpp\u5909\u63db\u30fb\u53ce\u652f\u8868\u30b2\u30fc\u30c8\u3078\u9032\u3080",
+    "logic_bound_proven_le_2_vblank": true,
+    "logic_min_vblank": 0.6476190476190476,
+    "logic_pure_increment_ticks": 68,
+    "phase3r_reachability": "not_proven_pending_suzy_draw_bound",
+    "suzy_draw_bound": {
+      "lower_bound_vblank": null,
+      "minimum_additional_measurement": "Phase 3R\u5019\u88dcSCB\u3092\u5b9f\u88c5\u305b\u305a\u306b\u3001\u56fa\u5b9abpp/SCB\u69cb\u6210\u3092\u5bfe\u8c61\u3068\u3057\u305fSuzy\u958b\u59cb\u304b\u3089\u5b8c\u4e86\u307e\u3067\u306eTimer2 tick\u8a08\u6e2c\u30682VBlank\u5185\u53ce\u652f\u8868",
+      "reason": "\u65e2\u5b58\u516c\u958b\u5883\u754c/Timer2\u8a08\u6e2c\u306fSuzy\u63cf\u753b\u306e\u72ec\u7acb\u3057\u305f\u6700\u5c0f\u4e0a\u9650\u3092\u8a3c\u660e\u3057\u306a\u3044\u3002Phase 3R\u3067bpp\u5909\u63db\u30fbSCB\u69cb\u6210\u5225\u306e\u6700\u5c0f\u63cf\u753b\u8a08\u6e2c\u304c\u5fc5\u8981\u3002",
+      "status": "unknown",
+      "treated_as_zero": false
+    },
+    "timer2_ticks_per_vblank": 105.0
+  },
+  "version": "v024"
+}

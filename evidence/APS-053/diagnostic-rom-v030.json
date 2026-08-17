@@ -1,0 +1,72 @@
+{
+  "aps": "APS-053",
+  "classification": {
+    "LNX_header_or_payload_corruption": "not_observed_locally",
+    "cc65_SCB_packing_or_penpal_mismatch": "not_determinable_on_physical_hardware",
+    "old_rom_or_wrong_file": "confirmed_possible_before_v026; separated by unique version 0.53.6",
+    "real_hardware_transfer_identity": "not_determinable_locally"
+  },
+  "generated_at_utc": "2026-08-17T07:38:53.815326+00:00",
+  "phase": "v030",
+  "physical_confirmation_required": [
+    "SHA-256 of the exact file sent to the cartridge writer must equal this ROM sha256",
+    "TITLE must show V0.53.9",
+    "record cartridge writer/transfer log and reset/reload procedure"
+  ],
+  "purpose": "minimum versioned ROM for old-ROM/transfer separation",
+  "rom": {
+    "lnx": {
+      "bank0_page": 1024,
+      "bank1_page": 0,
+      "version": 1
+    },
+    "path": "/Users/mammycloud-m4/Documents/develop-m4/atari-lynx-shooter/dist/asteroid-patrol.lnx",
+    "payload_size": 58469,
+    "sha256": "ebddd18877207b9773ea59cede2143fa4bbfc8f07f47bef3ca046a57a5892d1b",
+    "size": 58533,
+    "version_payload_offsets": [
+      36116
+    ]
+  },
+  "source": {
+    "fixed_texts": {
+      "A/B TO START": {
+        "bytes": 71,
+        "matches_independent_renderer": true,
+        "sha256": "bb6c48cdf83692e5560594f10792a5cf496eaa1df193c8817a42da0d1d9a43b2",
+        "symbol": "static_layer_text_ab_to_start_data"
+      },
+      "A/B: FIRE": {
+        "bytes": 57,
+        "matches_independent_renderer": true,
+        "sha256": "c1d0d4f47f9126bd4ae757064d692616748caf225cbea7a098c5f01a21978b55",
+        "symbol": "static_layer_text_ab_fire_data"
+      },
+      "ARROWS: MOVE": {
+        "bytes": 71,
+        "matches_independent_renderer": true,
+        "sha256": "6f851b2481b12d492f2a272d9f3736d9d7436200094e2828aa146b082d340093",
+        "symbol": "static_layer_text_arrows_move_data"
+      },
+      "ASTEROID PATROL": {
+        "bytes": 92,
+        "matches_independent_renderer": true,
+        "sha256": "8f58dc08a15ec319e466da7656407bca0d5c7eecfed36f222f69099c56c8e5b2",
+        "symbol": "static_layer_text_asteroid_patrol_data"
+      },
+      "VOICEVOX:Nemo": {
+        "bytes": 78,
+        "matches_independent_renderer": true,
+        "sha256": "c14ccf88fcaf87caa03b54c8b8ae137f773052f1a8712a9864224e2bdd40918e",
+        "symbol": "static_layer_text_voicevox_nemo_data"
+      }
+    },
+    "generator_fixed_mask": "16 >> column",
+    "generator_sha256": "ce4ad1b51ecf5c06b1c0c5db2d693d0e1aeafa32ad4f535e1621615aa78bcfe9",
+    "runtime_dynamic_mask": "16u >> column",
+    "static_layer_data_sha256": "f76ff7fe4d0f74b3858e8c1ab6a661f17a113926d2da3585f6bdfae97c1a5bef",
+    "static_layer_runtime_sha256": "0ef73409af633ffbb399ad2b822bf1d9ca9a8637d3aa03a3cf24e6fd0eda6036",
+    "version_header_sha256": "e188cf762f50dac659b55049d89a1c08c61489813d0162a81b2ecccd22ba689f"
+  },
+  "version": "0.53.9"
+}

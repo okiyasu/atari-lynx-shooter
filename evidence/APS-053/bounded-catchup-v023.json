@@ -1,0 +1,319 @@
+{
+  "aps": "APS-053",
+  "branch_decisions": {
+    "bounded_fixed_step_catchup": "FAIL; see failure_diagnostics/error",
+    "phase_3r": "NOT STARTED",
+    "safe_fail": true
+  },
+  "comparison_baseline_v022": {
+    "cadence_map_sha256": "3bc8cba2000797c72da9155b5ddb35ab2b39f748f135e798e63c591d9f961136",
+    "cadence_rom_sha256": "8d40092eb11e6f43b16a404dc7795644896305f59dd4133bbd0aa812bb646cab",
+    "release_map_sha256": "d8bb6ef95cae7675ef2c117da19e439485fe893dbe6af0173ea7f18004bbde24",
+    "release_rom_sha256": "0c200312f9426b0cd8039ca3a374e8e782f9573b30bc19b0fb5d5c8b73dcafeb"
+  },
+  "diagnostic_only": false,
+  "error": "FileNotFoundError: [Errno 2] No such file or directory: 'build/asteroid-patrol-cadence.lbl'",
+  "failure_diagnostics": {
+    "capture_progress": {
+      "batch": 2,
+      "fixture": "4-enemy NORMAL",
+      "interval": 10,
+      "last_successful_boundary": {
+        "cpu_total_ticks": 113234489,
+        "description": "consume interval 10 end batch 2",
+        "pc": "0x7F5A"
+      }
+    },
+    "mcp_port": 17779,
+    "reproduction_command": "make phase-2r-bounded-catchup-gearlynx"
+  },
+  "method": {
+    "combat_readback": {
+      "enemy_bullets": "all 16 slots: active count and active x/y",
+      "enemy_slots": "all 8 slots: active/type/x/y"
+    },
+    "discard_clip_derivation": "verifier publishes exact discard/clip values from raw elapsed and bounded caps; no production BSS/code instrumentation",
+    "fresh": "4-enemy NORMAL injected before every measured interval",
+    "independent_batches_per_mode": 2,
+    "interval_delimiter": "consecutive _game_timing_consume_vblanks entries",
+    "intervals_per_batch": 10,
+    "negative_control": "0-enemy NORMAL profile and no-profile, two batches",
+    "no_reinject": "4-enemy NORMAL injected once before interval 1; zero interval reinjections",
+    "probe_counters": [
+      "raw elapsed VBlank",
+      "logic/sound execution"
+    ],
+    "public_breakpoint_protocol": "one public breakpoint at a time; set -> hit -> snapshot -> remove; step_out only for tgi_ioctl return",
+    "public_chain": [
+      "consume",
+      "tgi_busy",
+      "static_layer_draw",
+      "tgi_sprite",
+      "game_display_request",
+      "tgi_updatedisplay",
+      "next consume"
+    ],
+    "scheduler": {
+      "excess_credit": "discarded at the end of the current outer loop; no carry-over",
+      "logic_cap": 12,
+      "logic_credit": "raw_elapsed_vblanks * 4",
+      "sound_cap": 4,
+      "sound_credit": "raw_elapsed_vblanks"
+    }
+  },
+  "mode": "bounded fixed-step catch-up: 4-enemy NORMAL fresh vs no-reinject",
+  "release_runtime_modified": true,
+  "rom_after_error": "[Errno 2] No such file or directory: 'build/asteroid-patrol-cadence.lbl'",
+  "rom_before": {
+    "cadence_rom": {
+      "layout": {
+        "bss_end_inclusive": 47359,
+        "bss_size": 1358,
+        "bss_stack_nonoverlap": true,
+        "bss_start": 46002,
+        "bss_to_stack_residual_bytes": 264,
+        "c_stack_start": 47624,
+        "cadence_probe_intervals": {
+          "end_exclusive": 47110,
+          "inside_bss": true,
+          "inside_main": true,
+          "size": 75,
+          "start": 47035
+        },
+        "main_end_exclusive": 47624,
+        "main_size": 47112,
+        "main_start": 512,
+        "probe_symbols_present": true,
+        "segments": {
+          "BSS": {
+            "end": 47359,
+            "size": 1358,
+            "start": 46002
+          },
+          "CODE": {
+            "end": 37803,
+            "size": 37140,
+            "start": 664
+          },
+          "DATA": {
+            "end": 46001,
+            "size": 308,
+            "start": 45694
+          },
+          "RODATA": {
+            "end": 45693,
+            "size": 7890,
+            "start": 37804
+          },
+          "STARTUP": {
+            "end": 620,
+            "size": 109,
+            "start": 512
+          }
+        },
+        "stack_end_exclusive": 49208,
+        "stack_reserved_size": 1584
+      },
+      "path": "dist/asteroid-patrol-cadence.lnx",
+      "sha256": "a7c45b22d32d6e631035357d1dd5e1129052be1e2f4f8ca41c31368359eac019",
+      "size_bytes": 60331
+    },
+    "files": {
+      "cadence_map": {
+        "path": "build/asteroid-patrol-cadence.map",
+        "sha256": "3bc8cba2000797c72da9155b5ddb35ab2b39f748f135e798e63c591d9f961136"
+      },
+      "release_map": {
+        "path": "build/asteroid-patrol.map",
+        "sha256": "d8bb6ef95cae7675ef2c117da19e439485fe893dbe6af0173ea7f18004bbde24"
+      }
+    },
+    "map_layout": {
+      "cadence": {
+        "bss_end_inclusive": 47359,
+        "bss_size": 1358,
+        "bss_stack_nonoverlap": true,
+        "bss_start": 46002,
+        "bss_to_stack_residual_bytes": 264,
+        "c_stack_start": 47624,
+        "cadence_probe_intervals": {
+          "end_exclusive": 47110,
+          "inside_bss": true,
+          "inside_main": true,
+          "size": 75,
+          "start": 47035
+        },
+        "main_end_exclusive": 47624,
+        "main_size": 47112,
+        "main_start": 512,
+        "probe_symbols_present": true,
+        "segments": {
+          "BSS": {
+            "end": 47359,
+            "size": 1358,
+            "start": 46002
+          },
+          "CODE": {
+            "end": 37803,
+            "size": 37140,
+            "start": 664
+          },
+          "DATA": {
+            "end": 46001,
+            "size": 308,
+            "start": 45694
+          },
+          "RODATA": {
+            "end": 45693,
+            "size": 7890,
+            "start": 37804
+          },
+          "STARTUP": {
+            "end": 620,
+            "size": 109,
+            "start": 512
+          }
+        },
+        "stack_end_exclusive": 49208,
+        "stack_reserved_size": 1584
+      },
+      "normal": {
+        "bss_end_inclusive": 46837,
+        "bss_size": 1264,
+        "bss_stack_nonoverlap": true,
+        "bss_start": 45574,
+        "bss_to_stack_residual_bytes": 450,
+        "c_stack_start": 47288,
+        "cadence_probe_intervals": null,
+        "main_end_exclusive": 47288,
+        "main_size": 46776,
+        "main_start": 512,
+        "probe_symbols_present": false,
+        "segments": {
+          "BSS": {
+            "end": 46837,
+            "size": 1264,
+            "start": 45574
+          },
+          "CODE": {
+            "end": 37377,
+            "size": 36714,
+            "start": 664
+          },
+          "DATA": {
+            "end": 45573,
+            "size": 308,
+            "start": 45266
+          },
+          "RODATA": {
+            "end": 45265,
+            "size": 7888,
+            "start": 37378
+          },
+          "STARTUP": {
+            "end": 620,
+            "size": 109,
+            "start": 512
+          }
+        },
+        "stack_end_exclusive": 49208,
+        "stack_reserved_size": 1920
+      }
+    },
+    "release_rom": {
+      "layout": {
+        "bss_end_inclusive": 46837,
+        "bss_size": 1264,
+        "bss_stack_nonoverlap": true,
+        "bss_start": 45574,
+        "bss_to_stack_residual_bytes": 450,
+        "c_stack_start": 47288,
+        "cadence_probe_intervals": null,
+        "main_end_exclusive": 47288,
+        "main_size": 46776,
+        "main_start": 512,
+        "probe_symbols_present": false,
+        "segments": {
+          "BSS": {
+            "end": 46837,
+            "size": 1264,
+            "start": 45574
+          },
+          "CODE": {
+            "end": 37377,
+            "size": 36714,
+            "start": 664
+          },
+          "DATA": {
+            "end": 45573,
+            "size": 308,
+            "start": 45266
+          },
+          "RODATA": {
+            "end": 45265,
+            "size": 7888,
+            "start": 37378
+          },
+          "STARTUP": {
+            "end": 620,
+            "size": 109,
+            "start": 512
+          }
+        },
+        "stack_end_exclusive": 49208,
+        "stack_reserved_size": 1920
+      },
+      "path": "dist/asteroid-patrol.lnx",
+      "sha256": "323e8fa69f5f8e416290204e489355ca8fc792ac1d4313eac3a678b23d3ebd3c",
+      "size_bytes": 59903
+    },
+    "source_tree": {
+      "cfg/lynx-voice-cadence.cfg": "6e4e3e02d5b4a35b1422f409dabd2642fa5a73dfad2221a3e36bcf56852e2061",
+      "cfg/lynx-voice.cfg": "2624d5eedf390b3e621ef88fcce7014c6c796b8e5cd074ad3d6ad1686db236a6",
+      "include/cadence_probe.h": "fe91d1e7cf5179a503419227cfe7111d3e1462a2444a7090ae6d506b90fca04e",
+      "include/game.h": "b077f8eb3ee438ddedf587a17a79d6cab5c0d7da1ee082a9c83c7005d2e148f6",
+      "include/game_over_voice_data.h": "c8e2a529ddaa728f406e9507fe9e26bf39dc4662d2643aa28219af72622c403b",
+      "include/game_timing.h": "36d37fa064fe1b463a3c7363465a6e544912bca4afd999bfc7442b28ba6248e7",
+      "include/ima_adpcm.h": "dde757a005fe6bf514a4af8ff99da511a1698177e130c1fba06471004c93a4ed",
+      "include/pcm_stream.h": "4456cd6dd031a0a78e007e968f0d2d8f559308b5bd3f37f52855ec10cf2c6195",
+      "include/sound.h": "5274f51b3a9aa3431c80a9356128861ed7b83f90a8a25f3acba568d125866feb",
+      "include/static_layer.h": "d36c9d21f815775d29f3591322ba3a773df44be525d5ea8676aebfebe88231b1",
+      "include/static_layer_data.h": "50a87573b71d888755168009e3ab24cce7b6975a863ff22ab5a57042349b68c3",
+      "include/title_voice.h": "771ca96e021c6b0674e12702f082f5e61444b6ae7d5f2151e1e07508a36ee7a1",
+      "include/title_voice_data.h": "d1fedbe9f7cc2c53b9b4d7d4381e2101728521a29684d9c390266ab0fe87bf39",
+      "include/title_voice_stream.h": "40312dac9d7d5c9d540b9537bbd3c883e6815d0fc910cff7889ed508e238fb05",
+      "include/version.h": "9e3d4512e92cb54d50a87a8b6af6094aff1c16db61db96d853bf64dde84a7c5e",
+      "src/cadence_probe.s": "d8bcc8926be64e294ca088c5c75bf816054b16e2a7d52cf5d817bf88655007e9",
+      "src/cart_directory.s": "d3f7d4592e22869ecf3b8ee8bc275269af3974bc9c2632324b02581898c63247",
+      "src/game.c": "47fe3e9f68213cf65ffebf04415a5f58189cc19f44590e38e8c57f14358c7799",
+      "src/game_timing.s": "8ab27a3b3cfd4925822f3acf134f8161bee71c52c893e70ef6392969d777f9ed",
+      "src/ima_adpcm.c": "9b7875c2b8536de88612834f908012d209bf28736ae361fccd7d635dd26511b2",
+      "src/main.c": "0353ff39568323d41a29e7d4bbe2186200f24969e447291a8b925f1dfb210f92",
+      "src/pcm_stream.s": "638c641ea5a75ef370ca28f647ba81e1ea91286219c6a5d45d07b99e64d3e218",
+      "src/sound.c": "b0b3fb60d76429d38bb99abce30a72f5fd3251dab6cf6f3e4659468925d02c57",
+      "src/static_layer.c": "39ee09fc2a9c7cfbbf01b8dcd3d0160d64698756aed002a835a72e91704fb131",
+      "src/static_layer_data.c": "4175592fc1da757a5d3b958ca42af28b97316fd3510fc34b6a3041a9222421c9",
+      "src/title_voice.c": "44bc975479c2bc6e8fba40038bd9ac45e2b7498cac2ad545506a40ebad043a6c",
+      "src/title_voice_asset.s": "e440126ed409c304f51a074eff7b89a521bab8f1deac777678074a1e6f6ba79c",
+      "src/title_voice_delta.inc": "c1217f2b00589e833cc3eab754d7b5e38b0afad1b75c96aa088ceb0265ce4c2a",
+      "src/title_voice_gain.inc": "92ddf3ee1bca40156d7831942ed787c46c196e3c6b366bee77dff14a477dbed9",
+      "src/title_voice_stream.s": "2ec90cfcd9a80f163bd4657d654dfe2b4b18d5ea43d376866842f9d5feabc727"
+    }
+  },
+  "status": "FAIL",
+  "symbol_resolution": {
+    "internal_function_address_inference": false,
+    "public_only": true,
+    "required_all_resolved": true,
+    "resolved": {
+      "_game_display_request": "0x0298",
+      "_game_sound_tick": "0x20AA",
+      "_game_timing_consume_vblanks": "0x7F5A",
+      "_game_update_logic": "0x1D09",
+      "_static_layer_draw": "0x7355",
+      "_tgi_ioctl": "0x8E13"
+    }
+  },
+  "traceback": "Traceback (most recent call last):\n  File \"/Users/mammycloud-m4/Documents/develop-m4/atari-lynx-shooter/./scripts/verify-display-profile-gearlynx.py\", line 1457, in run_bounded_catchup\n    no_reinject = run_mode(\"no-reinject\", no_reinject=True)\n  File \"/Users/mammycloud-m4/Documents/develop-m4/atari-lynx-shooter/./scripts/verify-display-profile-gearlynx.py\", line 1441, in run_mode\n    batches = [run_display_batch(\n  File \"/Users/mammycloud-m4/Documents/develop-m4/atari-lynx-shooter/./scripts/verify-display-profile-gearlynx.py\", line 1441, in <listcomp>\n    batches = [run_display_batch(\n  File \"/Users/mammycloud-m4/Documents/develop-m4/atari-lynx-shooter/./scripts/verify-display-profile-gearlynx.py\", line 435, in run_display_batch\n    game_address = frame.symbol_address(symbols, \"_game\")\n  File \"/Users/mammycloud-m4/Documents/develop-m4/atari-lynx-shooter/scripts/verify-frame-pacing-gearlynx.py\", line 99, in symbol_address\n    text = symbols_path.read_text(encoding=\"utf-8\")\n  File \"/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/pathlib.py\", line 1256, in read_text\n    with self.open(mode='r', encoding=encoding, errors=errors) as f:\n  File \"/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/pathlib.py\", line 1242, in open\n    return io.open(self, mode, buffering, encoding, errors, newline,\n  File \"/Applications/Xcode.app/Contents/Developer/Library/Frameworks/Python3.framework/Versions/3.9/lib/python3.9/pathlib.py\", line 1110, in _opener\n    return self._accessor.open(self, flags, mode)\nFileNotFoundError: [Errno 2] No such file or directory: 'build/asteroid-patrol-cadence.lbl'\n",
+  "version": "v023"
+}
