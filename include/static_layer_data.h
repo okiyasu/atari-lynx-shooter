@@ -63,9 +63,7 @@ extern const unsigned char static_layer_space_far_star_data[];
 #define STATIC_LAYER_NEAR_STAR_BPP 1
 extern const unsigned char static_layer_near_star_data[];
 
-#define STATIC_LAYER_GLYPH_COUNT 18
-extern const unsigned char static_layer_glyph_bits[];
-#define STATIC_LAYER_FONT_COUNT 39
+#define STATIC_LAYER_FONT_COUNT 32
 #define STATIC_LAYER_FONT_WIDTH 5
 #define STATIC_LAYER_FONT_HEIGHT 7
 extern const unsigned char static_layer_font_bits[];

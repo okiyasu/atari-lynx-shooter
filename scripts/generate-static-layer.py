@@ -166,21 +166,11 @@ def main():
     rock_image = layer_from_runs(160, 102, cave_rock, 1)
     cave_near_image = layer_from_runs(160, 102, cave_near, 1)
 
-    glyphs = {
-        "0": [7, 5, 5, 5, 7], "1": [2, 6, 2, 2, 7],
-        "2": [7, 1, 7, 4, 7], "3": [7, 1, 7, 1, 7],
-        "4": [5, 5, 7, 1, 1], "5": [7, 4, 7, 1, 7],
-        "6": [7, 4, 7, 5, 7], "7": [7, 1, 2, 2, 2],
-        "8": [7, 5, 7, 5, 7], "9": [7, 5, 7, 1, 7],
-        "S": [7, 4, 7, 1, 7], "I": [7, 2, 2, 2, 7],
-        "N": [5, 7, 7, 7, 5], "W": [5, 5, 5, 7, 2],
-        "B": [6, 5, 6, 5, 6], "C": [7, 4, 4, 4, 7],
-        "A": [2, 5, 7, 5, 5], "L": [4, 4, 4, 4, 7],
-    }
-
     # The old TGI vector font is deliberately not linked into the ROM. These
     # compact 5x7 glyphs are the direct-Suzy replacement for title/overlay
-    # text; the rows are five-bit images, left aligned in the source value.
+    # text and (as of APS-053 T1) the HUD as well. Rows are five-bit images,
+    # left aligned in the source value. H/J/K/Q/U/Y/Z are dropped: unused
+    # across every rendered string in the ROM (title/HUD/game-over/version).
     font_glyphs = {
         "A": [14, 17, 17, 31, 17, 17, 17],
         "B": [30, 17, 17, 30, 17, 17, 30],
@@ -189,25 +179,18 @@ def main():
         "E": [31, 16, 16, 30, 16, 16, 31],
         "F": [31, 16, 16, 30, 16, 16, 16],
         "G": [14, 17, 16, 23, 17, 17, 14],
-        "H": [17, 17, 17, 31, 17, 17, 17],
         "I": [31, 4, 4, 4, 4, 4, 31],
-        "J": [7, 2, 2, 2, 2, 18, 12],
-        "K": [17, 18, 20, 24, 20, 18, 17],
         "L": [16, 16, 16, 16, 16, 16, 31],
         "M": [17, 27, 21, 21, 17, 17, 17],
         "N": [17, 25, 21, 19, 17, 17, 17],
         "O": [14, 17, 17, 17, 17, 17, 14],
         "P": [30, 17, 17, 30, 16, 16, 16],
-        "Q": [14, 17, 17, 17, 21, 18, 13],
         "R": [30, 17, 17, 30, 20, 18, 17],
         "S": [15, 16, 16, 14, 1, 1, 30],
         "T": [31, 4, 4, 4, 4, 4, 4],
-        "U": [17, 17, 17, 17, 17, 17, 14],
         "V": [17, 17, 17, 17, 10, 10, 4],
         "W": [17, 17, 17, 21, 21, 27, 17],
         "X": [17, 17, 10, 4, 10, 17, 17],
-        "Y": [17, 17, 10, 4, 4, 4, 4],
-        "Z": [31, 1, 2, 4, 8, 16, 31],
         "0": [14, 17, 19, 21, 25, 17, 14],
         "1": [4, 12, 4, 4, 4, 4, 14],
         "2": [14, 17, 1, 2, 4, 8, 31],
@@ -222,10 +205,6 @@ def main():
         ":": [0, 4, 4, 0, 0, 4, 4],
         ".": [0, 0, 0, 0, 0, 6, 6],
     }
-    glyph_images = {}
-    for glyph, rows in glyphs.items():
-        glyph_images[glyph] = [[1 if row & (4 >> x) else 0 for x in range(3)]
-                               for row in rows]
 
     layers = {
         "clear": ([[1]], 1, 0),
@@ -251,10 +230,6 @@ def main():
         header.append("#define STATIC_LAYER_%s_BPP %d" % (name.upper(), bits))
         header.append("extern const unsigned char static_layer_%s_data[];" % name)
         header.append("")
-    output.append("const unsigned char static_layer_glyph_bits[] = {")
-    output.append("    " + ", ".join(str(value) for rows in glyphs.values() for value in rows) + ",")
-    output.append("};")
-    output.append("")
     output.append("const unsigned char static_layer_font_bits[] = {")
     font_bits = [value for rows in font_glyphs.values() for value in rows]
     output.append("    " + ", ".join(str(value) for value in font_bits) + ",")
@@ -336,8 +311,6 @@ def main():
                   ", ".join(str(row[1]) for row in far_stars) + "};")
     output.append("")
     header.extend([
-        "#define STATIC_LAYER_GLYPH_COUNT %d" % len(glyphs),
-        "extern const unsigned char static_layer_glyph_bits[];",
         "#define STATIC_LAYER_FONT_COUNT %d" % len(font_glyphs),
         "#define STATIC_LAYER_FONT_WIDTH 5",
         "#define STATIC_LAYER_FONT_HEIGHT 7",

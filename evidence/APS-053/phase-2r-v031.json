@@ -1,0 +1,1303 @@
+{
+  "aps": "APS-053",
+  "method": {
+    "dynamic_pixel_mask": "none required; dynamic objects are off-screen",
+    "fixture": "GAME_PHASE_STAGE_INTRO, player x/y=250, enemy/object slots inactive",
+    "framebuffer_pages": {
+      "bytes": 8160,
+      "page0": "0xE018",
+      "page1": "0xC038"
+    },
+    "scb_capture": "breakpoint at real _tgi_ioctl entry before SPRGO"
+  },
+  "passed": true,
+  "phase": "2R-2",
+  "rom": {
+    "path": "dist/asteroid-patrol.lnx",
+    "sha256": "4a7bce584e3f1d4da6451441387a4b83a19aa1a09a7f38124ae4ce9757871bcb"
+  },
+  "stages": [
+    {
+      "buffer_readback": {
+        "both_match_expected": true,
+        "buffers_equal": true,
+        "dispadr": {
+          "cpu_address": "0xE018",
+          "png": "stage1-dispadr.png",
+          "png_sha256": "59d0dd6c192015903744fb53be092328e7f6c4c93dc7d06060b6201e0af6a3d5"
+        },
+        "dispadr_rgba_histogram": {
+          "(0, 0, 0, 255)": 15368,
+          "(102, 51, 68, 255)": 61,
+          "(119, 68, 102, 255)": 15,
+          "(255, 255, 255, 255)": 278,
+          "(51, 17, 17, 255)": 598
+        },
+        "expected_nonzero_pixels": 952,
+        "mismatches": [],
+        "page_size": 8160,
+        "screenshot": {
+          "png": "stage1-screen.png",
+          "png_sha256": "59d0dd6c192015903744fb53be092328e7f6c4c93dc7d06060b6201e0af6a3d5"
+        },
+        "vidbas": {
+          "cpu_address": "0xC038",
+          "png": "stage1-vidbas.png",
+          "png_sha256": "59d0dd6c192015903744fb53be092328e7f6c4c93dc7d06060b6201e0af6a3d5"
+        },
+        "vidbas_rgba_histogram": {
+          "(0, 0, 0, 255)": 15368,
+          "(102, 51, 68, 255)": 61,
+          "(119, 68, 102, 255)": 15,
+          "(255, 255, 255, 255)": 278,
+          "(51, 17, 17, 255)": 598
+        }
+      },
+      "expected_index_sha256": "7a1216b0c3e01379e86c9316886c647c2d6bf9221b52e0cbb49617957e6718c2",
+      "palette_rgba_map": {
+        "0": [
+          0,
+          0,
+          0,
+          255
+        ],
+        "1": [
+          51,
+          17,
+          17,
+          255
+        ],
+        "10": [
+          51,
+          238,
+          153,
+          255
+        ],
+        "11": [
+          34,
+          136,
+          68,
+          255
+        ],
+        "12": [
+          85,
+          255,
+          221,
+          255
+        ],
+        "13": [
+          221,
+          136,
+          68,
+          255
+        ],
+        "14": [
+          187,
+          51,
+          204,
+          255
+        ],
+        "15": [
+          255,
+          255,
+          255,
+          255
+        ],
+        "2": [
+          85,
+          34,
+          34,
+          255
+        ],
+        "3": [
+          102,
+          51,
+          68,
+          255
+        ],
+        "4": [
+          119,
+          68,
+          102,
+          255
+        ],
+        "5": [
+          153,
+          85,
+          119,
+          255
+        ],
+        "6": [
+          204,
+          255,
+          34,
+          255
+        ],
+        "7": [
+          238,
+          153,
+          255,
+          255
+        ],
+        "8": [
+          68,
+          255,
+          102,
+          255
+        ],
+        "9": [
+          136,
+          51,
+          68,
+          255
+        ]
+      },
+      "passed": true,
+      "scb_chain": [
+        {
+          "address": 44023,
+          "data": 40027,
+          "hpos": 0,
+          "hsize": 40960,
+          "next": 44046,
+          "penpal": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "sprcoll": 32,
+          "sprctl0": 1,
+          "sprctl1": 16,
+          "vpos": 0,
+          "vsize": 26112
+        },
+        {
+          "address": 44046,
+          "data": 40031,
+          "hpos": 120,
+          "hsize": 256,
+          "next": 44069,
+          "penpal": [
+            1,
+            48,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "sprcoll": 32,
+          "sprctl0": 69,
+          "sprctl1": 16,
+          "vpos": 18,
+          "vsize": 256
+        },
+        {
+          "address": 44069,
+          "data": 41695,
+          "hpos": 4,
+          "hsize": 256,
+          "next": 44092,
+          "penpal": [
+            3,
+            48,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "sprcoll": 32,
+          "sprctl0": 5,
+          "sprctl1": 16,
+          "vpos": 17,
+          "vsize": 256
+        },
+        {
+          "address": 44092,
+          "data": 41695,
+          "hpos": 19,
+          "hsize": 256,
+          "next": 44115,
+          "penpal": [
+            3,
+            48,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "sprcoll": 32,
+          "sprctl0": 5,
+          "sprctl1": 16,
+          "vpos": 72,
+          "vsize": 256
+        },
+        {
+          "address": 44115,
+          "data": 41695,
+          "hpos": 37,
+          "hsize": 256,
+          "next": 44138,
+          "penpal": [
+            3,
+            48,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "sprcoll": 32,
+          "sprctl0": 5,
+          "sprctl1": 16,
+          "vpos": 31,
+          "vsize": 256
+        },
+        {
+          "address": 44138,
+          "data": 41695,
+          "hpos": 55,
+          "hsize": 256,
+          "next": 44161,
+          "penpal": [
+            3,
+            48,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "sprcoll": 32,
+          "sprctl0": 5,
+          "sprctl1": 16,
+          "vpos": 90,
+          "vsize": 256
+        },
+        {
+          "address": 44161,
+          "data": 41695,
+          "hpos": 74,
+          "hsize": 256,
+          "next": 44184,
+          "penpal": [
+            3,
+            48,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "sprcoll": 32,
+          "sprctl0": 5,
+          "sprctl1": 16,
+          "vpos": 52,
+          "vsize": 256
+        },
+        {
+          "address": 44184,
+          "data": 41695,
+          "hpos": 91,
+          "hsize": 256,
+          "next": 44207,
+          "penpal": [
+            3,
+            48,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "sprcoll": 32,
+          "sprctl0": 5,
+          "sprctl1": 16,
+          "vpos": 14,
+          "vsize": 256
+        },
+        {
+          "address": 44207,
+          "data": 41695,
+          "hpos": 108,
+          "hsize": 256,
+          "next": 44230,
+          "penpal": [
+            3,
+            48,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "sprcoll": 32,
+          "sprctl0": 5,
+          "sprctl1": 16,
+          "vpos": 81,
+          "vsize": 256
+        },
+        {
+          "address": 44230,
+          "data": 41695,
+          "hpos": 127,
+          "hsize": 256,
+          "next": 44253,
+          "penpal": [
+            3,
+            48,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "sprcoll": 32,
+          "sprctl0": 5,
+          "sprctl1": 16,
+          "vpos": 39,
+          "vsize": 256
+        },
+        {
+          "address": 44253,
+          "data": 41695,
+          "hpos": 143,
+          "hsize": 256,
+          "next": 44276,
+          "penpal": [
+            3,
+            48,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "sprcoll": 32,
+          "sprctl0": 5,
+          "sprctl1": 16,
+          "vpos": 65,
+          "vsize": 256
+        },
+        {
+          "address": 44276,
+          "data": 41695,
+          "hpos": 155,
+          "hsize": 256,
+          "next": 44299,
+          "penpal": [
+            3,
+            48,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "sprcoll": 32,
+          "sprctl0": 5,
+          "sprctl1": 16,
+          "vpos": 24,
+          "vsize": 256
+        },
+        {
+          "address": 44299,
+          "data": 41699,
+          "hpos": 11,
+          "hsize": 256,
+          "next": 44322,
+          "penpal": [
+            4,
+            64,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "sprcoll": 32,
+          "sprctl0": 5,
+          "sprctl1": 16,
+          "vpos": 42,
+          "vsize": 256
+        },
+        {
+          "address": 44322,
+          "data": 41699,
+          "hpos": 33,
+          "hsize": 256,
+          "next": 44345,
+          "penpal": [
+            4,
+            64,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "sprcoll": 32,
+          "sprctl0": 5,
+          "sprctl1": 16,
+          "vpos": 84,
+          "vsize": 256
+        },
+        {
+          "address": 44345,
+          "data": 41699,
+          "hpos": 58,
+          "hsize": 256,
+          "next": 44368,
+          "penpal": [
+            4,
+            64,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "sprcoll": 32,
+          "sprctl0": 5,
+          "sprctl1": 16,
+          "vpos": 20,
+          "vsize": 256
+        },
+        {
+          "address": 44368,
+          "data": 41699,
+          "hpos": 82,
+          "hsize": 256,
+          "next": 44391,
+          "penpal": [
+            4,
+            64,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "sprcoll": 32,
+          "sprctl0": 5,
+          "sprctl1": 16,
+          "vpos": 62,
+          "vsize": 256
+        },
+        {
+          "address": 44391,
+          "data": 41699,
+          "hpos": 106,
+          "hsize": 256,
+          "next": 44414,
+          "penpal": [
+            4,
+            64,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "sprcoll": 32,
+          "sprctl0": 5,
+          "sprctl1": 16,
+          "vpos": 95,
+          "vsize": 256
+        },
+        {
+          "address": 44414,
+          "data": 41699,
+          "hpos": 132,
+          "hsize": 256,
+          "next": 44437,
+          "penpal": [
+            4,
+            64,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "sprcoll": 32,
+          "sprctl0": 5,
+          "sprctl1": 16,
+          "vpos": 29,
+          "vsize": 256
+        },
+        {
+          "address": 44437,
+          "data": 41699,
+          "hpos": 151,
+          "hsize": 256,
+          "next": 44460,
+          "penpal": [
+            4,
+            64,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "sprcoll": 32,
+          "sprctl0": 5,
+          "sprctl1": 16,
+          "vpos": 74,
+          "vsize": 256
+        },
+        {
+          "address": 44460,
+          "data": 44506,
+          "hpos": 2,
+          "hsize": 256,
+          "next": 44483,
+          "penpal": [
+            15,
+            240,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "sprcoll": 32,
+          "sprctl0": 5,
+          "sprctl1": 144,
+          "vpos": 2,
+          "vsize": 256
+        },
+        {
+          "address": 44483,
+          "data": 40027,
+          "hpos": 0,
+          "hsize": 256,
+          "next": 0,
+          "penpal": [
+            4,
+            64,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "sprcoll": 32,
+          "sprctl0": 5,
+          "sprctl1": 16,
+          "vpos": 9,
+          "vsize": 256
+        }
+      ],
+      "scb_count": 21,
+      "stage": 1
+    },
+    {
+      "buffer_readback": {
+        "both_match_expected": true,
+        "buffers_equal": true,
+        "dispadr": {
+          "cpu_address": "0xE018",
+          "png": "stage2-dispadr.png",
+          "png_sha256": "e0697c4dc778a89523381f1397b766a48028374987d355965eb8ced2f8f50a4b"
+        },
+        "dispadr_rgba_histogram": {
+          "(102, 34, 68, 255)": 1574,
+          "(204, 153, 170, 255)": 347,
+          "(221, 187, 204, 255)": 535,
+          "(255, 255, 255, 255)": 282,
+          "(34, 17, 0, 255)": 13582
+        },
+        "expected_nonzero_pixels": 2738,
+        "mismatches": [],
+        "page_size": 8160,
+        "screenshot": {
+          "png": "stage2-screen.png",
+          "png_sha256": "e0697c4dc778a89523381f1397b766a48028374987d355965eb8ced2f8f50a4b"
+        },
+        "vidbas": {
+          "cpu_address": "0xC038",
+          "png": "stage2-vidbas.png",
+          "png_sha256": "e0697c4dc778a89523381f1397b766a48028374987d355965eb8ced2f8f50a4b"
+        },
+        "vidbas_rgba_histogram": {
+          "(102, 34, 68, 255)": 1574,
+          "(204, 153, 170, 255)": 347,
+          "(221, 187, 204, 255)": 535,
+          "(255, 255, 255, 255)": 282,
+          "(34, 17, 0, 255)": 13582
+        }
+      },
+      "expected_index_sha256": "7402abad55d0d4e150946feaf7625888cc2ac699c8ef8dd0c2830f7dd1656484",
+      "palette_rgba_map": {
+        "0": [
+          34,
+          17,
+          0,
+          255
+        ],
+        "1": [
+          102,
+          34,
+          68,
+          255
+        ],
+        "10": [
+          51,
+          238,
+          153,
+          255
+        ],
+        "11": [
+          34,
+          136,
+          68,
+          255
+        ],
+        "12": [
+          85,
+          255,
+          221,
+          255
+        ],
+        "13": [
+          221,
+          136,
+          68,
+          255
+        ],
+        "14": [
+          187,
+          51,
+          204,
+          255
+        ],
+        "15": [
+          255,
+          255,
+          255,
+          255
+        ],
+        "2": [
+          136,
+          85,
+          119,
+          255
+        ],
+        "3": [
+          204,
+          153,
+          170,
+          255
+        ],
+        "4": [
+          221,
+          187,
+          204,
+          255
+        ],
+        "5": [
+          221,
+          238,
+          238,
+          255
+        ],
+        "6": [
+          204,
+          255,
+          34,
+          255
+        ],
+        "7": [
+          238,
+          153,
+          255,
+          255
+        ],
+        "8": [
+          68,
+          255,
+          102,
+          255
+        ],
+        "9": [
+          136,
+          51,
+          68,
+          255
+        ]
+      },
+      "passed": true,
+      "scb_chain": [
+        {
+          "address": 44023,
+          "data": 40027,
+          "hpos": 0,
+          "hsize": 40960,
+          "next": 44046,
+          "penpal": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "sprcoll": 32,
+          "sprctl0": 1,
+          "sprctl1": 16,
+          "vpos": 0,
+          "vsize": 26112
+        },
+        {
+          "address": 44046,
+          "data": 40128,
+          "hpos": 0,
+          "hsize": 256,
+          "next": 44069,
+          "penpal": [
+            1,
+            16,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "sprcoll": 32,
+          "sprctl0": 5,
+          "sprctl1": 16,
+          "vpos": 58,
+          "vsize": 256
+        },
+        {
+          "address": 44069,
+          "data": 40128,
+          "hpos": 192,
+          "hsize": 256,
+          "next": 44092,
+          "penpal": [
+            1,
+            16,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "sprcoll": 32,
+          "sprctl0": 5,
+          "sprctl1": 16,
+          "vpos": 58,
+          "vsize": 256
+        },
+        {
+          "address": 44092,
+          "data": 40317,
+          "hpos": 0,
+          "hsize": 256,
+          "next": 44115,
+          "penpal": [
+            3,
+            48,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "sprcoll": 32,
+          "sprctl0": 5,
+          "sprctl1": 16,
+          "vpos": 18,
+          "vsize": 256
+        },
+        {
+          "address": 44115,
+          "data": 40317,
+          "hpos": 160,
+          "hsize": 256,
+          "next": 44138,
+          "penpal": [
+            3,
+            48,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "sprcoll": 32,
+          "sprctl0": 5,
+          "sprctl1": 16,
+          "vpos": 18,
+          "vsize": 256
+        },
+        {
+          "address": 44138,
+          "data": 40587,
+          "hpos": 0,
+          "hsize": 256,
+          "next": 44161,
+          "penpal": [
+            4,
+            64,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "sprcoll": 32,
+          "sprctl0": 5,
+          "sprctl1": 16,
+          "vpos": 68,
+          "vsize": 256
+        },
+        {
+          "address": 44161,
+          "data": 40587,
+          "hpos": 160,
+          "hsize": 256,
+          "next": 44184,
+          "penpal": [
+            4,
+            64,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "sprcoll": 32,
+          "sprctl0": 5,
+          "sprctl1": 16,
+          "vpos": 68,
+          "vsize": 256
+        },
+        {
+          "address": 44184,
+          "data": 44506,
+          "hpos": 2,
+          "hsize": 256,
+          "next": 44207,
+          "penpal": [
+            15,
+            240,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "sprcoll": 32,
+          "sprctl0": 5,
+          "sprctl1": 144,
+          "vpos": 2,
+          "vsize": 256
+        },
+        {
+          "address": 44207,
+          "data": 40027,
+          "hpos": 0,
+          "hsize": 256,
+          "next": 0,
+          "penpal": [
+            4,
+            64,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "sprcoll": 32,
+          "sprctl0": 5,
+          "sprctl1": 16,
+          "vpos": 9,
+          "vsize": 256
+        }
+      ],
+      "scb_count": 9,
+      "stage": 2
+    },
+    {
+      "buffer_readback": {
+        "both_match_expected": true,
+        "buffers_equal": true,
+        "dispadr": {
+          "cpu_address": "0xE018",
+          "png": "stage3-dispadr.png",
+          "png_sha256": "42f24d96d1bff4d10cc80a661b34b70137e82e0f4ae1920c7f60b9baecaea245"
+        },
+        "dispadr_rgba_histogram": {
+          "(102, 68, 85, 255)": 1383,
+          "(136, 102, 119, 255)": 178,
+          "(17, 17, 0, 255)": 14348,
+          "(255, 255, 255, 255)": 283,
+          "(51, 34, 34, 255)": 128
+        },
+        "expected_nonzero_pixels": 1972,
+        "mismatches": [],
+        "page_size": 8160,
+        "screenshot": {
+          "png": "stage3-screen.png",
+          "png_sha256": "42f24d96d1bff4d10cc80a661b34b70137e82e0f4ae1920c7f60b9baecaea245"
+        },
+        "vidbas": {
+          "cpu_address": "0xC038",
+          "png": "stage3-vidbas.png",
+          "png_sha256": "42f24d96d1bff4d10cc80a661b34b70137e82e0f4ae1920c7f60b9baecaea245"
+        },
+        "vidbas_rgba_histogram": {
+          "(102, 68, 85, 255)": 1383,
+          "(136, 102, 119, 255)": 178,
+          "(17, 17, 0, 255)": 14348,
+          "(255, 255, 255, 255)": 283,
+          "(51, 34, 34, 255)": 128
+        }
+      },
+      "expected_index_sha256": "0d064d4d982d77e4771f37e08e1bf1277d7b8578bd6227de1c475c36f19986f8",
+      "palette_rgba_map": {
+        "0": [
+          17,
+          17,
+          0,
+          255
+        ],
+        "1": [
+          51,
+          34,
+          34,
+          255
+        ],
+        "10": [
+          51,
+          238,
+          153,
+          255
+        ],
+        "11": [
+          34,
+          136,
+          68,
+          255
+        ],
+        "12": [
+          85,
+          255,
+          221,
+          255
+        ],
+        "13": [
+          221,
+          136,
+          68,
+          255
+        ],
+        "14": [
+          187,
+          51,
+          204,
+          255
+        ],
+        "15": [
+          255,
+          255,
+          255,
+          255
+        ],
+        "2": [
+          85,
+          51,
+          68,
+          255
+        ],
+        "3": [
+          102,
+          68,
+          85,
+          255
+        ],
+        "4": [
+          136,
+          102,
+          119,
+          255
+        ],
+        "5": [
+          170,
+          136,
+          153,
+          255
+        ],
+        "6": [
+          204,
+          255,
+          34,
+          255
+        ],
+        "7": [
+          238,
+          153,
+          255,
+          255
+        ],
+        "8": [
+          68,
+          255,
+          102,
+          255
+        ],
+        "9": [
+          136,
+          51,
+          68,
+          255
+        ]
+      },
+      "passed": true,
+      "scb_chain": [
+        {
+          "address": 44023,
+          "data": 40027,
+          "hpos": 0,
+          "hsize": 40960,
+          "next": 44046,
+          "penpal": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "sprcoll": 32,
+          "sprctl0": 1,
+          "sprctl1": 16,
+          "vpos": 0,
+          "vsize": 26112
+        },
+        {
+          "address": 44046,
+          "data": 40792,
+          "hpos": 0,
+          "hsize": 256,
+          "next": 44069,
+          "penpal": [
+            1,
+            16,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "sprcoll": 32,
+          "sprctl0": 5,
+          "sprctl1": 16,
+          "vpos": 24,
+          "vsize": 256
+        },
+        {
+          "address": 44069,
+          "data": 40792,
+          "hpos": 192,
+          "hsize": 256,
+          "next": 44092,
+          "penpal": [
+            1,
+            16,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "sprcoll": 32,
+          "sprctl0": 5,
+          "sprctl1": 16,
+          "vpos": 24,
+          "vsize": 256
+        },
+        {
+          "address": 44092,
+          "data": 41056,
+          "hpos": 0,
+          "hsize": 256,
+          "next": 44115,
+          "penpal": [
+            3,
+            48,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "sprcoll": 32,
+          "sprctl0": 5,
+          "sprctl1": 16,
+          "vpos": 10,
+          "vsize": 256
+        },
+        {
+          "address": 44115,
+          "data": 41056,
+          "hpos": 160,
+          "hsize": 256,
+          "next": 44138,
+          "penpal": [
+            3,
+            48,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "sprcoll": 32,
+          "sprctl0": 5,
+          "sprctl1": 16,
+          "vpos": 10,
+          "vsize": 256
+        },
+        {
+          "address": 44138,
+          "data": 41396,
+          "hpos": 0,
+          "hsize": 256,
+          "next": 44161,
+          "penpal": [
+            4,
+            64,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "sprcoll": 32,
+          "sprctl0": 5,
+          "sprctl1": 16,
+          "vpos": 15,
+          "vsize": 256
+        },
+        {
+          "address": 44161,
+          "data": 41396,
+          "hpos": 160,
+          "hsize": 256,
+          "next": 44184,
+          "penpal": [
+            4,
+            64,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "sprcoll": 32,
+          "sprctl0": 5,
+          "sprctl1": 16,
+          "vpos": 15,
+          "vsize": 256
+        },
+        {
+          "address": 44184,
+          "data": 44506,
+          "hpos": 2,
+          "hsize": 256,
+          "next": 44207,
+          "penpal": [
+            15,
+            240,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "sprcoll": 32,
+          "sprctl0": 5,
+          "sprctl1": 144,
+          "vpos": 2,
+          "vsize": 256
+        },
+        {
+          "address": 44207,
+          "data": 40027,
+          "hpos": 0,
+          "hsize": 256,
+          "next": 0,
+          "penpal": [
+            4,
+            64,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "sprcoll": 32,
+          "sprctl0": 5,
+          "sprctl1": 16,
+          "vpos": 9,
+          "vsize": 256
+        }
+      ],
+      "scb_count": 9,
+      "stage": 3
+    }
+  ],
+  "version": "0.53.10"
+}

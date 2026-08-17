@@ -177,91 +177,34 @@ static void append_scroll_layers(const GameState* game,
     }
 }
 
-static unsigned char glyph_index(char glyph)
-{
-    if (glyph >= '0' && glyph <= '9') return (unsigned char)(glyph - '0');
-    if (glyph == 'S') return 10u;
-    if (glyph == 'I') return 11u;
-    if (glyph == 'N') return 12u;
-    if (glyph == 'W') return 13u;
-    if (glyph == 'B') return 14u;
-    if (glyph == 'C') return 15u;
-    if (glyph == 'A') return 16u;
-    return 17u;
-}
-
-static void build_hud(const char* text)
-{
-    unsigned char row;
-    unsigned char c;
-    unsigned char column;
-    unsigned char bits;
-    unsigned char byte;
-    unsigned char pixel;
-
-    byte = 0u;
-    for (row = 0u; row < 5u; ++row) {
-        HUD_DATA[byte++] = 11u;
-        for (pixel = 0u; pixel < 10u; ++pixel) HUD_DATA[byte + pixel] = 0u;
-        pixel = 0u;
-        for (c = 0u; c < 20u; ++c) {
-            bits = text[c] == ' ' ? 0u :
-                static_layer_glyph_bits[glyph_index(text[c]) * 5u + row];
-            for (column = 0u; column < 4u; ++column) {
-                if (column != 3u &&
-                    (bits & (unsigned char)(4u >> column)) != 0u) {
-                    HUD_DATA[byte + pixel / 8u] |=
-                        (unsigned char)(0x80u >> (pixel & 7u));
-                }
-                ++pixel;
-            }
-        }
-        byte = (unsigned char)(byte + 10u);
-    }
-    HUD_DATA[byte] = 0u;
-}
-
-static void append_hud(const GameState* game)
-{
-    char text[21];
-    unsigned char i;
-    unsigned long score_value;
-    unsigned int timer_value;
-
-    score_value = game->score;
-    for (i = 5u; i != 0u; --i) {
-        text[8u + i] = (char)('0' + score_value % 10ul);
-        score_value /= 10ul;
-    }
-    timer_value = game->phase_timer;
-    for (i = 4u; i != 0u; --i) {
-        text[3u + i] = (char)('0' + timer_value % 10u);
-        timer_value /= 10u;
-    }
-    text[0] = 'S'; text[1] = (char)('0' + game->stage); text[2] = ' ';
-    text[3] = game->phase == GAME_PHASE_NORMAL ? 'N' :
-        game->phase == GAME_PHASE_BOSS ? 'B' :
-        game->phase == GAME_PHASE_STAGE_INTRO ? 'I' :
-        game->phase == GAME_PHASE_WARNING ? 'W' :
-        game->phase == GAME_PHASE_STAGE_CLEAR ? 'C' : 'A';
-    text[8] = ' ';
-    text[14] = ' '; text[15] = 'L';
-    text[16] = (char)('0' + game->lives); text[17] = ' '; text[18] = 'W';
-    text[19] = (char)('0' + game->weapon_level); text[20] = '\0';
-    build_hud(text);
-    append_scb(HUD_DATA, 2, 2, WHITE);
-    SCBS[scb_count - 1u].sprctl1 = (unsigned char)(LITERAL | REHV);
-    append_scb(static_layer_clear_data, 0, GAME_HUD_HEIGHT - 1u, NEAR_STAR);
-}
+/* Maps 'A'-'Z' to its compact index in static_layer_font_bits.
+ * H/J/K/Q/U/Y/Z are unused across every rendered string in the ROM and were
+ * dropped from font_glyphs (scripts/generate-static-layer.py), so the
+ * indices are no longer a plain `glyph - 'A'` range; this presence table
+ * absorbs the gaps. STATIC_LAYER_FONT_COUNT marks a removed letter. */
+static const unsigned char letter_font_index[26] = {
+    0u, 1u, 2u, 3u, 4u, 5u, 6u,             /* A-G */
+    STATIC_LAYER_FONT_COUNT,                /* H */
+    7u,                                     /* I */
+    STATIC_LAYER_FONT_COUNT,                /* J */
+    STATIC_LAYER_FONT_COUNT,                /* K */
+    8u, 9u, 10u, 11u, 12u,                  /* L-P */
+    STATIC_LAYER_FONT_COUNT,                /* Q */
+    13u, 14u, 15u,                          /* R-T */
+    STATIC_LAYER_FONT_COUNT,                /* U */
+    16u, 17u, 18u,                          /* V-X */
+    STATIC_LAYER_FONT_COUNT,                /* Y */
+    STATIC_LAYER_FONT_COUNT                 /* Z */
+};
 
 static unsigned char text_font_index(char glyph)
 {
-    if (glyph >= 'A' && glyph <= 'Z') return (unsigned char)(glyph - 'A');
-    if (glyph >= 'a' && glyph <= 'z') return (unsigned char)(glyph - 'a');
-    if (glyph >= '0' && glyph <= '9') return (unsigned char)(26 + glyph - '0');
-    if (glyph == '/') return 36u;
-    if (glyph == ':') return 37u;
-    if (glyph == '.') return 38u;
+    if (glyph >= 'a' && glyph <= 'z') glyph = (char)(glyph - 'a' + 'A');
+    if (glyph >= 'A' && glyph <= 'Z') return letter_font_index[glyph - 'A'];
+    if (glyph >= '0' && glyph <= '9') return (unsigned char)(19 + glyph - '0');
+    if (glyph == '/') return 29u;
+    if (glyph == ':') return 30u;
+    if (glyph == '.') return 31u;
     return STATIC_LAYER_FONT_COUNT;
 }
 
@@ -316,6 +259,43 @@ static void build_text_line(const char* text)
     TEXT_OUTPUT[byte] = 0u;
 }
 #undef TEXT_OUTPUT
+
+static void append_hud(const GameState* game)
+{
+    char text[21];
+    unsigned char i;
+    unsigned long score_value;
+    unsigned int timer_value;
+
+    score_value = game->score;
+    for (i = 5u; i != 0u; --i) {
+        text[8u + i] = (char)('0' + score_value % 10ul);
+        score_value /= 10ul;
+    }
+    timer_value = game->phase_timer;
+    for (i = 4u; i != 0u; --i) {
+        text[3u + i] = (char)('0' + timer_value % 10u);
+        timer_value /= 10u;
+    }
+    text[0] = 'S'; text[1] = (char)('0' + game->stage); text[2] = ' ';
+    text[3] = game->phase == GAME_PHASE_NORMAL ? 'N' :
+        game->phase == GAME_PHASE_BOSS ? 'B' :
+        game->phase == GAME_PHASE_STAGE_INTRO ? 'I' :
+        game->phase == GAME_PHASE_WARNING ? 'W' :
+        game->phase == GAME_PHASE_STAGE_CLEAR ? 'C' : 'A';
+    text[8] = ' ';
+    text[14] = ' '; text[15] = 'L';
+    text[16] = (char)('0' + game->lives); text[17] = ' '; text[18] = 'W';
+    text[19] = (char)('0' + game->weapon_level); text[20] = '\0';
+#ifndef CADENCE_PROBE
+    build_text_line(HUD_DATA, text);
+#else
+    build_text_line(text);
+#endif
+    append_scb(HUD_DATA, 2, 2, WHITE);
+    SCBS[scb_count - 1u].sprctl1 = (unsigned char)(LITERAL | REHV);
+    append_scb(static_layer_clear_data, 0, GAME_HUD_HEIGHT - 1u, NEAR_STAR);
+}
 
 static const unsigned char* title_text_data(unsigned char id)
 {

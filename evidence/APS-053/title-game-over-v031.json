@@ -1,0 +1,187 @@
+{
+  "aps": "APS-053",
+  "method": {
+    "expected_renderer": "independent full 5x7 renderer; bit test 16 >> column, all 7 rows",
+    "frame_sync": "two identical pre-draw fixtures then completed sync",
+    "framebuffer_pages": {
+      "bytes": 8160,
+      "dispadr": "0xE018",
+      "vidbas": "0xC038"
+    },
+    "title_positions": [
+      [
+        24,
+        18,
+        "ASTEROID PATROL"
+      ],
+      [
+        32,
+        42,
+        "A/B TO START"
+      ],
+      [
+        28,
+        62,
+        "ARROWS: MOVE"
+      ],
+      [
+        36,
+        74,
+        "A/B: FIRE"
+      ],
+      [
+        12,
+        82,
+        "VOICEVOX:Nemo"
+      ],
+      [
+        116,
+        82,
+        "Nemo suffix 5x7"
+      ],
+      [
+        52,
+        90,
+        "V0.53.10"
+      ]
+    ]
+  },
+  "passed": true,
+  "phase": "v028",
+  "rom": {
+    "path": "dist/asteroid-patrol.lnx",
+    "sha256": "4a7bce584e3f1d4da6451441387a4b83a19aa1a09a7f38124ae4ce9757871bcb"
+  },
+  "scenes": {
+    "game_over_complete": {
+      "buffer_readback": {
+        "dispadr": {
+          "cpu_address": "0xE018",
+          "path": "evidence/APS-053/game-over-complete-dispadr.png",
+          "sha256": "4b2a97b8635bb9808a40e456c4edcd41175ad4812eae25389108c8aab1794182"
+        },
+        "screenshot": {
+          "path": "evidence/APS-053/game-over-complete-screen.png",
+          "sha256": "4b2a97b8635bb9808a40e456c4edcd41175ad4812eae25389108c8aab1794182"
+        },
+        "vidbas": {
+          "cpu_address": "0xC038",
+          "path": "evidence/APS-053/game-over-complete-vidbas.png",
+          "sha256": "4b2a97b8635bb9808a40e456c4edcd41175ad4812eae25389108c8aab1794182"
+        }
+      },
+      "comparison": {
+        "both_physical_pages_equal": true,
+        "both_physical_pages_match_expected": true,
+        "expected_index_sha256": "3d74ed1e964eae402b9f5c063e012b9ca49ac539499d5f8a3ed60ab1ece1bce5",
+        "expected_nonzero_pixels": 1228,
+        "passed": true,
+        "pixel_mismatch": {
+          "dispadr": 0,
+          "screenshot": 0,
+          "vidbas": 0
+        },
+        "screenshot_matches_vidbas": true
+      },
+      "fixture": {
+        "game_over": 1,
+        "game_over_voice_complete": 1,
+        "phase": "NORMAL"
+      },
+      "passed": true,
+      "submission_count": 4,
+      "submission_scb_counts": [
+        21,
+        1,
+        1,
+        1
+      ]
+    },
+    "game_over_voice": {
+      "buffer_readback": {
+        "dispadr": {
+          "cpu_address": "0xE018",
+          "path": "evidence/APS-053/game-over-voice-dispadr.png",
+          "sha256": "4860a37d9186538c02b25c5b8be2566a30c7706c2ae4d2d1676b611d12b210d7"
+        },
+        "screenshot": {
+          "path": "evidence/APS-053/game-over-voice-screen.png",
+          "sha256": "4860a37d9186538c02b25c5b8be2566a30c7706c2ae4d2d1676b611d12b210d7"
+        },
+        "vidbas": {
+          "cpu_address": "0xC038",
+          "path": "evidence/APS-053/game-over-voice-vidbas.png",
+          "sha256": "4860a37d9186538c02b25c5b8be2566a30c7706c2ae4d2d1676b611d12b210d7"
+        }
+      },
+      "comparison": {
+        "both_physical_pages_equal": true,
+        "both_physical_pages_match_expected": true,
+        "expected_index_sha256": "552a15c636a7bce028b5bea6ad9887675013ea8a0367d247e8c253f034a97de9",
+        "expected_nonzero_pixels": 1177,
+        "passed": true,
+        "pixel_mismatch": {
+          "dispadr": 0,
+          "screenshot": 0,
+          "vidbas": 0
+        },
+        "screenshot_matches_vidbas": true
+      },
+      "fixture": {
+        "game_over": 1,
+        "game_over_voice_complete": 0,
+        "phase": "NORMAL"
+      },
+      "passed": true,
+      "submission_count": 4,
+      "submission_scb_counts": [
+        21,
+        1,
+        1,
+        1
+      ]
+    },
+    "title": {
+      "buffer_readback": {
+        "dispadr": {
+          "cpu_address": "0xE018",
+          "path": "evidence/APS-053/title-dispadr.png",
+          "sha256": "3504c03c7dce730240c81368c7a9ec3670f46d42a7202e75c842e244e751e772"
+        },
+        "screenshot": {
+          "path": "evidence/APS-053/title-screen.png",
+          "sha256": "3504c03c7dce730240c81368c7a9ec3670f46d42a7202e75c842e244e751e772"
+        },
+        "vidbas": {
+          "cpu_address": "0xC038",
+          "path": "evidence/APS-053/title-vidbas.png",
+          "sha256": "3504c03c7dce730240c81368c7a9ec3670f46d42a7202e75c842e244e751e772"
+        }
+      },
+      "comparison": {
+        "both_physical_pages_equal": true,
+        "both_physical_pages_match_expected": true,
+        "expected_index_sha256": "807de60a6fc3a8d1206f1c83e187e4bca899b0810b1a95d66b4510c13e043e9f",
+        "expected_nonzero_pixels": 1018,
+        "passed": true,
+        "pixel_mismatch": {
+          "dispadr": 0,
+          "screenshot": 0,
+          "vidbas": 0
+        },
+        "screenshot_matches_vidbas": true
+      },
+      "fixture": {
+        "game_over": 0,
+        "game_over_voice_complete": 0,
+        "phase": "TITLE"
+      },
+      "passed": true,
+      "submission_count": 1,
+      "submission_scb_counts": [
+        8
+      ]
+    }
+  },
+  "version": "0.53.10"
+}

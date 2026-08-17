@@ -45,6 +45,12 @@ GAME_ENEMY_BYTES = 8 * 12
 SCB_SIZE = 23
 MAX_SCBS = 21
 SCRATCH_SCBS = MAX_SCBS * SCB_SIZE
+# Worst case build_text_line() output: 7 rows * (1 header + 15 pixel bytes)
+# + 1 terminator, matching TEXT_DATA_SIZE in src/static_layer.c (APS-053 T1
+# unified the HUD onto the 5x7 build_text_line() path).
+HUD_DATA_MAX_SIZE = 113
+HUD_WIDTH = 20 * (5 + 1)
+HUD_HEIGHT = 7
 SCB_SPRCTL0 = 0
 SCB_SPRCTL1 = 1
 SCB_NEXT = 3
@@ -260,8 +266,8 @@ def render_scb_chain(scbs, assets, scratch_address, scratch_bytes):
         if asset is not None:
             sprite = asset["pixels"]
         elif data_address == scratch_address + SCRATCH_SCBS:
-            sprite = decode_literal(scratch_bytes, 80, 5, 1)
-            asset = {"width": 80, "height": 5, "bpp": 1}
+            sprite = decode_literal(scratch_bytes, HUD_WIDTH, HUD_HEIGHT, 1)
+            asset = {"width": HUD_WIDTH, "height": HUD_HEIGHT, "bpp": 1}
         else:
             raise RuntimeError(
                 "SCB[%d] data pointer 0x%04X is not a known static asset/HUD" %
@@ -463,11 +469,11 @@ def verify_stage(visual, game_address, enemy_address, ioctl_address,
     visual.tool("debug_continue", request_id=request_id)
     request_id = visual.wait_for_breakpoint(request_id + 1,
                                             "stage %d SCB submission" % stage)
-    scratch = visual.read_bytes(scratch_address, MAX_SCBS * SCB_SIZE + 56,
+    scratch = visual.read_bytes(scratch_address, MAX_SCBS * SCB_SIZE + HUD_DATA_MAX_SIZE,
                                 request_id)
     request_id += 1
     scbs = parse_scb_chain(scratch[:MAX_SCBS * SCB_SIZE], scratch_address)
-    scratch_hud = scratch[MAX_SCBS * SCB_SIZE:MAX_SCBS * SCB_SIZE + 56]
+    scratch_hud = scratch[MAX_SCBS * SCB_SIZE:MAX_SCBS * SCB_SIZE + HUD_DATA_MAX_SIZE]
     for asset in assets.values():
         asset["address"] = visual.symbol_address(
             Path("build/asteroid-patrol.lbl"), asset["symbol"]
@@ -498,7 +504,7 @@ def verify_stage(visual, game_address, enemy_address, ioctl_address,
         request_id + 1, "stage %d second-frame SCB submission" % stage
     )
     repeated_scratch = visual.read_bytes(
-        scratch_address, MAX_SCBS * SCB_SIZE + 56, request_id
+        scratch_address, MAX_SCBS * SCB_SIZE + HUD_DATA_MAX_SIZE, request_id
     )
     request_id += 1
     repeated_scbs = parse_scb_chain(
@@ -506,7 +512,7 @@ def verify_stage(visual, game_address, enemy_address, ioctl_address,
     )
     scbs = repeated_scbs
     repeated_hud = repeated_scratch[MAX_SCBS * SCB_SIZE:
-                                    MAX_SCBS * SCB_SIZE + 56]
+                                    MAX_SCBS * SCB_SIZE + HUD_DATA_MAX_SIZE]
     expected = render_scb_chain(repeated_scbs, assets, scratch_address,
                                 repeated_hud)
     expected_indices = flatten_indices(expected)

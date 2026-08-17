@@ -1,6 +1,18 @@
 # ISSUES
 
-最終更新: 2026-08-17(APS-053 v030: TITLE/GAME OVERテキストの文字間隔(カーニング)修正・T0-3診断アセット削除・v029のT0(死にモジュール除外)をまとめてコミット。version=0.53.9。)
+最終更新: 2026-08-17(APS-053 v031: RAM会計T1 — HUDフォントを3x5から5x7(カーニング付き)へ統合、未使用英字7字削除。version=0.53.10。)
+
+### APS-053 v031: RAM会計T1 — HUDフォント統合・未使用英字削除（2026-08-17）
+
+- 状態: **実装・host/ROM/Gearlynx readback全PASS**。設計書`docs/plan/2026-08-17-ram-reclamation.md` §4「T1」・ブリーフ(`.briefs/APS-053/v031.md`)通りT1-1/T1-2を実施。
+- T1-1(フォント二重投資の統合): HUD描画を独自の`build_hud()`/`glyph_index()`/`static_layer_glyph_bits`(3x5、S/I/N/W/B/C/A+数字のみ対応の専用圧縮)から、TITLE/GAME OVERと同じ`build_text_line()`(5x7・v030のカーニング付き)経路へ統合。`append_hud()`を書き換え、`glyph_index()`/`build_hud()`と3x5データ生成(`scripts/generate-static-layer.py`)を削除。HUD行の高さは5px→7pxに増えたが、`GAME_HUD_HEIGHT`(10u)の範囲内に収まるため非変更で問題ないことを確認。
+- T1-2(未使用グリフ削除): 全ソース走査で全経路未使用と確認済みの英字7字(`H J K Q U Y Z`)を`font_glyphs`から削除(`STATIC_LAYER_FONT_COUNT`39→32)。数字0-9・記号3種(`/` `:` `.`)はversion文字列表示に必要なため残置。`text_font_index()`を`glyph - 'A'`の連続インデックス前提から、26要素の存在表参照方式(削除文字は`STATIC_LAYER_FONT_COUNT`で無効マーク、digitsオフセット19、`/`=29 `:`=30 `.`=31)へ変更。
+- 検証スクリプト側の追随: `scripts/verify-static-layer-readback-gearlynx.py`のHUDデコード寸法を旧`80x5/56byte`決め打ちから`HUD_WIDTH=120/HUD_HEIGHT=7/HUD_DATA_MAX_SIZE=113`へ更新。
+- 視覚証跡: `evidence/APS-053/stage1-screen.png`ほかstage1-3(HUD`S1 I0000 00000 L0 W0`がプレイフィールドと重ならず正常表示)、`evidence/APS-053/title-screen.png`(`ASTEROID PATROL`等全文言・`V0.53.10`回帰なし)、`evidence/APS-053/game-over-voice-screen.png`/`game-over-complete-screen.png`(HUD+`GAME OVER`+`VOICE...`正常)を目視確認。
+- artifact: `/Users/mammycloud-m4/Documents/develop-m4/atari-lynx-shooter/dist/asteroid-patrol.lnx`、size=`58004` bytes、SHA-256=`4a7bce584e3f1d4da6451441387a4b83a19aa1a09a7f38124ae4ce9757871bcb`、画面表示version=`V0.53.10`。
+- 検証: `make clean && ./scripts/verify.sh`(0; stage155/game625/sound351/IMA14949/sprite1647、cc65 strict、lint、LNX、voice cart)、`make static-layer-readback-gearlynx`(0; stage1/2/3 PASS、`evidence/APS-053/phase-2r-v031.json`)、`make title-game-over-readback-gearlynx`(0; TITLE/GAME OVER voice/complete全PASS、`evidence/APS-053/title-game-over-v031.json`)。コミット・push・stash・reset・checkoutなし(このコミットまでは)。
+- 会計結果: release ROM MAIN余剰 1827B→2356B(+529B)、cadence ROM MAIN余剰 1376B→1912B(+536B)。設計書見積(T1合計~580B)よりやや少ないが同オーダーで一致。ベースライン測定は、HEAD単体が別の未コミットWIP(`title_voice.h`の`title_voice_scratch_buffer`宣言変更)に依存しビルド不能なため、T1で編集した6ファイルのみ`git stash`で一時退避してビルド→復元する手法を使用(作業完了後に確認済みでHEADはコミット前の状態から変更なし)。
+- 設計差分: なし(ブリーフ通り)。
 
 ### APS-053 v030: 文字間隔(カーニング)修正・T0-3診断アセット削除（2026-08-17）
 
