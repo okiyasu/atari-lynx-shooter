@@ -1,6 +1,15 @@
 # ISSUES
 
-最終更新: 2026-08-18(APS-053 v034: RAM会計T2 — シーン別カートオーバーレイ(T2-2+T2-1)実装。version=0.53.11。)
+最終更新: 2026-08-18(APS-053 v035: Phase 3Rゲート最終確定 — SCB置き場529Bに一意確定、黒字確定(release 880B/cadence 772B)。コード変更なし・調査のみ。)
+
+### APS-053 v035: Phase 3Rゲート最終確定 — SCB置き場529B確定・黒字判定（2026-08-18）
+
+- 状態: **調査完了(コード変更なし、読み取り専用の静的解析・数値照合のみ)**。ブリーフ(`.briefs/APS-053/v035.md`)通り、v034(T2実装)で保留していたSCB置き場529B〜817Bの幅を確定させた。
+- SCB置き場529B確定の内訳: 可動オブジェクト43個(player1+enemy8+boss1+power_item1+player_bullet12+enemy_bullet16+asteroid2+falling_rock2、`include/game.h`の配列上限で実測照合)を7グループ(environment/player/enemy/boss/power_item/player_bullet/enemy_bullet)に分け、各グループ先頭のみ`SCB_RENONE_PAL`(19B、パレット非共有)、残り36個は同一kind内で完全同一パレットになる性質(v032で論理確定済み)を使い`SCB_RENONE`(11B、REUSEPAL)を適用。133+396=529B。cc65 `_suzy.h`の構造体実バイトで裏取り済み。
+- asteroid/falling_rockの1グループ統合の妥当性: `src/main.c:586-624`の`if (environment_id==ASTEROIDS) {...} else if (WIND) {...} else { falling_rocks }`という相互排他構造(同一フレームで両方は呼ばれない)をdev-frontが実コードで確認済み。
+- **重要な制約(Phase 3R本体実装への申し送り)**: 529Bという確定値は「`draw_game()`の既存呼び出し順序(environment→player→enemy→boss→power_item→player_bullet→enemy_bullet)をSuzy化後も維持する」という前提に依存する。この順序を変えると同一パレットグループの隣接性が崩れ、817B側(全SCB非共有)に近づくリスクがある。
+- Phase 3Rゲート収支表(最終確定): 追加=スプライトデータ1,954B+SCB置き場529B+更新コード(データ比係数2、スプライトデータのみに適用)3,908B=6,391B、回収=`sprite_data.o`1,463B+`main.o`可動描画コード2,482B+専用RODATA68B=4,013B、差引=−2,378B。起点(release 3,258B/cadence 3,150B、v034実測)に反映: release **880B**、cadence **772B**。**両CFGとも512B以上で黒字確定**。
+- Fable5判断(`.briefs/APS-053/v033.md`)により、この黒字確定をもって再承認は不要、Phase 3R実装着手の条件を満たす。
 
 ### APS-053 v034: RAM会計T2 — シーン別カートオーバーレイ（2026-08-18）
 
