@@ -1,6 +1,19 @@
 # ISSUES
 
-最終更新: 2026-08-17(APS-053 v031: RAM会計T1 — HUDフォントを3x5から5x7(カーニング付き)へ統合、未使用英字7字削除。version=0.53.10。)
+最終更新: 2026-08-18(APS-053 v034: RAM会計T2 — シーン別カートオーバーレイ(T2-2+T2-1)実装。version=0.53.11。)
+
+### APS-053 v034: RAM会計T2 — シーン別カートオーバーレイ（2026-08-18）
+
+- 状態: **実装・host/ROM/Gearlynx readback・音声readback全PASS**。設計書`docs/plan/2026-08-17-ram-reclamation.md` §4「T2」・Fable5承認(`.briefs/APS-053/v033.md`への回答、session `508b8ca0`)・ブリーフ(`.briefs/APS-053/v034.md`)通りT2-2+T2-1を実施。
+- 原理: MAIN常駐RODATAのうちシーン排他データ(背景9データ+タイトルliteral6種、計2,111B)をカート側の追加ディレクトリエントリ(3〜6)へ移し、シーン遷移時に共有BSSバッファ928B(`static_layer_overlay_buffer`)へ`open()`/`read()`でロードする。新規: `src/static_layer_overlay.{c,h}`(ローダ)、`src/static_layer_overlay_asset.s`(4セグメント`.incbin`)、`include/static_layer_overlay_data.h`(オフセット定義)、`assets/overlay/{stage1,stage2,stage3,title}.bin`。`src/static_layer.c`に`ensure_overlay()`によるシーン別遅延ロード(同一グループ再ロードはスキップ)を追加。
+- 設計差分: 設計書§4の排他グループ表は「SKY背景=ステージ1・SPACE背景=ステージ3」としていたが、`assets/stages/stages.json`実測でtheme割当がstage1=space/stage2=sky/stage3=caveと判明し、設計表とは逆だった。実コードのtheme呼び出し(`append_space()`=SPACE=stage1、`append_scroll_layers(sky_layers)`=SKY=stage2)に基づき実装(stage1=139B/stage2=664B/stage3=903B/title=405B)。Gearlynx視覚証跡でオーバーレイロード後の表示崩れがないことを確認済み。
+- 排他契約: 音声ストリーム再生中はカート読み出しカーソルを共有するため、オーバーレイロードを走らせない契約をデバッグアサートで明文化(既存のscratch流用契約と同型)。
+- 検証スクリプト側の追随: `verify-static-layer-readback-gearlynx.py`/`verify-title-game-over-readback-gearlynx.py`/`verify-aps053-diagnostic-rom.py`を固定シンボルアドレス前提からバッファ+オフセット方式へ改修。
+- 視覚証跡: `evidence/APS-053/title-screen.png`(`V0.53.11`・全文言正常)、`evidence/APS-053/stage1-3-screen.png`(HUD+背景、オーバーレイロード後も表示崩れなし)を目視確認。
+- artifact: `/Users/mammycloud-m4/Documents/develop-m4/atari-lynx-shooter/dist/asteroid-patrol.lnx`、size=`58317` bytes、SHA-256=`4062b1c982e0994b27b5dcafb75fc406f60a7de88495bc3829fe5de18f96fcfa`、画面表示version=`V0.53.11`。
+- 検証: `make clean && ./scripts/verify.sh`(0; stage-check155/game625/sound351/ima-adpcm14949/sprite-data1647全PASS、cart directory 7エントリの連続性・payload SHA256実測検証)、`make static-layer-readback-gearlynx`(0; stage1-3全PASS)、`make title-game-over-readback-gearlynx`(0; title/game_over_voice/game_over_complete全PASS)、`verify-title-voice-gearlynx.py --mode title/game-over`(0; DAC全サンプル完全一致・underrun 0)。コミット・push・stash・reset・checkoutなし(このコミットまでは)。
+- 会計結果(dev-front独立実測で確認、Devの報告値と一致): release MAIN余剰 3,258B(RODATA 8,087→5,644B/BSS 1,265→2,185B)、cadence MAIN余剰 **3,150B**(cadence版cfgのC stack予約が`$0630`=1,584Bとrelease版`$0780`=1,920Bより336B少ないため、MAIN上限自体がrelease 46,776Bよりcadence 47,112Bと336B広い。両CFGに同一上限46,776Bを適用すると誤って過小評価するため、cfgごとの上限を使うこと)。
+- Phase 3Rゲート再判定(係数はスプライトデータのみに適用、Fable5判断): SCB置き場529B(下限)ならrelease 880B✓/cadence 772B✓、817B(上限)ならrelease 592B✓/cadence 484B✗(-28B)で僅差。SCB短縮設計の実バイト数確定が次の課題。
 
 ### APS-053 v031: RAM会計T1 — HUDフォント統合・未使用英字削除（2026-08-17）
 

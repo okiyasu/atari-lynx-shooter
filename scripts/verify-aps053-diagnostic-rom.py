@@ -26,6 +26,10 @@ VERSION_HEADER = ROOT / "include" / "version.h"
 STATIC_LAYER = ROOT / "src" / "static_layer.c"
 GENERATOR = ROOT / "scripts" / "generate-static-layer.py"
 STATIC_DATA = ROOT / "src" / "static_layer_data.c"
+# APS-053 T2 moved the fixed title text arrays off resident RODATA into a
+# cart overlay group; this reference copy (generated alongside the real
+# assets/overlay/title.bin payload) keeps them parse_c_array()-compatible.
+OVERLAY_DATA = ROOT / "assets" / "overlay" / "static_layer_overlay_reference.c"
 
 FONT_GLYPHS = {
     "A": [14, 17, 17, 31, 17, 17, 17],
@@ -159,7 +163,7 @@ def main():
     if 'static_layer_text(62, 34, "A V 0 5 6"' in static_text:
         raise RuntimeError("removed A V 0 5 6 diagnostic is still wired into TITLE")
 
-    data_text = STATIC_DATA.read_text(encoding="utf-8")
+    data_text = OVERLAY_DATA.read_text(encoding="utf-8")
     fixed_checks = {}
     for text, symbol in FIXED_TEXTS.items():
         actual = parse_c_array(data_text, symbol)

@@ -8,6 +8,8 @@
 #include "game.h"
 #include "static_layer.h"
 #include "static_layer_data.h"
+#include "static_layer_overlay.h"
+#include "static_layer_overlay_data.h"
 #include "title_voice.h"
 
 #define BLACK 0u
@@ -33,6 +35,7 @@
 static unsigned char scb_count;
 static unsigned char text_layer_started;
 static unsigned char title_text_queue;
+static unsigned char overlay_loaded = STATIC_LAYER_OVERLAY_NONE;
 #ifndef CADENCE_PROBE
 static unsigned char text_layer_buffer_index;
 #endif
@@ -53,6 +56,19 @@ static unsigned char text_layer_buffer_index;
 #else
 #define STATIC_LAYER_REQUIRE_VOICE_IDLE() ((void)0)
 #endif
+
+/* Loads the cart overlay group needed for the scene about to be drawn,
+ * skipping the read when it is already resident. Callers must only reach
+ * this after confirming the voice player is idle (see
+ * STATIC_LAYER_REQUIRE_VOICE_IDLE): the overlay loader and the voice
+ * streamer share a single cart-wide read cursor and must never run
+ * concurrently. */
+static void ensure_overlay(unsigned char which)
+{
+    if (overlay_loaded == which) return;
+    static_layer_overlay_load(which);
+    overlay_loaded = which;
+}
 
 static void reset_scb(SCB_REHV_PAL* scb, const unsigned char* data,
     int x, int y, unsigned char color, unsigned char detail)
@@ -113,31 +129,40 @@ static void append_space(const GameState* game)
 {
     int x;
     unsigned char i;
+    const unsigned char* far_star_x =
+        static_layer_overlay_buffer + STATIC_LAYER_OVERLAY_FAR_STAR_X_OFFSET;
+    const unsigned char* far_star_y =
+        static_layer_overlay_buffer + STATIC_LAYER_OVERLAY_FAR_STAR_Y_OFFSET;
+    const unsigned char* near_star_x =
+        static_layer_overlay_buffer + STATIC_LAYER_OVERLAY_NEAR_STAR_X_OFFSET;
+    const unsigned char* near_star_y =
+        static_layer_overlay_buffer + STATIC_LAYER_OVERLAY_NEAR_STAR_Y_OFFSET;
 
     x = (int)GAME_PLANET_BASE_X - (int)game->planet_offset;
     if (x < -(int)GAME_PLANET_WIDTH) x += (int)GAME_PLANET_SCROLL_PERIOD;
-    append_scb(static_layer_planet_data, x, GAME_PLANET_BASE_Y, PLANET);
+    append_scb(static_layer_overlay_buffer + STATIC_LAYER_OVERLAY_PLANET_OFFSET,
+        x, GAME_PLANET_BASE_Y, PLANET);
     SCBS[scb_count - 1u].sprctl0 = (unsigned char)(BPP_2 | TYPE_NONCOLL);
     SCBS[scb_count - 1u].penpal[1] =
         (unsigned char)(PLANET_DETAIL << 4);
     for (i = 0u; i < STATIC_LAYER_FAR_STAR_COUNT; ++i) {
-        x = (int)static_layer_far_star_x[i] -
-            (int)game->far_star_offset;
+        x = (int)far_star_x[i] - (int)game->far_star_offset;
         if (x < 0) x += GAME_SCREEN_WIDTH;
-        append_scb(static_layer_space_far_star_data, x,
-            static_layer_far_star_y[i], FAR_STAR);
+        append_scb(static_layer_overlay_buffer +
+            STATIC_LAYER_OVERLAY_SPACE_FAR_STAR_OFFSET, x, far_star_y[i],
+            FAR_STAR);
     }
     for (i = 0u; i < STATIC_LAYER_NEAR_STAR_COUNT; ++i) {
-        x = (int)static_layer_near_star_x[i] -
-            (int)game->near_star_offset;
+        x = (int)near_star_x[i] - (int)game->near_star_offset;
         if (x < 0) x += GAME_SCREEN_WIDTH;
-        append_scb(static_layer_near_star_data, x,
-            static_layer_near_star_y[i], NEAR_STAR);
+        append_scb(static_layer_overlay_buffer +
+            STATIC_LAYER_OVERLAY_NEAR_STAR_OFFSET, x, near_star_y[i],
+            NEAR_STAR);
     }
 }
 
 typedef struct StaticScrollLayer {
-    const unsigned char* data;
+    unsigned int overlay_offset;
     unsigned char y;
     unsigned char color;
     unsigned char offset_kind;
@@ -145,20 +170,20 @@ typedef struct StaticScrollLayer {
 } StaticScrollLayer;
 
 static const StaticScrollLayer sky_layers[3] = {
-    { static_layer_mountain_data, STATIC_LAYER_MOUNTAIN_Y_OFFSET,
+    { STATIC_LAYER_OVERLAY_MOUNTAIN_OFFSET, STATIC_LAYER_MOUNTAIN_Y_OFFSET,
         MOUNTAIN, 0u, GAME_PLANET_SCROLL_PERIOD },
-    { static_layer_mid_cloud_data, STATIC_LAYER_MID_CLOUD_Y_OFFSET,
+    { STATIC_LAYER_OVERLAY_MID_CLOUD_OFFSET, STATIC_LAYER_MID_CLOUD_Y_OFFSET,
         MID_CLOUD, 1u, GAME_SCREEN_WIDTH },
-    { static_layer_near_cloud_data, STATIC_LAYER_NEAR_CLOUD_Y_OFFSET,
+    { STATIC_LAYER_OVERLAY_NEAR_CLOUD_OFFSET, STATIC_LAYER_NEAR_CLOUD_Y_OFFSET,
         NEAR_CLOUD, 2u, GAME_SCREEN_WIDTH }
 };
 
 static const StaticScrollLayer cave_layers[3] = {
-    { static_layer_cave_wall_data, STATIC_LAYER_CAVE_WALL_Y_OFFSET,
+    { STATIC_LAYER_OVERLAY_CAVE_WALL_OFFSET, STATIC_LAYER_CAVE_WALL_Y_OFFSET,
         CAVE_SHADOW, 0u, GAME_PLANET_SCROLL_PERIOD },
-    { static_layer_cave_rock_data, STATIC_LAYER_CAVE_ROCK_Y_OFFSET,
+    { STATIC_LAYER_OVERLAY_CAVE_ROCK_OFFSET, STATIC_LAYER_CAVE_ROCK_Y_OFFSET,
         CAVE_ROCK, 1u, GAME_SCREEN_WIDTH },
-    { static_layer_cave_near_data, STATIC_LAYER_CAVE_NEAR_Y_OFFSET,
+    { STATIC_LAYER_OVERLAY_CAVE_NEAR_OFFSET, STATIC_LAYER_CAVE_NEAR_Y_OFFSET,
         CAVE_NEAR, 2u, GAME_SCREEN_WIDTH }
 };
 
@@ -172,8 +197,8 @@ static void append_scroll_layers(const GameState* game,
         offset = layers[i].offset_kind == 0u ? game->planet_offset :
             layers[i].offset_kind == 1u ? game->far_star_offset :
             game->near_star_offset;
-        append_repeat(layers[i].data, -(int)offset, layers[i].y,
-            layers[i].color, layers[i].period);
+        append_repeat(static_layer_overlay_buffer + layers[i].overlay_offset,
+            -(int)offset, layers[i].y, layers[i].color, layers[i].period);
     }
 }
 
@@ -300,11 +325,21 @@ static void append_hud(const GameState* game)
 static const unsigned char* title_text_data(unsigned char id)
 {
     switch (id) {
-    case 0u: return static_layer_text_asteroid_patrol_data;
-    case 1u: return static_layer_text_ab_to_start_data;
-    case 2u: return static_layer_text_arrows_move_data;
-    case 3u: return static_layer_text_ab_fire_data;
-    default: return static_layer_text_voicevox_nemo_data;
+    case 0u:
+        return static_layer_overlay_buffer +
+            STATIC_LAYER_OVERLAY_TEXT_ASTEROID_PATROL_OFFSET;
+    case 1u:
+        return static_layer_overlay_buffer +
+            STATIC_LAYER_OVERLAY_TEXT_AB_TO_START_OFFSET;
+    case 2u:
+        return static_layer_overlay_buffer +
+            STATIC_LAYER_OVERLAY_TEXT_ARROWS_MOVE_OFFSET;
+    case 3u:
+        return static_layer_overlay_buffer +
+            STATIC_LAYER_OVERLAY_TEXT_AB_FIRE_OFFSET;
+    default:
+        return static_layer_overlay_buffer +
+            STATIC_LAYER_OVERLAY_TEXT_VOICEVOX_NEMO_OFFSET;
     }
 }
 
@@ -371,6 +406,15 @@ void static_layer_draw(const GameState* game, unsigned char theme_id)
     if (title_voice_is_playing() != 0u) return;
     title_text_queue = game == 0 ? 1u : 0u;
     text_layer_started = 0u;
+    if (game == 0) {
+        ensure_overlay(STATIC_LAYER_OVERLAY_TITLE);
+    } else if (theme_id == SKY) {
+        ensure_overlay(STATIC_LAYER_OVERLAY_STAGE2);
+    } else if (theme_id == CAVE) {
+        ensure_overlay(STATIC_LAYER_OVERLAY_STAGE3);
+    } else {
+        ensure_overlay(STATIC_LAYER_OVERLAY_STAGE1);
+    }
     begin_layer();
     append_scb(static_layer_clear_data, 0, 0, BLACK);
     SCBS[0].sprctl0 = (unsigned char)(BPP_1 | TYPE_BACKNONCOLL);
@@ -391,15 +435,18 @@ void static_layer_draw(const GameState* game, unsigned char theme_id)
 
 void static_layer_credit_suffix(int x, int y, unsigned char color)
 {
+    const unsigned char* suffix_data = static_layer_overlay_buffer +
+        STATIC_LAYER_OVERLAY_TEXT_VOICEVOX_SUFFIX_OFFSET;
+
     STATIC_LAYER_REQUIRE_VOICE_IDLE();
     if (title_voice_is_playing() != 0u) return;
     if (title_text_queue == 0u) {
         begin_layer();
-        append_scb(static_layer_text_voicevox_suffix_data, x, y, color);
+        append_scb(suffix_data, x, y, color);
         SCBS[scb_count - 1u].sprctl1 = (unsigned char)(LITERAL | REHV);
         finish_layer();
         return;
     }
-    append_scb(static_layer_text_voicevox_suffix_data, x, y, color);
+    append_scb(suffix_data, x, y, color);
     SCBS[scb_count - 1u].sprctl1 = (unsigned char)(LITERAL | REHV);
 }

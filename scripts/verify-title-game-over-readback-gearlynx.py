@@ -234,41 +234,67 @@ def word(data, offset):
     return int.from_bytes(data[offset:offset + 2], "little")
 
 
+RESIDENT_SOURCE = ROOT / "src" / "static_layer_data.c"
+# APS-053 T2 moved these arrays off resident RODATA into cart overlay groups
+# DMA'd into static_layer_overlay_buffer at scene entry; this reference copy
+# (same bytes, same const-array text shape) is parse_c_array()-compatible
+# but is never compiled into the ROM. See scripts/generate-static-layer.py.
+OVERLAY_SOURCE = ROOT / "assets" / "overlay" / "static_layer_overlay_reference.c"
+OVERLAY_HEADER = ROOT / "include" / "static_layer_overlay_data.h"
+
+
+def load_overlay_offsets():
+    text = OVERLAY_HEADER.read_text(encoding="utf-8")
+    offsets = {}
+    for match in re.finditer(
+            r"#define STATIC_LAYER_OVERLAY_(\w+)_OFFSET (\d+)u", text):
+        offsets[match.group(1)] = int(match.group(2))
+    return offsets
+
+
 def load_assets(visual, symbols):
-    source = ROOT / "src" / "static_layer_data.c"
+    """Background assets needed to independently reconstruct the GAME OVER
+    base scene inside render_submissions(). Every scene_record() fixture in
+    this harness pins game->stage=1 (see inject_state()), so only
+    static_layer_clear_data (still resident) and stage1's overlay group
+    (planet/star sprites, loaded into static_layer_overlay_buffer at scene
+    entry per APS-053 T2) are ever dereferenced here; TITLE's own literal
+    text is verified independently via title_expected()/FONT_GLYPHS below,
+    never through this SCB-decode path (GAME OVER never draws title text,
+    and render_submissions() is only invoked for game_over fixtures)."""
     specs = {
         "static_layer_clear_data": (1, 1, 1, "packed"),
         "static_layer_planet_data": (32, 24, 2, "packed"),
-        "static_layer_mountain_data": (192, 21, 1, "packed"),
-        "static_layer_mid_cloud_data": (160, 44, 1, "packed"),
-        "static_layer_near_cloud_data": (160, 26, 1, "packed"),
-        "static_layer_cave_wall_data": (192, 61, 1, "packed"),
-        "static_layer_cave_rock_data": (160, 89, 1, "packed"),
-        "static_layer_cave_near_data": (160, 79, 1, "packed"),
         "static_layer_space_far_star_data": (1, 1, 1, "packed"),
         "static_layer_near_star_data": (2, 1, 1, "packed"),
     }
-    for text in (
-        "asteroid_patrol", "ab_to_start", "arrows_move", "ab_fire",
-        "voicevox_nemo",
-    ):
-        specs["static_layer_text_%s_data" % text] = (None, 7, 1, "literal-auto")
-    specs["static_layer_text_voicevox_suffix_data"] = (30, 7, 1, "literal")
-    assets = {}
+    decoded = {}
     for symbol, (width, height, bpp, mode) in specs.items():
+        source = (RESIDENT_SOURCE if symbol == "static_layer_clear_data"
+                  else OVERLAY_SOURCE)
         values = parse_c_array(source, symbol)
-        if mode == "packed":
-            pixels = decode_packed(values, width, height, bpp)
-        elif mode == "literal-auto":
-            pixels = decode_literal_auto_width(values, height, bpp)
-            width = len(pixels[0]) if pixels else 0
-        else:
-            pixels = decode_literal(values, width, height, bpp)
-        assets[visual.symbol_address(symbols, "_" + symbol)] = {
-            "symbol": symbol, "width": width, "height": height,
-            "bpp": bpp, "pixels": pixels,
-        }
-    return assets
+        decoded[symbol] = decode_packed(values, width, height, bpp)
+    offsets = load_overlay_offsets()
+    overlay_address = visual.symbol_address(
+        symbols, "_static_layer_overlay_buffer")
+    return {
+        visual.symbol_address(symbols, "_static_layer_clear_data"): {
+            "symbol": "static_layer_clear_data",
+            "pixels": decoded["static_layer_clear_data"],
+        },
+        overlay_address + offsets["PLANET"]: {
+            "symbol": "static_layer_planet_data",
+            "pixels": decoded["static_layer_planet_data"],
+        },
+        overlay_address + offsets["SPACE_FAR_STAR"]: {
+            "symbol": "static_layer_space_far_star_data",
+            "pixels": decoded["static_layer_space_far_star_data"],
+        },
+        overlay_address + offsets["NEAR_STAR"]: {
+            "symbol": "static_layer_near_star_data",
+            "pixels": decoded["static_layer_near_star_data"],
+        },
+    }
 
 
 def parse_scb_chain(raw, scratch_address):

@@ -42,7 +42,7 @@
       [
         52,
         90,
-        "V0.53.9"
+        "V0.53.11"
       ]
     ]
   },
@@ -50,7 +50,7 @@
   "phase": "v028",
   "rom": {
     "path": "dist/asteroid-patrol.lnx",
-    "sha256": "ebddd18877207b9773ea59cede2143fa4bbfc8f07f47bef3ca046a57a5892d1b"
+    "sha256": "4062b1c982e0994b27b5dcafb75fc406f60a7de88495bc3829fe5de18f96fcfa"
   },
   "scenes": {
     "game_over_complete": {
@@ -58,23 +58,23 @@
         "dispadr": {
           "cpu_address": "0xE018",
           "path": "evidence/APS-053/game-over-complete-dispadr.png",
-          "sha256": "ec615a82a88758b3689a6c1f3487ff06119a481ee23a6e63736fd7f0ce002448"
+          "sha256": "4b2a97b8635bb9808a40e456c4edcd41175ad4812eae25389108c8aab1794182"
         },
         "screenshot": {
           "path": "evidence/APS-053/game-over-complete-screen.png",
-          "sha256": "ec615a82a88758b3689a6c1f3487ff06119a481ee23a6e63736fd7f0ce002448"
+          "sha256": "4b2a97b8635bb9808a40e456c4edcd41175ad4812eae25389108c8aab1794182"
         },
         "vidbas": {
           "cpu_address": "0xC038",
           "path": "evidence/APS-053/game-over-complete-vidbas.png",
-          "sha256": "ec615a82a88758b3689a6c1f3487ff06119a481ee23a6e63736fd7f0ce002448"
+          "sha256": "4b2a97b8635bb9808a40e456c4edcd41175ad4812eae25389108c8aab1794182"
         }
       },
       "comparison": {
         "both_physical_pages_equal": true,
         "both_physical_pages_match_expected": true,
-        "expected_index_sha256": "816d6976a2ca7ae44381a1b01686424197fca755cbd9c201d03f8923ef73f919",
-        "expected_nonzero_pixels": 1129,
+        "expected_index_sha256": "3d74ed1e964eae402b9f5c063e012b9ca49ac539499d5f8a3ed60ab1ece1bce5",
+        "expected_nonzero_pixels": 1228,
         "passed": true,
         "pixel_mismatch": {
           "dispadr": 0,
@@ -102,23 +102,23 @@
         "dispadr": {
           "cpu_address": "0xE018",
           "path": "evidence/APS-053/game-over-voice-dispadr.png",
-          "sha256": "d595178f951d559963122987ed2fb0f70efa6ec881104f8ecfd4d5ae4014b909"
+          "sha256": "4860a37d9186538c02b25c5b8be2566a30c7706c2ae4d2d1676b611d12b210d7"
         },
         "screenshot": {
           "path": "evidence/APS-053/game-over-voice-screen.png",
-          "sha256": "d595178f951d559963122987ed2fb0f70efa6ec881104f8ecfd4d5ae4014b909"
+          "sha256": "4860a37d9186538c02b25c5b8be2566a30c7706c2ae4d2d1676b611d12b210d7"
         },
         "vidbas": {
           "cpu_address": "0xC038",
           "path": "evidence/APS-053/game-over-voice-vidbas.png",
-          "sha256": "d595178f951d559963122987ed2fb0f70efa6ec881104f8ecfd4d5ae4014b909"
+          "sha256": "4860a37d9186538c02b25c5b8be2566a30c7706c2ae4d2d1676b611d12b210d7"
         }
       },
       "comparison": {
         "both_physical_pages_equal": true,
         "both_physical_pages_match_expected": true,
-        "expected_index_sha256": "c434d4e946785e789f63ff84d8ba87be6c4458215fabbed1729470fd5e895804",
-        "expected_nonzero_pixels": 1078,
+        "expected_index_sha256": "552a15c636a7bce028b5bea6ad9887675013ea8a0367d247e8c253f034a97de9",
+        "expected_nonzero_pixels": 1177,
         "passed": true,
         "pixel_mismatch": {
           "dispadr": 0,
@@ -146,23 +146,23 @@
         "dispadr": {
           "cpu_address": "0xE018",
           "path": "evidence/APS-053/title-dispadr.png",
-          "sha256": "9bf63a858b5f30fe644713d65c8e7db400bb13a7c604bedd5bc86900c3491858"
+          "sha256": "80bf732f7dbabed2249a5147529f642004c87e7c8a05940e6aaab32528456609"
         },
         "screenshot": {
           "path": "evidence/APS-053/title-screen.png",
-          "sha256": "9bf63a858b5f30fe644713d65c8e7db400bb13a7c604bedd5bc86900c3491858"
+          "sha256": "80bf732f7dbabed2249a5147529f642004c87e7c8a05940e6aaab32528456609"
         },
         "vidbas": {
           "cpu_address": "0xC038",
           "path": "evidence/APS-053/title-vidbas.png",
-          "sha256": "9bf63a858b5f30fe644713d65c8e7db400bb13a7c604bedd5bc86900c3491858"
+          "sha256": "80bf732f7dbabed2249a5147529f642004c87e7c8a05940e6aaab32528456609"
         }
       },
       "comparison": {
         "both_physical_pages_equal": true,
         "both_physical_pages_match_expected": true,
-        "expected_index_sha256": "e4db79fd55cbf8fa4d7f818516e9c835ad4aa536630bc3c50006cf9d87e668b4",
-        "expected_nonzero_pixels": 1005,
+        "expected_index_sha256": "bb3b1b0f248ac273db68f11f69e41cbf6e3a4dbd9fe892702653199635cfe243",
+        "expected_nonzero_pixels": 1009,
         "passed": true,
         "pixel_mismatch": {
           "dispadr": 0,
@@ -183,5 +183,5 @@
       ]
     }
   },
-  "version": "0.53.9"
+  "version": "0.53.11"
 }

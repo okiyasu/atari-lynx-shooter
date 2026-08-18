@@ -9,6 +9,7 @@ dist/
 !src/title_voice_stream.s
 !src/cadence_probe.s
 !src/game_timing.s
+!src/static_layer_overlay_asset.s
 *.map
 *.lbl
 .DS_Store

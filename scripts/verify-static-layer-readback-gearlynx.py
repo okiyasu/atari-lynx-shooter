@@ -194,22 +194,56 @@ def word(data, offset):
     return int.from_bytes(data[offset:offset + 2], "little")
 
 
+RESIDENT_SOURCE = ROOT / "src" / "static_layer_data.c"
+# APS-053 T2 moved these arrays off resident RODATA into cart overlay groups
+# DMA'd into static_layer_overlay_buffer at scene entry; this reference copy
+# (same bytes, same const-array text shape, generated alongside the real
+# assets/overlay/*.bin payloads) is parse_c_array()-compatible but is never
+# compiled into the ROM. See scripts/generate-static-layer.py.
+OVERLAY_SOURCE = ROOT / "assets" / "overlay" / "static_layer_overlay_reference.c"
+OVERLAY_HEADER = ROOT / "include" / "static_layer_overlay_data.h"
+# Which overlay-group members are resident in static_layer_overlay_buffer for
+# each stage; mirrors the OVERLAY_GROUPS stage1/stage2/stage3 members in
+# scripts/generate-static-layer.py. Only the background/star sprites are
+# listed here (not the star position tables, which this harness doesn't
+# exercise, matching the pre-T2 asset set below).
+STAGE_OVERLAY_MEMBERS = {
+    1: [("PLANET", "static_layer_planet_data"),
+        ("SPACE_FAR_STAR", "static_layer_space_far_star_data"),
+        ("NEAR_STAR", "static_layer_near_star_data")],
+    2: [("MOUNTAIN", "static_layer_mountain_data"),
+        ("MID_CLOUD", "static_layer_mid_cloud_data"),
+        ("NEAR_CLOUD", "static_layer_near_cloud_data")],
+    3: [("CAVE_WALL", "static_layer_cave_wall_data"),
+        ("CAVE_ROCK", "static_layer_cave_rock_data"),
+        ("CAVE_NEAR", "static_layer_cave_near_data")],
+}
+
+
+def load_overlay_offsets():
+    text = OVERLAY_HEADER.read_text(encoding="utf-8")
+    offsets = {}
+    for match in re.finditer(
+            r"#define STATIC_LAYER_OVERLAY_(\w+)_OFFSET (\d+)u", text):
+        offsets[match.group(1)] = int(match.group(2))
+    return offsets
+
+
 def load_static_assets():
-    source = ROOT / "src" / "static_layer_data.c"
     assets = {
-        "static_layer_clear_data": (1, 1, 1, "packed"),
-        "static_layer_planet_data": (32, 24, 2, "packed"),
-        "static_layer_mountain_data": (192, 21, 1, "packed"),
-        "static_layer_mid_cloud_data": (160, 44, 1, "packed"),
-        "static_layer_near_cloud_data": (160, 26, 1, "packed"),
-        "static_layer_cave_wall_data": (192, 61, 1, "packed"),
-        "static_layer_cave_rock_data": (160, 89, 1, "packed"),
-        "static_layer_cave_near_data": (160, 79, 1, "packed"),
-        "static_layer_space_far_star_data": (1, 1, 1, "packed"),
-        "static_layer_near_star_data": (2, 1, 1, "packed"),
+        "static_layer_clear_data": (1, 1, 1, "packed", RESIDENT_SOURCE),
+        "static_layer_planet_data": (32, 24, 2, "packed", OVERLAY_SOURCE),
+        "static_layer_mountain_data": (192, 21, 1, "packed", OVERLAY_SOURCE),
+        "static_layer_mid_cloud_data": (160, 44, 1, "packed", OVERLAY_SOURCE),
+        "static_layer_near_cloud_data": (160, 26, 1, "packed", OVERLAY_SOURCE),
+        "static_layer_cave_wall_data": (192, 61, 1, "packed", OVERLAY_SOURCE),
+        "static_layer_cave_rock_data": (160, 89, 1, "packed", OVERLAY_SOURCE),
+        "static_layer_cave_near_data": (160, 79, 1, "packed", OVERLAY_SOURCE),
+        "static_layer_space_far_star_data": (1, 1, 1, "packed", OVERLAY_SOURCE),
+        "static_layer_near_star_data": (2, 1, 1, "packed", OVERLAY_SOURCE),
     }
     result = {}
-    for symbol, (width, height, bpp, mode) in assets.items():
+    for symbol, (width, height, bpp, mode, source) in assets.items():
         values = parse_c_array(source, symbol)
         result[symbol] = {
             "width": width,
@@ -239,9 +273,8 @@ def suzy_pixel_color(penpal, value):
     return (palette_byte >> 4) & 0x0F
 
 
-def render_scb_chain(scbs, assets, scratch_address, scratch_bytes):
+def render_scb_chain(scbs, data_to_asset, scratch_address, scratch_bytes):
     pixels = [[0 for _ in range(SCREEN_WIDTH)] for _ in range(SCREEN_HEIGHT)]
-    data_to_asset = {entry["address"]: entry for entry in assets.values()}
     for index, scb in enumerate(scbs):
         hsize = scb["hsize"]
         vsize = scb["vsize"]
@@ -474,11 +507,24 @@ def verify_stage(visual, game_address, enemy_address, ioctl_address,
     request_id += 1
     scbs = parse_scb_chain(scratch[:MAX_SCBS * SCB_SIZE], scratch_address)
     scratch_hud = scratch[MAX_SCBS * SCB_SIZE:MAX_SCBS * SCB_SIZE + HUD_DATA_MAX_SIZE]
-    for asset in assets.values():
-        asset["address"] = visual.symbol_address(
-            Path("build/asteroid-patrol.lbl"), asset["symbol"]
-        )
-    expected = render_scb_chain(scbs, assets, scratch_address, scratch_hud)
+    # static_layer_clear_data stays resident with a fixed symbol address; the
+    # other assets live at run-time-variable offsets within the single
+    # shared static_layer_overlay_buffer, loaded per scene (APS-053 T2).
+    # Only this stage's three overlay members are resident at capture time,
+    # so data_to_asset must be rebuilt per stage rather than reused globally.
+    overlay_offsets = load_overlay_offsets()
+    overlay_address = visual.symbol_address(
+        Path("build/asteroid-patrol.lbl"), "_static_layer_overlay_buffer"
+    )
+    data_to_asset = {
+        assets["static_layer_clear_data"]["address"]:
+            assets["static_layer_clear_data"],
+    }
+    for offset_name, symbol in STAGE_OVERLAY_MEMBERS[stage]:
+        data_to_asset[overlay_address + overlay_offsets[offset_name]] = \
+            assets[symbol]
+    expected = render_scb_chain(scbs, data_to_asset, scratch_address,
+                                scratch_hud)
     expected_indices = flatten_indices(expected)
     visual.tool("remove_breakpoint", {"address": "%04X" % ioctl_address}, request_id)
     request_id += 1
@@ -513,7 +559,7 @@ def verify_stage(visual, game_address, enemy_address, ioctl_address,
     scbs = repeated_scbs
     repeated_hud = repeated_scratch[MAX_SCBS * SCB_SIZE:
                                     MAX_SCBS * SCB_SIZE + HUD_DATA_MAX_SIZE]
-    expected = render_scb_chain(repeated_scbs, assets, scratch_address,
+    expected = render_scb_chain(repeated_scbs, data_to_asset, scratch_address,
                                 repeated_hud)
     expected_indices = flatten_indices(expected)
     visual.tool("remove_breakpoint", {"address": "%04X" % ioctl_address}, request_id)
@@ -600,7 +646,13 @@ def main():
     label_path = args.symbols
     for symbol, entry in assets.items():
         entry["symbol"] = "_" + symbol
-        entry["address"] = visual.symbol_address(label_path, entry["symbol"])
+    # static_layer_clear_data is the only asset with a fixed resident symbol
+    # left after APS-053 T2; the other nine live at stage-dependent offsets
+    # within _static_layer_overlay_buffer, resolved per stage in
+    # verify_stage() via STAGE_OVERLAY_MEMBERS instead.
+    assets["static_layer_clear_data"]["address"] = visual.symbol_address(
+        label_path, assets["static_layer_clear_data"]["symbol"]
+    )
     command = [GEARLYNX]
     if not args.gui:
         command.append("--headless")

@@ -21,6 +21,7 @@ COMMON_ROM_OBJECTS := build/game.o build/sound.o \
 	build/title_voice.o \
 	build/title_voice_stream.o build/music_data.o build/stage_data.o \
 	build/sprite_data.o build/static_layer_data.o \
+	build/static_layer_overlay.o build/static_layer_overlay_asset.o \
 	build/title_voice_asset.o build/game_timing.o
 ROM_OBJECTS := build/cart_directory.o build/main.o build/static_layer.o \
 	$(COMMON_ROM_OBJECTS)
@@ -71,7 +72,9 @@ rom: $(ROM)
 debug-contract: build/static_layer-debug.o
 
 build/static_layer-debug.o: src/static_layer.c include/static_layer.h \
-		include/static_layer_data.h include/game.h include/title_voice.h | toolchain
+		include/static_layer_data.h include/static_layer_overlay.h \
+		include/static_layer_overlay_data.h include/game.h \
+		include/title_voice.h | toolchain
 	mkdir -p build
 	$(CL65) $(COMPACT_ROM_CFLAGS) -DSTATIC_LAYER_DEBUG_ASSERT -c -o $@ src/static_layer.c
 
@@ -113,18 +116,34 @@ build/game_timing.o: src/game_timing.s include/game_timing.h | toolchain
 	$(CL65) -t lynx -c -o $@ src/game_timing.s
 
 build/static_layer.o: src/static_layer.c include/static_layer.h \
-		include/static_layer_data.h include/game.h include/title_voice.h | toolchain
+		include/static_layer_data.h include/static_layer_overlay.h \
+		include/static_layer_overlay_data.h include/game.h \
+		include/title_voice.h | toolchain
 	mkdir -p build
 	$(CL65) $(COMPACT_ROM_CFLAGS) -c -o $@ src/static_layer.c
 
 build/static_layer-cadence.o: src/static_layer.c include/static_layer.h \
-		include/static_layer_data.h include/game.h include/title_voice.h | toolchain
+		include/static_layer_data.h include/static_layer_overlay.h \
+		include/static_layer_overlay_data.h include/game.h \
+		include/title_voice.h | toolchain
 	mkdir -p build
 	$(CL65) $(COMPACT_ROM_CFLAGS) -DCADENCE_PROBE -c -o $@ src/static_layer.c
 
 build/static_layer_data.o: src/static_layer_data.c include/static_layer_data.h | toolchain
 	mkdir -p build
 	$(CL65) $(ROM_CFLAGS) -c -o $@ src/static_layer_data.c
+
+build/static_layer_overlay.o: src/static_layer_overlay.c \
+		include/static_layer_overlay.h \
+		include/static_layer_overlay_data.h | toolchain
+	mkdir -p build
+	$(CL65) $(ROM_CFLAGS) -c -o $@ src/static_layer_overlay.c
+
+build/static_layer_overlay_asset.o: src/static_layer_overlay_asset.s \
+		assets/overlay/stage1.bin assets/overlay/stage2.bin \
+		assets/overlay/stage3.bin assets/overlay/title.bin | toolchain
+	mkdir -p build
+	$(CL65) -t lynx -c -o $@ src/static_layer_overlay_asset.s
 
 build/game.o: src/game.c include/game.h include/sound.h \
 		$(GEN_DIR)/stage_data.h | toolchain
