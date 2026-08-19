@@ -10,6 +10,8 @@ dist/
 !src/cadence_probe.s
 !src/game_timing.s
 !src/static_layer_overlay_asset.s
+!src/scb_split_probe.s
+!src/static_layer_split_probe.s
 *.map
 *.lbl
 .DS_Store

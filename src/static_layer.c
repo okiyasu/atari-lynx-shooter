@@ -11,6 +11,9 @@
 #include "static_layer_overlay.h"
 #include "static_layer_overlay_data.h"
 #include "title_voice.h"
+#ifdef CADENCE_PROBE
+#include "static_layer_split_probe.h"
+#endif
 
 #define BLACK 0u
 #define WHITE 15u
@@ -122,6 +125,9 @@ static void append_repeat(const unsigned char* data, int x, int y,
 
 static void finish_layer(void)
 {
+#ifdef CADENCE_PROBE
+    static_layer_split_marker_pre_finish();
+#endif
     if (scb_count != 0u) tgi_sprite(SCBS);
 }
 

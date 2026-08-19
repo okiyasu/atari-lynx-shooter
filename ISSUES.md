@@ -1,8 +1,33 @@
 # ISSUES
 
-最終更新: 2026-08-19(APS-053 v044〜v046: Phase 3R2 SCB静的チェーン化 実装完了。gate(a) breakdown 0.779VBlank(目標0.8以下)達成、gate(b)全26パターンPASS、gate(d) release余剰1,069B/cadence余剰947B(目標512B以上)達成、`verify.sh`全PASS。)
+最終更新: 2026-08-19(APS-053 v047: gate(a)全体セクション別内訳を分解・計測。SCB外残り約9VBlankの正体は**static_layer_draw内のSCB構築処理(E1)が全体の77%(7.8VBlank)** と判明。Phase 3R2はここで完了、Phase 2R側SCB構築最適化を次の課題として起票、着手は別途指示待ち。)
 
-### APS-053 v044〜v046: Phase 3R2 SCB静的チェーン化 — gate(a)/(b)/(d)全達成（2026-08-19）
+### APS-053 v047: gate(a)全体セクション別内訳の分解・計測 — Phase 2R側SCB構築(E1=7.8VBlank)がボトルネックと判明（2026-08-19、次の課題・未着手）
+
+- 状態: **調査完了・診断のみ(実装対策は未着手、次の課題として起票)**。v046までのPhase 3R2完了報告で、gate(a)全体(2VBlank以下)の最終合否判定にはSCB構築+Suzy(0.779VBlank達成済み)以外の残り約9VBlank(v040時点の推定)の内訳分解が必要と申し送っていた分。ユーザー指示により着手し、内訳の計測・要因の切り分けまでを実施した。
+- **手法**: 既存の公開シンボル(`_game_update_logic`/`_game_sound_tick`/`_game_display_sync_complete`/`_static_layer_draw`/`_scb_split_marker_begin`/`_scb_split_marker_finish_exit`/`_game_display_request`、内部static関数のアドレス推測はしない)に、v019の「1点ずつset→hit→remove」手法で順にbreakpointを置き、1フレームを7セクション(A〜G)に分解する新規ハーネス`scripts/verify-phase-3r-frame-breakdown-gearlynx.py`を追加した。
+- **追加の診断マーカー**: 初回計測でセクションE(`static_layer_draw`開始→movable SCB `scb_begin`)が8.3VBlank(full)/8.9VBlank(empty)と圧倒的だったため、`static_layer.c`の`finish_layer()`(`tgi_sprite(SCBS)`呼び出し直前)に新規の診断専用マーカー`static_layer_split_marker_pre_finish`を追加(`src/static_layer_split_probe.s`/`include/static_layer_split_probe.h`、v040の`scb_split_probe.s`と同じ性質: CADENCE_PROBE限定・release ROM非同梱・本番コードパス無変更)し、セクションEをE1(SCB構築)/E2(Suzy転送+テキストオーバーレイ)に再分解した。
+- **計測結果(cadence版、full fixture=boss+敵4体+弾フル)**:
+
+  | セクション | 内容 | full | empty |
+  |---|---|---:|---:|
+  | A | 入力ポーリング〜ロジック更新開始 | 0.030VB | 0.029VB |
+  | B | ロジック更新ループ全体 | 0.536VB | 0.536VB |
+  | C | サウンド処理ループ+`tgi_busy`ポーリング | 0.457VB | 0.457VB |
+  | D | 同期完了〜背景描画開始 | 0.016VB | 0.016VB |
+  | **E1** | **背景/HUD SCB構築(`static_layer_draw`内、Suzy提出前)** | **7.811VB** | **8.608VB** |
+  | E2 | 背景Suzy転送+`draw_phase_overlay`/`draw_environment`のTGIオーバーレイ | 0.493VB | 0.298VB |
+  | F | movable SCB構築+Suzy転送(v046で0.779VBlankまで最適化済み) | 0.779VB | 0.327VB |
+  | G | 後処理+`display_request` | 0.002VB | 0.002VB |
+  | **合計** | | **10.126VB** | **10.282VB** |
+
+  内訳の合算は`total_frame_ticks`(実測10.13VB)とほぼ一致し、整合性を確認済み。証跡: `evidence/APS-053/phase-3r-frame-breakdown-v047.json`(セクションE未分解版)、`evidence/APS-053/phase-3r-frame-breakdown-v047b.json`(E1/E2分解後、最終版)。
+- **結論**: SCB外の約9VBlankの正体は、ほぼ全て(E1=7.8VBlank、フレーム全体の77%)が`static_layer_draw`内のSCB構築処理(`ensure_overlay`/`append_space`/`append_scroll_layers`/`append_hud`、Suzyへの`tgi_sprite`提出前まで)にあった。Suzyへの転送自体(E2)は0.5VB程度と小さく、Phase 3R2で最適化したmovable SCB(F)は既にフレーム全体の8%程度に縮小している。**gate(a)全体(2VBlank以下)のボトルネックはmovable SCB(Phase 3R)ではなく、Phase 2R側の背景/HUD SCB構築(`src/static_layer.c`)にある**。movable SCBで発生していた「cc65のコード生成がC言語レベルの見積もりより重い」パターン(v046 Fable5分析)が、static_layer側でも起きている可能性が高いが未検証(`append_space`/`append_scroll_layers`/`append_hud`のどれが支配的かは今回のセクション粒度では未分解)。
+- 検証コマンド: `make dist/asteroid-patrol-cadence.lnx`、`python3 scripts/verify-phase-3r-frame-breakdown-gearlynx.py`。
+- 触っていない範囲: `include/cadence_probe.h`、`src/game.c`のcatch-up制限マクロ差分、`src/title_voice.c`、`scripts/calibrate-cadence-ticks-gearlynx.py`(既存WIP)、`src/cadence_probe.s`/`src/scb_split_probe.s`(既存の診断マーカー、無変更)。movable SCBチェーンの構造・スケジューリング・描画順序への変更なし。
+- **次の課題(次回改めて着手指示予定)**: `src/static_layer.c`のSCB構築処理(E1、7.8VBlank)の最適化。着手前に`append_space`/`append_scroll_layers`/`append_hud`のどれが支配的かのさらなる内訳分解、および原因分析(cc65のコード生成効率か、処理量そのものか)が必要。movable SCBと同様、Fable5への設計相談を経由することが望ましい。
+
+### APS-053 v044〜v046: Phase 3R2 SCB静的チェーン化 — gate(a)/(b)/(d)全達成（2026-08-19、完了）
 
 - 状態: **実装完了**。v038でgate(a)未達(33 VBlank)エスカレーション後、Fable5が「SCB静的チェーン化」(起動時に41スロットを1回構築、毎フレームはSKIPビット+hpos/vpos/dataのみ差分更新)を設計・条件付き承認(v044)。Codex(Dev)が実装前必須確認2点(tick換算則訂正証跡化・SKIPスモーク、いずれもPASS)を完了した時点でCodex利用上限に達し中断、Claude(sonnet)が引き継いで本体実装からgate通過まで完遂した。
 - **v044の前提誤り訂正**: チェーン構成で想定していた`env[0..3]`(4スロット)は誤りで、実コードの`GAME_MAX_ENVIRONMENT_OBJECTS`は`2`(asteroids/falling_rocksが排他的に共有)。正しい値で実装したためSCB合計は**551B**(v044見積り573Bではない、旧529Bから+22B)。

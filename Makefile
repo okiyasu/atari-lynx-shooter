@@ -28,7 +28,8 @@ ROM_OBJECTS := build/cart_directory.o build/main.o build/static_layer.o \
 CADENCE_OBJECTS := build/cart_directory.o build/main-cadence.o $(COMMON_ROM_OBJECTS) \
 	build/static_layer-cadence.o \
 	build/cadence_probe.o \
-	build/scb_split_probe.o
+	build/scb_split_probe.o \
+	build/static_layer_split_probe.o
 CADENCE_VARIANT_COMMON_OBJECTS := $(filter-out build/main-cadence.o,$(CADENCE_OBJECTS))
 MUSIC_DATA := $(GEN_DIR)/music_data.c
 STAGE_INPUT := assets/stages/stages.json
@@ -116,6 +117,10 @@ build/scb_split_probe.o: src/scb_split_probe.s | toolchain
 	mkdir -p build
 	$(CL65) -t lynx -c -o $@ src/scb_split_probe.s
 
+build/static_layer_split_probe.o: src/static_layer_split_probe.s | toolchain
+	mkdir -p build
+	$(CL65) -t lynx -c -o $@ src/static_layer_split_probe.s
+
 build/game_timing.o: src/game_timing.s include/game_timing.h | toolchain
 	mkdir -p build
 	$(CL65) -t lynx -c -o $@ src/game_timing.s
@@ -130,7 +135,7 @@ build/static_layer.o: src/static_layer.c include/static_layer.h \
 build/static_layer-cadence.o: src/static_layer.c include/static_layer.h \
 		include/static_layer_data.h include/static_layer_overlay.h \
 		include/static_layer_overlay_data.h include/game.h \
-		include/title_voice.h | toolchain
+		include/title_voice.h include/static_layer_split_probe.h | toolchain
 	mkdir -p build
 	$(CL65) $(COMPACT_ROM_CFLAGS) -DCADENCE_PROBE -c -o $@ src/static_layer.c
 
