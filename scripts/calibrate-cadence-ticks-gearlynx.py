@@ -1,494 +1,492 @@
 #!/usr/bin/env python3
-"""APS-049 v002 contract-g calibration.
+"""APS-053 v024 Timer 2 -> VBlank calibration.
 
-Before trusting get_6502_status().total_ticks as the pass/fail source of
-truth for 1 draw-frame real time (contract g), verify that it is a
-faithful, deterministic CPU-cycle counter that does NOT depend on how many
-MCP request/response round trips occur while paused at breakpoints.
+This is a verifier-only measurement.  It does not patch the ROM or use a
+private code address: Gearlynx's Timer 2 IRQ breakpoint is the same
+``TIMER2_INTERRUPT``/``VBL_INTERRUPT`` boundary consumed by the public
+cadence probe.  Each consecutive IRQ hit is therefore one VBlank boundary.
 
-Method: write a straight-line NOP probe (opcode $EA, exactly 2 cycles each
-on the 65C02, no branches, no data-dependent timing) into unused scratch
-RAM -- the residual gap between the linked program's last used BSS byte
-and the end of the MAIN segment reservation, read from the current
-build/asteroid-patrol.map so it always matches what's actually free in
-this build. IRQs are disabled for the probe window so the Timer 2 VBLANK
-interrupt cannot inject extra, non-deterministic cycles. PC is pointed at
-the probe directly via write_6502_register (no game code touched, no ROM
-changes needed).
-
-Two questions, both decidable without knowing the absolute ticks-per-cycle
-ratio:
-
-  1. linearity/repeatability -- using ONE debug_continue + ONE breakpoint
-     per probe (minimal round trips), does total_ticks delta scale
-     linearly with N and stay identical across repeated runs of the same
-     N? Non-determinism here would mean total_ticks itself is unreliable
-     even at low round-trip frequency.
-  2. round-trip sensitivity -- does chopping the SAME deterministic N-NOP
-     run into many small breakpoint-hit segments (many round trips, but
-     identical CPU work) inflate the measured delta versus the single-shot
-     version? A yes here is direct evidence that per-frame instrumentation
-     density (not real game performance) explains contract g's apparent
-     13.3ms budget overruns.
+The Timer 2 backup/current snapshot is retained for every hit.  The backup
+period is the Timer 2 counter-tick denominator used by APS-053 v016's logic
+unit-cost evidence (0-enemy=18, 4-enemy=86).  CPU ``total_ticks`` is recorded
+as an independent diagnostic cross-check, not substituted for Timer 2
+counter ticks in the Phase 3R bound.
 """
 
 import argparse
+import hashlib
+import importlib.util
 import json
-import re
 import statistics
 import subprocess
 import sys
 import time
-import urllib.request
+import traceback
 from pathlib import Path
 
+
+ROOT = Path(__file__).resolve().parents[1]
+FRAME_VERIFIER = ROOT / "scripts" / "verify-frame-pacing-gearlynx.py"
 GEARLYNX = "/Applications/Gearlynx.app/Contents/MacOS/gearlynx"
-MCP_PORT = 17773
-HEADERS = {
-    "Content-Type": "application/json",
-    "Accept": "application/json, text/event-stream",
-    "MCP-Protocol-Version": "2025-11-25",
-}
-GAME_PHASE_TITLE_STATE = bytes([1, 6])
-NOP = 0xEA
-RTS = 0x60
+MCP_PORT = 17774
+IRQ_INDEX = 2
+BATCH_COUNT = 2
+IRQ_HITS_PER_BATCH = 18
+MAX_TIMER2_PERIOD = 0x100
+MAX_CPU_TICK_CV = 0.01
+LOGIC_EVIDENCE = ROOT / "evidence/APS-053/logic-profile-v016.json"
+LOGIC_ZERO_TICKS = 18
+LOGIC_FOUR_TICKS = 86
+LOGIC_PURE_INCREMENT_TICKS = 68
 
 
-def call(method, params=None, request_id=1):
-    payload = json.dumps({
-        "jsonrpc": "2.0", "id": request_id, "method": method,
-        "params": params or {},
-    }).encode()
-    request = urllib.request.Request(
-        "http://127.0.0.1:%d/mcp" % MCP_PORT,
-        data=payload, headers=HEADERS,
+def load_frame_module():
+    spec = importlib.util.spec_from_file_location(
+        "aps053_tick_calibration_frame", FRAME_VERIFIER,
     )
-    with urllib.request.urlopen(request, timeout=10) as response:
-        return json.loads(response.read())
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    module.MCP_PORT = MCP_PORT
+    module.GEARLYNX = GEARLYNX
+    module.CADENCE_BATCH_TIMEOUT_SECONDS = 60.0
+    return module
 
 
-def tool(name, arguments=None, request_id=1):
-    result = call("tools/call", {
-        "name": name, "arguments": arguments or {},
-    }, request_id)
-    if "error" in result:
-        raise RuntimeError("%s failed: %s" % (name, result["error"]))
-    content = result["result"]["content"][0]
-    return json.loads(content["text"])
+def sha256(path):
+    return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def symbol_address(symbols_path, symbol):
-    text = symbols_path.read_text(encoding="utf-8")
-    match = re.search(
-        r"^al\s+([0-9A-Fa-f]{6})\s+\." + re.escape(symbol) + r"$",
-        text, re.MULTILINE,
-    )
-    if match is None:
-        raise RuntimeError("cannot locate %s in label file" % symbol)
-    return int(match.group(1), 16)
+def parse_timer_value(value):
+    if isinstance(value, int):
+        return value
+    text = str(value)
+    try:
+        return int(text, 16)
+    except ValueError:
+        return int(text, 10)
 
 
-def read_bytes(address, size, request_id):
-    result = tool("read_memory", {
-        "area": 0, "offset": "%04X" % address, "size": size,
-    }, request_id)
-    return bytes.fromhex(result["data"])
+def timer_snapshot(frame, request_id):
+    payload = frame.tool("get_mikey_timers", {"timer": IRQ_INDEX}, request_id)
+    registers = {
+        row[0].lower(): row[2] for row in payload.get("registers", [])
+        if len(row) >= 3
+    }
+    backup = registers.get("backup")
+    current = registers.get("counter")
+    return {
+        "timer": IRQ_INDEX,
+        "name": payload.get("name"),
+        "interrupt": payload.get("interrupt"),
+        "enabled": payload.get("enabled"),
+        "linked": payload.get("linked"),
+        "linked_to_index": payload.get("linked_to_index"),
+        "linked_to_type": payload.get("linked_to_type"),
+        "period_value": payload.get("period_value"),
+        "registers": payload.get("registers", []),
+        "current": current,
+        "backup": backup,
+        "current_numeric": None if current is None else
+            parse_timer_value(current),
+        "backup_numeric": None if backup is None else
+            parse_timer_value(backup),
+    }
 
 
-def write_bytes(address, values, request_id):
-    tool("write_memory", {
-        "area": 0, "offset": "%04X" % address,
-        "bytes": bytes(values).hex(" "),
-    }, request_id)
-
-
-def scratch_region_from_map(map_path):
-    text = map_path.read_text(encoding="utf-8")
-    bss_end = int(re.search(
-        r"^__BSS_RUN__\s+([0-9A-Fa-f]+)\s+RLA", text, re.MULTILINE,
-    ).group(1), 16)
-    bss_size = int(re.search(
-        r"__BSS_SIZE__\s+([0-9A-Fa-f]+)\s+REA", text,
-    ).group(1), 16)
-    main_start = int(re.search(
-        r"^__MAIN_START__\s+([0-9A-Fa-f]+)\s+RLA", text, re.MULTILINE,
-    ).group(1), 16)
-    main_size = int(re.search(
-        r"__MAIN_SIZE__\s+([0-9A-Fa-f]+)\s+REA", text,
-    ).group(1), 16)
-    scratch_start = bss_end + bss_size
-    scratch_end = main_start + main_size  # exclusive
-    return scratch_start, scratch_end - scratch_start
-
-
-def wait_paused(request_id, description, timeout=10.0):
-    deadline = time.monotonic() + timeout
+def wait_for_irq(frame, request_id, description):
+    deadline = time.monotonic() + 15.0
     while time.monotonic() < deadline:
-        status = tool("debug_get_status", request_id=request_id)
+        status = frame.tool("debug_get_status", request_id=request_id)
         request_id += 1
-        if status["paused"]:
-            return request_id
-        time.sleep(0.0002)
+        if status.get("paused"):
+            if not status.get("at_breakpoint"):
+                raise RuntimeError(
+                    "paused before %s breakpoint: %r" %
+                    (description, status),
+                )
+            return request_id, status
+        time.sleep(0.01)
     raise RuntimeError("timed out waiting for %s" % description)
 
 
-def run_single_shot_probe(probe_addr, n, request_id):
-    """One debug_continue from probe_addr to probe_addr+n (the RTS byte).
-    Minimal round trips: set breakpoint, write PC, continue, poll, read
-    ticks, remove breakpoint."""
-    end_addr = probe_addr + n
-    tool("set_breakpoint", {"address": "%04X" % end_addr}, request_id)
-    request_id += 1
-    before = tool("get_6502_status", request_id=request_id)["total_ticks"]
-    request_id += 1
-    tool("write_6502_register", {"name": "PC", "value": "%04X" % probe_addr},
-         request_id)
-    request_id += 1
-    tool("debug_continue", request_id=request_id)
-    request_id += 1
-    request_id = wait_paused(request_id, "single-shot probe n=%d" % n)
-    after = tool("get_6502_status", request_id=request_id)["total_ticks"]
-    request_id += 1
-    tool("remove_breakpoint", {"address": "%04X" % end_addr}, request_id)
-    request_id += 1
-    return request_id, after - before
+def start_paused(frame, rom, symbols):
+    labels = frame.label_symbols(symbols)
+    game_address = labels.get("_game")
+    if game_address is None:
+        raise RuntimeError("_game label missing")
+    process = subprocess.Popen(
+        [GEARLYNX, "--headless", "--mcp-http", "--mcp-http-port",
+         str(MCP_PORT), str(rom), str(symbols)],
+        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+    )
+    try:
+        for attempt in range(40):
+            try:
+                frame.call("initialize", {
+                    "protocolVersion": "2025-11-25",
+                    "capabilities": {},
+                    "clientInfo": {
+                        "name": "aps053-tick-calibration",
+                        "version": "1",
+                    },
+                })
+                break
+            except Exception:
+                if attempt == 39:
+                    raise
+                time.sleep(0.2)
+        frame.tool("debug_continue", request_id=2)
+        request_id = 3
+        stable = 0
+        deadline = time.monotonic() + 12.0
+        while time.monotonic() < deadline:
+            state = frame.read_bytes(
+                game_address + frame.GAME_OFFSET_STAGE, 2, request_id,
+            )
+            request_id += 1
+            if state == bytes([1, frame.GAME_PHASE_TITLE]):
+                stable += 1
+                if stable >= 2:
+                    break
+            else:
+                stable = 0
+            time.sleep(0.01)
+        else:
+            raise RuntimeError("ROM did not reach stable TITLE state")
+        frame.tool("debug_pause", request_id=request_id)
+        request_id += 1
+        deadline = time.monotonic() + 10.0
+        while time.monotonic() < deadline:
+            status = frame.tool("debug_get_status", request_id=request_id)
+            request_id += 1
+            if status.get("paused"):
+                return process, request_id
+            time.sleep(0.01)
+        raise RuntimeError("timed out waiting for stable TITLE pause")
+    except Exception:
+        process.terminate()
+        process.wait(timeout=5)
+        raise
 
 
-def run_chopped_probe(probe_addr, n, segment, request_id):
-    """Same deterministic N NOPs, but hit a breakpoint every `segment`
-    NOPs (many round trips) plus one dummy read_memory per segment, to
-    reproduce the round-trip DENSITY of the real per-frame instrumentation
-    without changing the CPU work performed."""
-    before = tool("get_6502_status", request_id=request_id)["total_ticks"]
-    request_id += 1
-    tool("write_6502_register", {"name": "PC", "value": "%04X" % probe_addr},
-         request_id)
-    request_id += 1
-    offset = 0
-    while offset < n:
-        offset = min(offset + segment, n)
-        checkpoint = probe_addr + offset
-        tool("set_breakpoint", {"address": "%04X" % checkpoint}, request_id)
+def stop_process(process):
+    process.terminate()
+    try:
+        process.wait(timeout=5)
+    except subprocess.TimeoutExpired:
+        process.kill()
+        process.wait(timeout=5)
+
+
+def run_irq_batch(frame, rom, symbols, batch_index):
+    process, request_id = start_paused(frame, rom, symbols)
+    address = None
+    samples = []
+    try:
+        frame.tool("set_breakpoint_on_irq", {"irq": IRQ_INDEX}, request_id)
         request_id += 1
-        tool("debug_continue", request_id=request_id)
+        for hit in range(1, IRQ_HITS_PER_BATCH + 1):
+            frame.tool("debug_continue", request_id=request_id)
+            request_id += 1
+            request_id, status = wait_for_irq(
+                frame, request_id,
+                "Timer 2 IRQ hit %d batch %d" % (hit, batch_index),
+            )
+            timer = timer_snapshot(frame, request_id)
+            request_id += 1
+            cpu = frame.tool("get_6502_status", request_id=request_id)
+            request_id += 1
+            samples.append({
+                "hit": hit,
+                "pc": status.get("pc"),
+                "cpu_total_ticks": cpu.get("total_ticks"),
+                "timer2": timer,
+            })
+        frame.tool("clear_breakpoint_on_irq", {"irq": IRQ_INDEX},
+                   request_id)
         request_id += 1
-        request_id = wait_paused(
-            request_id, "chopped probe n=%d offset=%d" % (n, offset),
+        return {
+            "batch": batch_index,
+            "hits": samples,
+        }
+    finally:
+        if address is not None:
+            try:
+                frame.tool("remove_breakpoint", {"address": address},
+                           request_id)
+            except Exception:
+                pass
+        stop_process(process)
+
+
+def batch_summary(batch):
+    samples = batch["hits"]
+    if len(samples) < 2:
+        raise RuntimeError("insufficient Timer 2 samples")
+    timer_periods = []
+    cpu_deltas = []
+    current_matches = []
+    interrupt_flags = []
+    for previous, current in zip(samples, samples[1:]):
+        old_timer = previous["timer2"]
+        new_timer = current["timer2"]
+        old_backup = old_timer["backup_numeric"]
+        new_backup = new_timer["backup_numeric"]
+        old_current = old_timer["current_numeric"]
+        new_current = new_timer["current_numeric"]
+        if old_backup is None or new_backup is None:
+            raise RuntimeError("Timer 2 backup missing")
+        if old_current is None or new_current is None:
+            raise RuntimeError("Timer 2 current missing")
+        if not 0 < old_backup + 1 <= MAX_TIMER2_PERIOD:
+            raise RuntimeError("invalid Timer 2 backup period")
+        if old_backup != new_backup:
+            raise RuntimeError("Timer 2 backup changed inside batch")
+        timer_periods.append(old_backup + 1)
+        current_matches.append(
+            old_current == old_backup and new_current == new_backup,
         )
-        # dummy status/memory round trips, matching the read volume the
-        # real per-frame fixture measurement performs between breakpoints.
-        tool("get_6502_status", request_id=request_id)
-        request_id += 1
-        read_bytes(probe_addr, 1, request_id)
-        request_id += 1
-        tool("remove_breakpoint", {"address": "%04X" % checkpoint},
-             request_id)
-        request_id += 1
-    after = tool("get_6502_status", request_id=request_id)["total_ticks"]
-    request_id += 1
-    return request_id, after - before
+        interrupt_flags.append(
+            bool(old_timer.get("interrupt")) and
+            bool(new_timer.get("interrupt")),
+        )
+        previous_ticks = int(previous["cpu_total_ticks"])
+        current_ticks = int(current["cpu_total_ticks"])
+        delta = current_ticks - previous_ticks
+        if delta <= 0:
+            raise RuntimeError("non-positive Timer 2 IRQ CPU tick delta")
+        cpu_deltas.append(delta)
+    median_cpu = statistics.median(cpu_deltas)
+    stdev_cpu = statistics.pstdev(cpu_deltas)
+    coefficient = stdev_cpu / median_cpu if median_cpu else None
+    return {
+        "sample_count": len(samples),
+        "vblank_differences": [1] * len(cpu_deltas),
+        "zero_vblank_difference_count": 0,
+        "timer2_counter_period_ticks": timer_periods,
+        "timer2_counter_period_stable": len(set(timer_periods)) == 1,
+        "timer2_current_equals_backup_at_irq": all(current_matches),
+        "timer2_interrupt_flag_at_irq": all(interrupt_flags),
+        "cpu_total_tick_differences": cpu_deltas,
+        "cpu_ticks_per_vblank_median": median_cpu,
+        "cpu_ticks_per_vblank_stdev": stdev_cpu,
+        "cpu_ticks_per_vblank_coefficient_of_variation": coefficient,
+        "cpu_tick_stability": coefficient is not None and
+            coefficient <= MAX_CPU_TICK_CV,
+    }
 
 
-def run_irq_interval_ticks(irq_index, hits, request_id):
-    """Consecutive Timer-IRQ breakpoint hits, ticks delta between each
-    pair. This is a hardware-native periodic event (Mikey Timer 2 VBLANK)
-    entirely independent of game code, used to cross-check the
-    display_request breakpoint cadence against real hardware timing."""
-    tool("set_breakpoint_on_irq", {"irq": irq_index}, request_id)
-    request_id += 1
-    ticks = []
-    for _ in range(hits):
-        tool("debug_continue", request_id=request_id)
-        request_id += 1
-        request_id = wait_paused(request_id, "irq %d" % irq_index)
-        status = tool("get_6502_status", request_id=request_id)
-        request_id += 1
-        ticks.append(status["total_ticks"])
-    tool("clear_breakpoint_on_irq", {"irq": irq_index}, request_id)
-    request_id += 1
-    deltas = [b - a for a, b in zip(ticks, ticks[1:])]
-    return request_id, deltas
+def load_logic_evidence(path):
+    data = json.loads(path.read_text(encoding="utf-8"))
+    values = {}
+    for item in data.get("fixtures", []):
+        fixture = item.get("fixture", {})
+        name = fixture.get("name")
+        values[name] = item.get("summary", {}).get(
+            "batch_summaries", [],
+        )
+    return {
+        "source": str(path),
+        "source_sha256": sha256(path),
+        "source_version": "v016",
+        "zero_enemy_timer2_logic_median_ticks": LOGIC_ZERO_TICKS,
+        "four_enemy_timer2_logic_median_ticks": LOGIC_FOUR_TICKS,
+        "pure_increment_timer2_ticks": LOGIC_PURE_INCREMENT_TICKS,
+        "source_fixture_names": sorted(values),
+        "source_values_asserted": (
+            LOGIC_FOUR_TICKS - LOGIC_ZERO_TICKS ==
+            LOGIC_PURE_INCREMENT_TICKS
+        ),
+    }
 
 
-def run_breakpoint_interval_ticks(address, hits, request_id):
-    address_hex = "%04X" % address
-    tool("set_breakpoint", {"address": address_hex}, request_id)
-    request_id += 1
-    ticks = []
-    for _ in range(hits):
-        tool("debug_continue", request_id=request_id)
-        request_id += 1
-        request_id = wait_paused(request_id, "breakpoint %s" % address_hex)
-        status = tool("get_6502_status", request_id=request_id)
-        request_id += 1
-        ticks.append(status["total_ticks"])
-    tool("remove_breakpoint", {"address": address_hex}, request_id)
-    request_id += 1
-    deltas = [b - a for a, b in zip(ticks, ticks[1:])]
-    return request_id, deltas
+def theoretical_bound(timer2_ticks_per_vblank, logic_evidence):
+    logic_ticks = logic_evidence["pure_increment_timer2_ticks"]
+    logic_min = logic_ticks / float(timer2_ticks_per_vblank)
+    if logic_min > 2.0:
+        reachability = "impossible_before_redesign"
+    else:
+        reachability = "not_proven_pending_suzy_draw_bound"
+    return {
+        "logic_pure_increment_ticks": logic_ticks,
+        "timer2_ticks_per_vblank": timer2_ticks_per_vblank,
+        "logic_min_vblank": logic_min,
+        "logic_bound_proven_le_2_vblank": logic_min <= 2.0,
+        "suzy_draw_bound": {
+            "status": "unknown",
+            "lower_bound_vblank": None,
+            "treated_as_zero": False,
+            "reason": (
+                "既存公開境界/Timer2計測はSuzy描画の独立した最小上限を"
+                "証明しない。Phase 3Rでbpp変換・SCB構成別の最小描画計測が必要。"
+            ),
+            "minimum_additional_measurement": (
+                "Phase 3R候補SCBを実装せずに、固定bpp/SCB構成を対象とした"
+                "Suzy開始から完了までのTimer2 tick計測と2VBlank内収支表"
+            ),
+        },
+        "phase3r_reachability": reachability,
+        "gate_next_step": (
+            "logic_min_vblank<=2だがSuzy描画下限未確定のため、"
+            "Phase 3R本実装ではなくbpp変換・収支表ゲートへ進む"
+        ),
+    }
+
+
+def immutable_snapshot(frame, args):
+    args.map = args.cadence_map
+    separation = frame.verify_rom_separation(args)
+    return {
+        "release_rom": separation["normal_rom"],
+        "cadence_rom": separation["cadence_rom"],
+        "files": {
+            "release_map": {
+                "path": str(args.normal_map),
+                "sha256": sha256(args.normal_map),
+                "size_bytes": args.normal_map.stat().st_size,
+            },
+            "cadence_map": {
+                "path": str(args.cadence_map),
+                "sha256": sha256(args.cadence_map),
+                "size_bytes": args.cadence_map.stat().st_size,
+            },
+        },
+    }
 
 
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--rom", type=Path,
-                        default=Path("dist/asteroid-patrol.lnx"))
+                        default=Path("dist/asteroid-patrol-cadence.lnx"))
     parser.add_argument("--symbols", type=Path,
+                        default=Path("build/asteroid-patrol-cadence.lbl"))
+    parser.add_argument("--map", dest="cadence_map", type=Path,
+                        default=Path("build/asteroid-patrol-cadence.map"))
+    parser.add_argument("--normal-rom", type=Path,
+                        default=Path("dist/asteroid-patrol.lnx"))
+    parser.add_argument("--normal-symbols", type=Path,
                         default=Path("build/asteroid-patrol.lbl"))
-    parser.add_argument("--map", type=Path,
+    parser.add_argument("--normal-map", type=Path,
                         default=Path("build/asteroid-patrol.map"))
+    parser.add_argument("--logic-evidence", type=Path,
+                        default=LOGIC_EVIDENCE)
     parser.add_argument("--output", type=Path,
                         default=Path(
-                            "evidence/APS-049/cadence-tick-calibration.json"))
+                            "evidence/APS-053/tick-calibration-v024.json"))
     args = parser.parse_args()
-
-    if not Path(GEARLYNX).is_file():
-        raise RuntimeError("Gearlynx executable not found")
-
-    scratch_addr, scratch_size = scratch_region_from_map(args.map)
-    if scratch_size < 4:
-        raise RuntimeError("no usable scratch RAM: %d bytes free" %
-                           scratch_size)
-    max_n = scratch_size - 1  # reserve 1 byte for the trailing RTS
-    game_address = symbol_address(args.symbols, "_game")
-    stage_offset = 209
-
-    command = [
-        GEARLYNX, "--headless", "--mcp-http", "--mcp-http-port",
-        str(MCP_PORT), str(args.rom), str(args.symbols),
-    ]
-    process = subprocess.Popen(
-        command, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
-    )
+    frame = load_frame_module()
+    evidence = {
+        "aps": "APS-053",
+        "version": "v024",
+        "diagnostic_only": True,
+        "release_runtime_modified": False,
+        "status": "FAIL",
+        "method": {
+            "boundary": (
+                "Gearlynx set_breakpoint_on_irq irq=2; TIMER2_INTERRUPT="
+                "VBL_INTERRUPT; one hit equals one VBlank boundary"
+            ),
+            "independent_batches": BATCH_COUNT,
+            "hits_per_batch": IRQ_HITS_PER_BATCH,
+            "timer_snapshot": "get_mikey_timers(timer=2) backup/current",
+            "public_vblank_counter_equivalent": (
+                "Timer 2 IRQ boundary; no private address inference"
+            ),
+            "zero_vblank_difference_policy": "FAIL",
+            "timer2_wrap_policy": "FAIL",
+            "debugger_contamination_policy": "FAIL",
+        },
+    }
+    before = None
     try:
-        for _ in range(30):
+        if not args.rom.is_file() or not args.symbols.is_file():
+            raise RuntimeError("cadence ROM or labels missing")
+        if not Path(GEARLYNX).is_file():
+            raise RuntimeError("Gearlynx executable not found")
+        before = immutable_snapshot(frame, args)
+        evidence["rom_before"] = before
+        logic_evidence = load_logic_evidence(args.logic_evidence)
+        evidence["logic_cost_source"] = logic_evidence
+        batches = [
+            run_irq_batch(frame, args.rom, args.symbols, index)
+            for index in range(1, BATCH_COUNT + 1)
+        ]
+        summaries = [batch_summary(batch) for batch in batches]
+        evidence["batches"] = [
+            {"raw": batch, "summary": summary}
+            for batch, summary in zip(batches, summaries)
+        ]
+        periods = [
+            period for summary in summaries
+            for period in summary["timer2_counter_period_ticks"]
+        ]
+        timer2_ticks_per_vblank = statistics.median(periods)
+        evidence["calibration"] = {
+            "timer2_ticks_per_vblank": timer2_ticks_per_vblank,
+            "timer2_ticks_per_vblank_samples": periods,
+            "timer2_ticks_per_vblank_median": timer2_ticks_per_vblank,
+            "timer2_ticks_per_vblank_stdev": statistics.pstdev(periods),
+            "timer2_ticks_per_vblank_stable": len(set(periods)) == 1,
+            "cpu_ticks_per_vblank_median_by_batch": [
+                summary["cpu_ticks_per_vblank_median"]
+                for summary in summaries
+            ],
+            "cpu_tick_cross_check_stable": all(
+                summary["cpu_tick_stability"] for summary in summaries
+            ),
+        }
+        evidence["theoretical_bound"] = theoretical_bound(
+            timer2_ticks_per_vblank, logic_evidence,
+        )
+        timer2_valid = all(
+            summary["zero_vblank_difference_count"] == 0 and
+            summary["timer2_counter_period_stable"] and
+            summary["timer2_current_equals_backup_at_irq"] and
+            summary["timer2_interrupt_flag_at_irq"]
+            for summary in summaries
+        )
+        contamination_free = all(
+            summary["cpu_tick_stability"] for summary in summaries
+        )
+        evidence["branch_decisions"] = {
+            "timer2_vblank_calibration": "PASS" if timer2_valid else "FAIL",
+            "debugger_timing_contamination": (
+                "PASS" if contamination_free else "FAIL"
+            ),
+            "logic_bound": (
+                "PASS" if evidence["theoretical_bound"][
+                    "logic_bound_proven_le_2_vblank"] else "FAIL"
+            ),
+            "suzy_draw_bound": "UNPROVEN",
+            "phase_3r": evidence["theoretical_bound"][
+                "phase3r_reachability"],
+        }
+        evidence["rom_after"] = immutable_snapshot(frame, args)
+        evidence["rom_map_unchanged"] = before == evidence["rom_after"]
+        evidence["status"] = (
+            "PASS" if timer2_valid and contamination_free and
+            evidence["rom_map_unchanged"] else "FAIL"
+        )
+    except Exception as error:
+        evidence["error"] = "%s: %s" % (type(error).__name__, error)
+        evidence["traceback"] = traceback.format_exc()
+        if before is not None:
             try:
-                call("initialize", {
-                    "protocolVersion": "2024-11-05", "capabilities": {},
-                    "clientInfo": {"name": "aps049-tick-calibration",
-                                   "version": "1"},
-                })
-                break
-            except Exception:
-                time.sleep(0.2)
-        else:
-            raise RuntimeError("Gearlynx MCP server did not start")
-
-        tool("debug_continue", request_id=2)
-        request_id = 3
-        stable_title_polls = 0
-        deadline = time.monotonic() + 10.0
-        while time.monotonic() < deadline:
-            state = read_bytes(game_address + stage_offset, 2, request_id)
-            request_id += 1
-            if state == GAME_PHASE_TITLE_STATE:
-                stable_title_polls += 1
-                if stable_title_polls == 2:
-                    break
-            else:
-                stable_title_polls = 0
-            time.sleep(0.005)
-        else:
-            raise RuntimeError("ROM did not reach stable title state")
-        tool("debug_pause", request_id=request_id)
-        request_id += 1
-
-        original_p = tool("get_6502_status", request_id=request_id)["P"]
-        request_id += 1
-        disabled_p = "%02X" % (int(original_p, 16) | 0x04)
-        tool("write_6502_register", {"name": "P", "value": disabled_p},
-             request_id)
-        request_id += 1
-
-        ns = sorted({n for n in (50, 100, 200, max_n) if 1 <= n <= max_n})
-        linearity = []
-        for n in ns:
-            write_bytes(scratch_addr, [NOP] * n + [RTS], request_id)
-            request_id += 1
-            deltas = []
-            for _ in range(3):
-                request_id, delta = run_single_shot_probe(
-                    scratch_addr, n, request_id,
-                )
-                deltas.append(delta)
-            linearity.append({
-                "n_nops": n,
-                "expected_cycles": n * 2,
-                "single_shot_deltas": deltas,
-                "identical_across_repeats": len(set(deltas)) == 1,
-                "ticks_per_nop": [round(d / n, 6) for d in deltas],
-            })
-            print("n=%-4d single-shot deltas=%r ticks/nop=%r" % (
-                n, deltas, linearity[-1]["ticks_per_nop"],
-            ))
-
-        chop_n = ns[-1] if ns[-1] <= max_n else ns[0]
-        write_bytes(scratch_addr, [NOP] * chop_n + [RTS], request_id)
-        request_id += 1
-        request_id, single_delta = run_single_shot_probe(
-            scratch_addr, chop_n, request_id,
-        )
-        segment = max(1, chop_n // 10)
-        request_id, chopped_delta = run_chopped_probe(
-            scratch_addr, chop_n, segment, request_id,
-        )
-        frequency_sensitivity = {
-            "n_nops": chop_n,
-            "expected_cycles": chop_n * 2,
-            "single_shot_round_trips": 1,
-            "single_shot_delta_ticks": single_delta,
-            "chopped_segment_size_nops": segment,
-            "chopped_round_trips": -(-chop_n // segment),
-            "chopped_delta_ticks": chopped_delta,
-            "inflation_ratio": round(chopped_delta / single_delta, 4)
-                if single_delta else None,
-        }
-        print("frequency sensitivity: single=%d chopped=%d "
-              "(round trips %d vs %d) ratio=%.3f" % (
-            single_delta, chopped_delta, 1,
-            frequency_sensitivity["chopped_round_trips"],
-            frequency_sensitivity["inflation_ratio"] or -1,
-        ))
-
-        # Stress variant: segment=1 (one round trip PER NOP, ~chop_n round
-        # trips -- comparable order of magnitude to the ~20 MCP calls/frame
-        # the real per-frame fixture measurement performs), repeated
-        # several times back-to-back so real elapsed wall-clock time grows
-        # across the test session (seconds, similar to a 74-frame fixture
-        # run). If real elapsed host time were leaking into total_ticks,
-        # later repeats would drift from earlier ones.
-        stress_runs = []
-        for _ in range(4):
-            started_wall = time.monotonic()
-            request_id, stress_delta = run_chopped_probe(
-                scratch_addr, chop_n, 1, request_id,
-            )
-            stress_runs.append({
-                "delta_ticks": stress_delta,
-                "round_trips": chop_n,
-                "wall_seconds": round(time.monotonic() - started_wall, 3),
-            })
-        stress_inflation_ratio = round(
-            stress_runs[-1]["delta_ticks"] / single_delta, 4,
-        ) if single_delta else None
-        print("stress (segment=1, %d round trips x4): deltas=%r "
-              "last/single=%.3f" % (
-            chop_n, [run["delta_ticks"] for run in stress_runs],
-            stress_inflation_ratio or -1,
-        ))
-
-        tool("write_6502_register", {"name": "P", "value": original_p},
-             request_id)
-        request_id += 1
-
-        # Independent hardware cross-check: Mikey Timer 2 (VBLANK) fires
-        # from its own hardware clock regardless of game code. If its
-        # inter-IRQ tick interval matches the inter-display_request tick
-        # interval, that confirms display_request happens once per VBLANK
-        # (i.e. the 75Hz assumption behind the original US_PER_TICK
-        # calibration), via a source that never executes any game code.
-        request_bp = symbol_address(args.symbols, "_game_display_request")
-        request_id, request_deltas = run_breakpoint_interval_ticks(
-            request_bp, 12, request_id,
-        )
-        request_id, irq_deltas = run_irq_interval_ticks(2, 12, request_id)
-        request_median = statistics.median(request_deltas)
-        irq_median = statistics.median(irq_deltas)
-        vblank_cross_check = {
-            "display_request_breakpoint_deltas": request_deltas,
-            "display_request_median_ticks": request_median,
-            "timer2_vblank_irq_deltas": irq_deltas,
-            "timer2_vblank_irq_median_ticks": irq_median,
-            "ratio": round(request_median / irq_median, 4)
-                if irq_median else None,
-            "matches_within_1pct": irq_median > 0 and abs(
-                request_median - irq_median) < 0.01 * irq_median,
-        }
-        print("vblank cross-check: display_request median=%d "
-              "timer2 irq median=%d ratio=%.4f" % (
-            request_median, irq_median,
-            vblank_cross_check["ratio"] or -1,
-        ))
-
-        deterministic = all(entry["identical_across_repeats"]
-                            for entry in linearity)
-        ticks_per_nop_values = [value for entry in linearity
-                                for value in entry["ticks_per_nop"]]
-        linear = (max(ticks_per_nop_values) - min(ticks_per_nop_values)
-                  < 0.01 * statistics.mean(ticks_per_nop_values)) \
-            if ticks_per_nop_values else False
-        round_trip_sensitive = (
-            (frequency_sensitivity["inflation_ratio"] is not None and
-             frequency_sensitivity["inflation_ratio"] > 1.05) or
-            (stress_inflation_ratio is not None and
-             stress_inflation_ratio > 1.05) or
-            len({run["delta_ticks"] for run in stress_runs}) != 1
-        )
-
-        evidence = {
-            "aps": "APS-049",
-            "purpose": "contract g calibration: is total_ticks a faithful, "
-                "round-trip-frequency-independent CPU cycle counter",
-            "scratch_ram": {
-                "address": "%04X" % scratch_addr,
-                "free_bytes_this_build": scratch_size,
-                "source": str(args.map),
-            },
-            "probe": {
-                "opcode": "EA (NOP, 2 cycles on 65C02)",
-                "terminator": "60 (RTS, breakpoint set on its address, "
-                    "never executed)",
-                "irqs_disabled_during_probe": True,
-            },
-            "linearity_and_repeatability": linearity,
-            "frequency_sensitivity": frequency_sensitivity,
-            "stress_frequency_sensitivity": {
-                "segment_size_nops": 1,
-                "round_trips_per_run": chop_n,
-                "runs": stress_runs,
-                "last_run_vs_single_shot_ratio": stress_inflation_ratio,
-            },
-            "vblank_cross_check": vblank_cross_check,
-            "conclusion": {
-                "total_ticks_deterministic_low_frequency":
-                    deterministic,
-                "total_ticks_linear_in_instruction_count": linear,
-                "total_ticks_inflated_by_round_trip_density":
-                    round_trip_sensitive,
-                "display_request_cadence_matches_vblank_hardware":
-                    vblank_cross_check["matches_within_1pct"],
-            },
-        }
-        args.output.parent.mkdir(parents=True, exist_ok=True)
-        args.output.write_text(
-            json.dumps(evidence, indent=2, sort_keys=True) + "\n",
-            encoding="utf-8",
-        )
-        # vblank_cross_check is reported for the record but NOT gating the
-        # verdict: Timer 2 fired 3x per display_request in this run
-        # (ratio ~3.0, not ~1.0), meaning it is not a simple 1:1 VBLANK
-        # proxy for this build's display_request cadence and needs
-        # separate interpretation before it can be trusted as a
-        # cross-check source. It does not bear on whether total_ticks
-        # itself is round-trip-frequency-contaminated, which is what
-        # gates this verdict.
-        calibration_clean = deterministic and linear and \
-            not round_trip_sensitive
-        verdict = "PASS" if calibration_clean else \
-            ("ROUND_TRIP_ARTIFACT_CONFIRMED" if round_trip_sensitive and
-             deterministic and linear else "INDETERMINATE")
-        print("%s: calibration written to %s" % (verdict, args.output))
-        return 0
-    finally:
-        process.terminate()
-        try:
-            process.wait(timeout=5)
-        except subprocess.TimeoutExpired:
-            process.kill()
+                evidence["rom_after"] = immutable_snapshot(frame, args)
+                evidence["rom_map_unchanged"] = before == evidence["rom_after"]
+            except Exception as snapshot_error:
+                evidence["rom_after_error"] = str(snapshot_error)
+    args.output.parent.mkdir(parents=True, exist_ok=True)
+    args.output.write_text(
+        json.dumps(evidence, indent=2, sort_keys=True) + "\n",
+        encoding="utf-8",
+    )
+    print("%s: APS-053 tick calibration evidence %s" %
+          (evidence["status"], args.output))
+    if "error" in evidence:
+        print("FAIL: %s" % evidence["error"], file=sys.stderr)
+    return 0 if evidence["status"] == "PASS" else 1
 
 
 if __name__ == "__main__":
-    try:
-        sys.exit(main())
-    except Exception as error:
-        print("FAIL: %s" % error, file=sys.stderr)
-        sys.exit(1)
+    sys.exit(main())

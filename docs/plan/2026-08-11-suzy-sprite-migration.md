@@ -1,5 +1,7 @@
 # Suzyスプライト移行による描画高速化 設計書(APS-051後続)
 
+> **[2026-08-12 改訂告知]** 本書§4のRAM見積もり(空き約2.2KB)は誤りと確定した(実際の空きは53B — C stack予約1,920Bを空きに誤算入)。Phase 2以降の正本は `docs/plan/2026-08-12-suzy-sprite-migration-v2.md`。Phase 1(logic catch-up)の設計のみ本書が引き続き有効。
+
 - 作成: 2026-08-11 Fable5(設計担当)
 - 対象プロジェクト: `/Users/mammycloud-m4/Documents/develop-m4/atari-lynx-shooter/`
 - 前提: APS-051でcadence測定を修理済み。合否判定はすべて修理後の測定(VBlankバッチ計測)を唯一のモノサシとする

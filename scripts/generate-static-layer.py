@@ -132,6 +132,25 @@ def encode_packed(image, bits):
             for value in values:
                 append_bits(stream, value, bits)
 
+        # cc65 sp65's shaped encoder (lynxsprite.c encodeSprite, case
+        # smShaped) always closes a line with an explicit "00000" end-of-
+        # scanline packet (mode bit 0 + a 4 bit count of 0, a combination
+        # the real token loop above never emits on its own, since a
+        # genuine packed/run token always needs count>=threshold-1>=1)
+        # before the final byte flush. Without it, the packed stream for
+        # this line has no unambiguous stop marker, and a short trailing
+        # run (e.g. "N transparent + 2 identical pixels") can decode with
+        # its last pixel dropped on real Suzy hardware even though the
+        # bits are otherwise correct -- see .briefs/APS-053/v037.md.
+        append_bits(stream, 0, 5)
+
+        # bit_counter != 8 in the reference AssembleByte(): only a
+        # genuinely partial final byte (stream length not a multiple of 8)
+        # gets the "duplicate this byte if its LSB is 1" workaround. A
+        # line whose stream lands exactly on a byte boundary already had
+        # its last byte flushed by the normal 8-bit rollover and must not
+        # be duplicated again.
+        needs_duplicate_check = (len(stream) % 8) != 0
         line_bytes = []
         while stream:
             byte = 0
@@ -140,7 +159,7 @@ def encode_packed(image, bits):
             line_bytes.append(byte)
         if len(line_bytes) == 1:
             line_bytes.append(0)
-        if line_bytes and (line_bytes[-1] & 1):
+        if needs_duplicate_check and line_bytes and (line_bytes[-1] & 1):
             line_bytes.append(line_bytes[-1])
         result.append(len(line_bytes) + 1)
         result.extend(line_bytes)

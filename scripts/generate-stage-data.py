@@ -3,10 +3,27 @@
 
 import argparse
 import hashlib
+import importlib.util
 import json
 import re
 import sys
 from pathlib import Path
+
+
+def _load_static_layer_gen():
+    """APS-053 Phase 3R: the Suzy packed-bitmap encoder (encode_packed) lives
+    in generate-static-layer.py and is already proven on Gearlynx for the
+    background/HUD layer. Loaded lazily via file path (not a package import)
+    to match the existing verify-phase-3r-sprite-bpp-gate.py pattern, since
+    scripts/ is not an importable package."""
+    path = Path(__file__).resolve().parent / "generate-static-layer.py"
+    spec = importlib.util.spec_from_file_location("static_layer_gen", path)
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    return module
+
+
+static_layer_gen = _load_static_layer_gen()
 
 
 FIXED_PALETTE_ROLES = [
@@ -230,21 +247,6 @@ def sprite_runs(rows):
     return runs
 
 
-def pack_sprite_run(run):
-    """APS-049 2-bytes/run encoding: every sprite canvas is a fixed 16x16
-    preview grid, so y, x0, run length and color role all fit in 4 bits
-    each (byte0 = y<<4|x0, byte1 = length<<4|color). This halves the
-    previous 3-bytes/run cost, which is required to keep the larger
-    16x16-authored run counts inside the linked RAM residual budget."""
-    y, x0, x1, color = run
-    length = x1 - x0
-    if not (0 <= y <= 15 and 0 <= x0 <= 15 and 0 <= length <= 15 and
-            0 <= color <= 15):
-        fail("sprite runs",
-             "run %r exceeds the 16x16 2-byte encoding range" % (run,))
-    return ((y << 4) | x0, (length << 4) | color)
-
-
 def preview_bbox(grid, canvas=PREVIEW_CANVAS):
     xs = [x for y in range(canvas) for x in range(canvas)
           if grid[y][x] != "."]
@@ -276,6 +278,82 @@ def pack_sprite_anchor(dx, dy):
     """Bias dx/dy by +8 into 0..15 so the C decoder is a plain subtract
     (no branch/sign-extend), trimming CODE size on the 6502 target."""
     return (((dx + 8) & 0x0F) << 4) | ((dy + 8) & 0x0F)
+
+
+# APS-053 Phase 3R: Suzy SPRCTL0 bpp bits (_suzy.h BPP_1/BPP_2/BPP_4) ORed
+# with TYPE_NONCOLL (0x05) -- collision is never enabled for movable sprites
+# (COLLBAS overlaps MAIN; see docs/plan/2026-08-12-suzy-sprite-migration-v2.md
+# section 2 rule 4). CANDIDATE_BPP intentionally excludes 3bpp (v032 scope,
+# also used by verify-phase-3r-sprite-bpp-gate.py).
+SPRITE_CANDIDATE_BPP = (1, 2, 4)
+SPRITE_SPRCTL0_BY_BPP = {1: 0x00, 2: 0x40, 4: 0xC0}
+SPRITE_TYPE_NONCOLL = 0x05
+SPRITE_MAX_COLORS = 4
+
+
+def sprite_minimal_bpp(distinct_role_count):
+    """Smallest bpp in SPRITE_CANDIDATE_BPP that can hold distinct_role_count
+    non-transparent colors plus pixel value 0 (transparent). Mirrors
+    verify-phase-3r-sprite-bpp-gate.py's minimal_bpp so the pre-implementation
+    gate numbers and the real generator agree."""
+    needed_values = distinct_role_count + 1
+    for bpp in SPRITE_CANDIDATE_BPP:
+        if (1 << bpp) >= needed_values:
+            return bpp
+    fail("sprite bpp", "no candidate bpp covers %d colors" % distinct_role_count)
+
+
+def pack_sprite_penpal(real_colors):
+    """Suzy SCB penpal nibble packing (src/static_layer.c reset_scb comment):
+    pixel value v (1-based) selects penpal[v>>1], the low nibble if v is odd,
+    the high nibble if v is even. Movable sprites use at most
+    SPRITE_MAX_COLORS non-transparent pixel values, so 3 penpal bytes
+    (covering v=1..4) are always enough -- the runtime copies these into the
+    low 3 bytes of the SCB's real 8-byte penpal field and never reads the
+    rest (see main.c movable_append)."""
+    packed = [0, 0, 0]
+    for index, color in enumerate(real_colors):
+        v = index + 1
+        byte_index = v >> 1
+        if byte_index >= len(packed):
+            fail("sprite penpal",
+                 "pixel value %d exceeds the packed penpal range" % v)
+        nibble = color & 0x0F
+        packed[byte_index] |= nibble if (v & 1) else (nibble << 4)
+    return packed
+
+
+def sprite_pack_frames(sprite_id, preview, roles):
+    """Bpp-minimize and Suzy-pack both frames of one sprite, sharing one
+    local pixel-index assignment (and therefore one penpal table) across
+    frame 0 and its frame 1 overlay delta, exactly like
+    verify-phase-3r-sprite-bpp-gate.py's build_sprite_report. Returns
+    (bpp, penpal_bytes, frame0_packed_bytes, frame1_packed_bytes)."""
+    frame0_rows = [list(row) for row in preview["grid"]]
+    frame1_rows = [list(row) for row in apply_anim_delta(
+        preview["grid"], preview["anim_delta"], roles,
+        "previews.%s.anim_delta" % sprite_id)]
+    colors_frame0 = {c for row in frame0_rows for c in row if c != "."}
+    colors_frame1 = {c for row in frame1_rows for c in row if c != "."}
+    colors_union = sorted(colors_frame0 | colors_frame1)
+    if len(colors_union) > SPRITE_MAX_COLORS:
+        fail("previews.%s.grid" % sprite_id,
+             "sprite uses %d colors across both frames, exceeding the "
+             "packed penpal budget of %d" %
+             (len(colors_union), SPRITE_MAX_COLORS))
+    local_index = {role: index + 1 for index, role in enumerate(colors_union)}
+    bpp = sprite_minimal_bpp(len(colors_union))
+
+    def numeric_image(rows):
+        return [[0 if cell == "." else local_index[cell] for cell in row]
+                for row in rows]
+
+    frame0_packed = static_layer_gen.encode_packed(
+        numeric_image(frame0_rows), bpp)
+    frame1_packed = static_layer_gen.encode_packed(
+        numeric_image(frame1_rows), bpp)
+    real_colors = [int(role, 16) for role in colors_union]
+    return bpp, pack_sprite_penpal(real_colors), frame0_packed, frame1_packed
 
 
 def load_previews(player_path=PLAYER_PREVIEW_PATH,
@@ -852,49 +930,60 @@ def render_stage_source(document):
     return "\n".join(lines)
 
 
+def sprite_packed_data_length(document, previews):
+    total = 0
+    for sprite in document["sprites"]:
+        sprite_id = sprite["id"]
+        kind = SPRITE_CONTRACTS[sprite_id][0]
+        _bpp, _penpal, frame0_packed, frame1_packed = sprite_pack_frames(
+            sprite_id, previews[sprite_id], SPRITE_ROLES[kind])
+        total += len(frame0_packed) + len(frame1_packed)
+    return total
+
+
 def render_sprite_header(document, previews):
     lines = [
         "#ifndef SPRITE_DATA_H", "#define SPRITE_DATA_H", "",
         "/* Generated by scripts/generate-stage-data.py. Do not edit. */",
         "#define GAME_SPRITE_CANVAS 16u",
-        "#define GAME_SPRITE_FRAME0_RUN_BUDGET %du" %
-            SPRITE_FRAME0_RUN_BUDGET_TOTAL,
+        "#define GAME_SPRITE_PACKED_DATA_LENGTH %du" %
+            sprite_packed_data_length(document, previews),
     ]
     for index, sprite in enumerate(document["sprites"]):
         lines.append("#define GAME_SPRITE_%s %du" % (macro(sprite["id"]), index))
     lines.extend([
         "#define GAME_SPRITE_COUNT %du" % len(document["sprites"]),
         "#define GAME_SPRITE_INVALID 0xffu", "",
-        "/* APS-050: single-source preview authoring. Frame 0 is the",
-        " * assets/previews/aps044-*-preview.json grid verbatim (16x16,",
-        " * 2 bytes/run: byte0 = y<<4|x0, byte1 = length<<4|color). Frame 1",
-        " * is an *overlay delta* of 1..6 runs stored immediately after",
-        " * frame 0's runs and applied on top of frame 0 by the caller (see",
-        " * game_sprite_visit_runs callers in main.c), not a second full",
-        " * frame -- this keeps RODATA/RAM within budget, as does folding",
-        " * frame_offset/frame_count into one definition (frame 1 has no",
-        " * offset field: it starts right after frame 0's run_count runs).",
-        " * Visual canvas is always 16x16 (GAME_SPRITE_CANVAS) so",
-        " * width/height are not stored per sprite; anchor is packed into",
-        " * one byte ((dx+8) in the high nibble, (dy+8) in the low nibble,",
-        " * range -8..7) and boss draw scale is derived from SPRITE_CONTRACTS",
-        " * at runtime (all bosses are 1x in APS-050) rather than stored,",
-        " * to keep the linked RAM budget. */",
+        "/* APS-053 Phase 3R: single-source preview authoring, drawn as a",
+        " * Suzy SCB packed bitmap instead of the pre-3R TGI run list.",
+        " * Frame 0 is the assets/previews/aps044-*-preview.json grid",
+        " * verbatim; frame 1 is that same grid with the preview's",
+        " * anim_delta overlay applied, packed as its own full frame (Suzy",
+        " * draws one bitmap per SCB -- there is no run-time delta overlay",
+        " * step any more). Both frames of one sprite share one bpp and one",
+        " * penpal table (sprite_pack_frames), matching",
+        " * verify-phase-3r-sprite-bpp-gate.py's confirmed byte counts.",
+        " * sprctl0 already carries the BPP_x|TYPE_NONCOLL bits for this",
+        " * sprite (see main.c movable_append); penpal holds up to",
+        " * SPRITE_MAX_COLORS real 0-15 colors, Suzy-nibble-packed",
+        " * (pack_sprite_penpal). frame0_offset/frame1_offset index into",
+        " * game_sprite_packed_data; each packed bitmap is self-terminating",
+        " * (a zero row-length byte), so no length field is stored -- Suzy",
+        " * (and main.c, which only ever forwards the pointer) never needs",
+        " * one. Anchor is packed into one byte ((dx+8) high nibble, (dy+8)",
+        " * low nibble, range -8..7); boss draw scale is derived from",
+        " * SPRITE_CONTRACTS at runtime (all bosses are 1x, APS-050). */",
         "typedef struct GameSpriteDefinition {",
         "    unsigned char anchor;",
+        "    unsigned char sprctl0;",
+        "    unsigned char penpal[3];",
         "    unsigned int frame0_offset;",
-        "    unsigned char frame0_count;",
-        "    unsigned char frame1_count;",
+        "    unsigned int frame1_offset;",
         "} GameSpriteDefinition;", "",
-        "typedef void (*GameSpriteRunVisitor)(int x0, int x1, int y,",
-        "    unsigned char color, void* context);", "",
-        "extern const unsigned char game_sprite_run_data[];",
+        "extern const unsigned char game_sprite_packed_data[];",
         "extern const GameSpriteDefinition game_sprite_definitions[GAME_SPRITE_COUNT];",
         "extern const unsigned char game_enemy_sprite_ids[9];",
         "extern const unsigned char game_boss_sprite_ids[4];",
-        "unsigned char game_sprite_visit_runs(int x, int y,",
-        "    unsigned char sprite_id, unsigned char animation_frame,",
-        "    GameSpriteRunVisitor visitor, void* context);",
         "", "#endif", "",
     ])
     return "\n".join(lines)
@@ -910,44 +999,48 @@ def render_sprite_source(document, previews):
     for appearance in document["boss_appearances"]:
         boss_sprite_ids[appearance_ids[appearance["id"]]] = sprite_ids[appearance["sprite"]]
 
-    frame_meta = []
-    anchors = []
-    all_runs = []
+    packed_data = []
+    sprite_defs = []
     for sprite in document["sprites"]:
         sprite_id = sprite["id"]
         preview = previews[sprite_id]
-        _kind, collision_w, collision_h, scale = SPRITE_CONTRACTS[sprite_id]
-        frame0 = preview["grid"]
-        frame0_runs = sprite_runs(frame0)
-        delta_runs = [(y, x, x, int(role, 16))
-                     for x, y, role in preview["anim_delta"]]
-        frames = []
-        for runs in (frame0_runs, delta_runs):
-            frames.append((len(all_runs), len(runs)))
-            all_runs.extend(runs)
-        frame_meta.append(frames)
-        anchors.append(sprite_anchor(frame0, collision_w, collision_h, scale))
-    if len(all_runs) > 65535:
-        fail("sprites", "flattened sprite run offset exceeds unsigned int")
+        kind, collision_w, collision_h, scale = SPRITE_CONTRACTS[sprite_id]
+        roles = SPRITE_ROLES[kind]
+        bpp, penpal, frame0_packed, frame1_packed = sprite_pack_frames(
+            sprite_id, preview, roles)
+        frame0_offset = len(packed_data)
+        packed_data.extend(frame0_packed)
+        frame1_offset = len(packed_data)
+        packed_data.extend(frame1_packed)
+        dx, dy = sprite_anchor(preview["grid"], collision_w, collision_h, scale)
+        sprite_defs.append({
+            "anchor": pack_sprite_anchor(dx, dy),
+            "sprctl0": SPRITE_SPRCTL0_BY_BPP[bpp] | SPRITE_TYPE_NONCOLL,
+            "penpal": penpal,
+            "frame0_offset": frame0_offset,
+            "frame1_offset": frame1_offset,
+        })
+    if len(packed_data) > 65535:
+        fail("sprites", "flattened sprite packed-data offset exceeds unsigned int")
 
     lines = [
         '#include "sprite_data.h"', "",
         "/* Generated by scripts/generate-stage-data.py. Do not edit. */", "",
-        "const unsigned char game_sprite_run_data[] = {",
+        "const unsigned char game_sprite_packed_data[] = {",
     ]
-    for run in all_runs:
-        packed = pack_sprite_run(run)
-        lines.append("    %s, %s," % (c_u8(packed[0]), c_u8(packed[1])))
+    for start in range(0, len(packed_data), 16):
+        chunk = packed_data[start:start + 16]
+        lines.append("    " + ", ".join(c_u8(value) for value in chunk) + ",")
     lines.extend(["};", ""])
     lines.append("const GameSpriteDefinition game_sprite_definitions[GAME_SPRITE_COUNT] = {")
-    for sprite, frames, anchor in zip(document["sprites"], frame_meta, anchors):
-        dx, dy = anchor
-        assert frames[1][0] == frames[0][0] + frames[0][1], (
-            "frame 1 delta runs must immediately follow frame 0's runs")
+    for definition in sprite_defs:
         lines.append(
-            "    { %s, %s, %s, %s }," % (
-                c_u8(pack_sprite_anchor(dx, dy)),
-                c_u8(frames[0][0]), c_u8(frames[0][1]), c_u8(frames[1][1]),
+            "    { %s, 0x%02x, { %s }, %s, %s }," % (
+                c_u8(definition["anchor"]),
+                definition["sprctl0"],
+                ", ".join(c_u8(value) for value in definition["penpal"]),
+                c_u8(definition["frame0_offset"]),
+                c_u8(definition["frame1_offset"]),
             ))
     lines.extend(["};", ""])
     lines.append("const unsigned char game_enemy_sprite_ids[9] = {")
@@ -957,43 +1050,6 @@ def render_sprite_source(document, previews):
     lines.append("const unsigned char game_boss_sprite_ids[4] = {")
     lines.append("    " + ", ".join(c_u8(value) for value in boss_sprite_ids))
     lines.extend(["};", ""])
-    lines.extend([
-        "unsigned char game_sprite_visit_runs(int x, int y,",
-        "    unsigned char sprite_id, unsigned char animation_frame,",
-        "    GameSpriteRunVisitor visitor, void* context)",
-        "{",
-        "    const GameSpriteDefinition* def;",
-        "    unsigned int offset;",
-        "    unsigned char count;",
-        "    unsigned char first;",
-        "    unsigned char second;",
-        "    unsigned char i;",
-        "",
-        "    if (sprite_id >= GAME_SPRITE_COUNT || animation_frame > 1u ||",
-        "        visitor == (GameSpriteRunVisitor)0) {",
-        "        return 0u;",
-        "    }",
-        "    def = &game_sprite_definitions[sprite_id];",
-        "    if (animation_frame == 0u) {",
-        "        offset = def->frame0_offset * 2u;",
-        "        count = def->frame0_count;",
-        "    } else {",
-        "        offset = (def->frame0_offset + def->frame0_count) * 2u;",
-        "        count = def->frame1_count;",
-        "    }",
-        "    for (i = 0u; i < count; ++i) {",
-        "        first = game_sprite_run_data[offset];",
-        "        second = game_sprite_run_data[offset + 1u];",
-        "        visitor(x + (int)(first & 0x0fu),",
-        "            x + (int)(first & 0x0fu) + (int)(second >> 4),",
-        "            y + (int)(first >> 4),",
-        "            (unsigned char)(second & 0x0fu),",
-        "            context);",
-        "        offset += 2u;",
-        "    }",
-        "    return count;",
-        "}", "",
-    ])
     return "\n".join(lines)
 
 

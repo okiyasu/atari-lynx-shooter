@@ -19,6 +19,12 @@ APS-049契約gの換算基準`553,362/553,380 ticks`は誤りだった。Timer 2
 
 段階2ではSuzyハードスプライト（SCB直接）等による敵描画削減・背景全再描画削減を実装し、修理済み契約gでGearlynxの敵4体/8体を再測定する。最終受入にはAtari Lynx実機の敵4体/8体の速度実測と体感確認も必要で、cadence自動テスト単独PASSは受入条件にしない。
 
+## APS-053 Phase 2R-0/2R-1 統合（v004）
+
+`src/static_layer.c`は背景・clear・HUDをSCB chainへ構築する。通常spriteのHSIZE/VSIZEは8.8固定小数の`0x0100`（1x）とし、clearだけ画面全体の`160x102`へ拡大する。SCB再利用領域は`title_voice_scratch_buffer`先頭539 bytesで、SCBの`penpal[0..7]`を毎回初期化する。title/GAME OVER voice再生中はstatic layerの全描画APIをguardする。
+
+タイトル・overlay・GAME OVER・HUDの文字はTGI vector textを使わず、生成literal spriteまたは4x5 compact glyphをSuzyへ渡す。固定文言は生成器のliteral asset、動的版番号/HUDは共有scratch内で構築する。`tgi_outtextxy`/`tgi_vectorchar`呼び出しはruntimeから除去し、ROM mapは通常MAIN spare 444 bytes、cadence MAIN spare 406 bytes（基準stack予約）まで回復した。Gearlynx cadence契約gは0/4/8/boss fixtureで未達のため、APS-053受入は継続中。
+
 描画フレームごとに入力を一度取得し、画面クリアと再描画、`tgi_updatedisplay()`、MIKEYへのsound applyを各一回だけ行う。Timer 2 VBlank基準の`elapsed_vblanks`により、ロジックは`elapsed_vblanks × 4`回（1描画あたり128回上限）、サウンドは`elapsed_vblanks`回（1描画あたり2048回上限）進め、各上限超過分はproduction consume counterと実`game_sound_tick()`戻り後counterの差として証跡へ記録する。これにより低FPS時も300Hzロジックと75Hz基準のA/C/B音楽・SFX時間を、4/8/boss+4 fixtureの実測範囲内で実時間へ追従させる。APS-030最終仕様のゲーム内ロジックは剰余0からの`4/1`固定スケジューラで、通常の各描画フレームに4回、300Hz（基準75Hz比4.00倍）更新する。同じ描画フレーム内のcatch-up更新にも同一入力を渡すため、状態遷移、進行タイマ、移動、弾、クールダウン、敵発射、環境、無敵は決定的に経過VBlank分進む。各`game_sound_tick()`は論理出力を一回投影した後、非死亡時の共有BGMカーソル（メロディ/ベース）を4回進め、SFXカーソルを一回進める。自機死亡開始時はBGMを停止し、爆発SFXの完了を死亡状態の解除条件とするため、300HzロジックがSFXより先に再出撃やGAME OVERへ進むことはない。GAME OVER/ALL CLEARの解除・再押下判定を最優先とし、導入・警告・クリアは許可された背景・入力を一度更新してから境界判定する。NORMALは既存の通常戦闘順を維持し、BOSSは背景、自機、射撃、自機弾、ボス命中、既存敵弾、ボス移動/発射、自機損傷の順とする。HP0更新は直ちにクリアへ移って後続ボス処理を省略する。動的確保、外部アセット、外部音源を使わない。
 
 ## APS-019 75Hz同期と開発用性能計測

@@ -7,5 +7,9 @@ void cadence_probe_display(void);
 void cadence_probe_logic_update(void);
 void cadence_probe_elapsed_vblanks(unsigned int elapsed_vblanks);
 void cadence_probe_sound_tick(void);
+void cadence_probe_capture_state(void);
+void cadence_probe_hold_fixture(void);
+
+#define CADENCE_FIXTURE_SAMPLE_COUNT 75u
 
 #endif

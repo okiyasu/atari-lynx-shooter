@@ -1,6 +1,40 @@
 # ISSUES
 
-最終更新: 2026-08-18(APS-053 v035: Phase 3Rゲート最終確定 — SCB置き場529Bに一意確定、黒字確定(release 880B/cadence 772B)。コード変更なし・調査のみ。)
+最終更新: 2026-08-19(APS-053 v044〜v046: Phase 3R2 SCB静的チェーン化 実装完了。gate(a) breakdown 0.779VBlank(目標0.8以下)達成、gate(b)全26パターンPASS、gate(d) release余剰1,069B/cadence余剰947B(目標512B以上)達成、`verify.sh`全PASS。)
+
+### APS-053 v044〜v046: Phase 3R2 SCB静的チェーン化 — gate(a)/(b)/(d)全達成（2026-08-19）
+
+- 状態: **実装完了**。v038でgate(a)未達(33 VBlank)エスカレーション後、Fable5が「SCB静的チェーン化」(起動時に41スロットを1回構築、毎フレームはSKIPビット+hpos/vpos/dataのみ差分更新)を設計・条件付き承認(v044)。Codex(Dev)が実装前必須確認2点(tick換算則訂正証跡化・SKIPスモーク、いずれもPASS)を完了した時点でCodex利用上限に達し中断、Claude(sonnet)が引き継いで本体実装からgate通過まで完遂した。
+- **v044の前提誤り訂正**: チェーン構成で想定していた`env[0..3]`(4スロット)は誤りで、実コードの`GAME_MAX_ENVIRONMENT_OBJECTS`は`2`(asteroids/falling_rocksが排他的に共有)。正しい値で実装したためSCB合計は**551B**(v044見積り573Bではない、旧529Bから+22B)。
+- **RAM予算破綻とFable5設計判断(v045)**: 実装直後、release ROM余剰がわずか62B(cadenceは58Bオーバーでビルド不能)まで悪化。v044の「release余剰4,696B見込み」という前提がそもそも誤り(BSSを除外した別指標の誤転用、正しい直前余剰は1,975B)で、乖離1,913Bの正体はデータではなくコード(`movable_scb_init`/`movable_scb_update`の逐次フィールド代入がmain.o CODEを+1,859B肥大化させていた)とFable5が特定。対策としてSCBチェーンの初期化を実行時コードからコンパイル時の静的初期化子(BSS→DATA)へ移行、コード約1,050B削減。cc65が逆順宣言によるアドレス相互参照の静的初期化子を受け付けることを事前スパイクで確認した上で実装。あわせてスロットキャッシュをv044本来の7B設計(`sprite_id`+`frame0_ptr`+`frame1_ptr`+`dx`+`dy`)に復元。結果: release余剰**977B**→最終977B台、cadence余剰**857B**まで回復。
+- **gate(a)速度目標未達とFable5設計判断(v046)**: RAM対応直後のbreakdown計測でfull fixture(boss+敵4+弾フル)が1.361VBlank(目標0.8VBの1.7倍)。Fable5が生成アセンブリを命令単位で解析し、①`game->bullets[i]`アクセスの都度アドレス再計算(約140サイクル/回)、②ループカーソルがソフトスタック常駐、③`game->phase`をループ不変なのに毎イテレーション再評価、の3点が主因と特定(実測値と±25%で一致確認)。Stage 1対策(ALL_CLEAR判定の巻き上げ、配列アクセスのポインタ歩行化、hpos/vposの8bit性活用でstaxspidxヘルパー呼び出しを回避)を実装した結果、**0.779VBlank**(目標0.8VB達成)まで改善。20%余裕基準(0.64VB)には届かなかったが、ユーザー判断によりStage 2(弾グループのアセンブリウォーカー化)は見送り、Stage 1の結果で確定。
+- **gate(b)ハーネス自体の非互換を発見・修正**: 静的チェーン化(常に41スロット全部を送信、非アクティブはSKIPビットのみ)実装後、`scripts/verify-movable-sprite-gate-b-gearlynx.py`が全26パターン(13スプライト×2フレーム)FAILする回帰が発生。原因はハーネスが「movable chainは常に1〜2エントリの短いチェーン」という旧設計(動的追記、アクティブなオブジェクトのみ追加)の前提でチェーンを走査していたため。チェーンを最後まで辿り、SKIPビットなし かつ パレット専用ヘッダでない(data≠`movable_scb_empty_sprite`)エントリのみを実オブジェクトとして抽出する方式に修正。デバッグ用exportシンボル`movable_scb_empty_sprite_debug_export`(release ROMにも常駐、staticシンボルが.lblに出力されないcc65の制約への対応)を新設。修正後、全26パターンPASS。
+- gate(a) breakdownハーネス(`scripts/verify-phase-3r-gate-a-breakdown-gearlynx.py`)も静的チェーン設計に対応させて更新(旧`movable_scb_pool`の連続バイト列ダンプを、新設export `scb_split_probe_chain_head`から`next`ポインタを辿るチェーン走査に変更)。
+- **最終計測結果**:
+  - gate(a) breakdown(cadence版): full fixture (ii)SCB構築=0.690VB+(i)純Suzy=0.089VB=**0.779VB**(目標0.8VB以下、達成)。empty fixture=0.328VB。
+  - gate(b): 13スプライト×2フレーム=26パターン全PASS(`evidence/APS-053/movable-sprite-gate-b-v046.json`)。
+  - gate(d): release余剰**1,069B**(使用45,707B/限度46,776B)、cadence余剰**947B**(使用46,165B/限度47,112B)。目標512B以上を両構成で達成。
+  - `make clean && ./scripts/verify.sh`: 全PASS(stage155/game625/sound351/IMA14949/sprite197、cc65 strict、LNX、voice cart検証)。
+- artifact: `include/version.h`の`GAME_VERSION_STRING`を`0.53.14`→`0.53.15`へ更新。
+- 検証コマンド: `make clean && ./scripts/verify.sh`、`make dist/asteroid-patrol.lnx`、`make dist/asteroid-patrol-cadence.lnx`、`python3 scripts/verify-phase-3r-gate-a-breakdown-gearlynx.py`、`python3 scripts/verify-movable-sprite-gate-b-gearlynx.py`。
+- 設計判断の経緯は `.briefs/APS-053/v044.md`〜`v046.md`(Fable5回答2件を含む)。
+- 触っていない範囲: 既存WIP(`include/cadence_probe.h`、`src/game.c`のcatch-up制限マクロ差分、`src/title_voice.c`、`scripts/calibrate-cadence-ticks-gearlynx.py`等)、gate(a)全体(2VBlank以下)の最終合否判定・SCB外の残り約9VBlankの分解(次の調査課題、スコープ外)。
+- **次のアクション**: gate(a)全体(2VBlank以下)の最終合否は、SCB外の残り約9VBlank(ロジック・static_layer・text・probe等)の分解が未着手のため未確定。次の調査課題として別途扱う。
+
+### APS-053 v038: gate(a)専用VBlank計測ハーネス新規構築・計測 — boss+敵4体+弾フルfixture 33 VBlank(未達)（2026-08-18）
+
+- 状態: **計測完了(未達、コード変更なし・新規ハーネススクリプトのみ追加)**。ブリーフ(`.briefs/APS-053/v038.md`)通り、gate(a)専用のVBlank計測ハーネスを新規構築し、boss 1体+敵4体(アクティブ)+弾フル(player_bullet 12/12+enemy_bullet 16/16)fixtureを独立2 batch(APS-051修理済み手法)で計測した。
+- 新規ファイル: `scripts/verify-phase-3r-gate-a-full-fixture-gearlynx.py`(既存の`verify-frame-pacing-gearlynx.py`/`cadence_probe.s`は無変更、参照のみ)。`Makefile`に`phase-3r-gate-a-gearlynx`ターゲットを追加。
+- **手法上の必要な差分**: 既存fixture(0/4/8/boss+4)は弾を1発しか注入せず、以後の75サンプル区間で自然減衰するのを許容していた(`fixture_states`のエンコードも弾を追跡しない)。本fixtureは「弾フル」を全区間で維持する必要があるが、自機弾は`BULLET_SPEED`固定(データ非制御)で毎ロジックtick前進し数十tick以内に非アクティブ化するため、単発注入では75サンプル中盤以降に自然消滅する。対策として`_game_display_request`のエントリ(既存probeの`cadence_probe_hold_fixture`/`capture_state`/`display`実行より前)にbreakpointを張り、**全ヒット(arm 1回+warmup 6回+サンプル75回=1 batchあたり82ヒット)ごとにfixture全体を再注入**する方式にした。再注入はエミュレータがpause中(=経過VBlank時間ゼロ)にのみ行われるため、ROM常駐probeが記録する各intervalのVBlank数自体は汚染されない。敵弾はvelocity_x=velocity_y=0で位置固定(自然減衰なし)。再注入方式の妥当性は、`_game`/`_game_enemies`の直接readback(`activity_samples`、全ヒットで記録)で「敵4体・boss active・自機弾12/12・敵弾16/16」が両batch通して維持されたことを確認して裏取りした。
+- **計測結果(未達)**: 独立2 batch(各75サンプル)とも中央値/最大値**33 VBlank**で完全再現(batch1: `median=33.000 max=33`、batch2: `median=33.000 max=33`、raw intervalは32〜33がほぼ全て、先頭1サンプルのみ11=warmup境界の残差)。目標2 VBlank以下の**16.5倍**、未達。
+- **内訳(ロジック分/その他残存コスト分の分離)**: probeの`logic_updates`(実行済みロジック更新回数)は888、`consumed_vblanks×4`(理想更新回数)は9,612で、比率0.092。ロジックは128 updates/draw上限で毎フレームclipされており、実行できたのは理想の約9%のみ。残り約91%は描画(Suzy SCBチェーン構築・転送・表示待ち)側のコストと判断できる。アクティブスプライト総数(boss1+敵4+自機弾12+敵弾16=33個)と測定値33 VBlankが一致している点は興味深いが、相関の観測に留め、「1スプライト≒1 VBlank」を断定する根拠(チェーン転送分/raw blit分のさらなる分離計測)までは今回のハーネスでは踏み込んでいない(ブリーフの「勝手に追加の最適化・対策を積み増さない」指示に従い、これ以上の深掘り計装は行わず停止)。
+- **副次的発見(gate(a)の数値には影響しない、報告のみ)**: probe自身の`_cadence_probe_fixture_states`配列(diagnostic用、`_title_voice_scratch_buffer`を流用)が、Phase 3Rの可動オブジェクトSCB構築が同じscratch領域を毎描画で使うようになったため、probeがこの配列へ書き込んだ後・本スクリプトが読み出す前に上書きされ、batch終盤で明らかに不整合な値(`phase`/`boss_active`/`normal_enemy_count`が注入値と食い違う)を示した。これは上記の直接readbackによる独立検証で「実際のfixtureは正しく維持されていた」と確認済みで、gate(a)のVBlank計測(`_cadence_probe_intervals`、別のBSS領域)には影響しない。`src/cadence_probe.s`は触ってはいけない範囲のため修正はせず、evidence JSONの`probe_fixture_states_conflict_finding`に記録して報告のみに留めた。
+- **TITLE校正ゲートの既知の不一致(報告のみ、ブロックしない扱いとした)**: 独自のTITLE校正(APS-051と同じ`display_request/VBlank≈3.0`基準、tolerance 0.05)を実施したところ、両batchとも`4`で再現し基準(`2.9995`)から外れた。**この不一致は無変更の既存`verify-frame-pacing-gearlynx.py --only-zero`を同じクリーンビルドに対して実行しても同一結果(`measured=[4, 4]`)で再現**したため、本ハーネス固有のバグではなく、リポジトリ/ROM側の既存条件(T0〜T2 RAM回収作業でのカートオーバーレイ遅延ロード等、TITLE描画コストが変化した可能性)によるものと判断した。基準の再校正や原因調査はスコープ外と判断し、ブロッキング扱いにせず(evidence `calibration_gate.blocking=false`)、gate(a)計測自体は続行した。基準の扱い(再校正が必要か)はFable5/dev-frontの判断を仰ぐ。
+- **MAIN余剰の再実測(release/cadence)**: mapのSTARTUP+LOWCODE+ONCE+CODE+RODATA+DATA+BSS合計とMAIN上限(`0xBE38 - __STACKSIZE__`、release 46,776B/cadence 47,112B)から算出。release: 使用44,801B・余剰**1,975B**。cadence: 使用45,245B・余剰**1,867B**。**cadence側はdev-frontの独立実測値(1,867B)と完全一致**。前版で報告されたDevの値(1,532B)は誤りだったと確認できる(原因調査は依頼されていないため未実施)。
+- artifact: `dist/asteroid-patrol.lnx`(59,065 bytes)、`dist/asteroid-patrol-cadence.lnx`(59,416 bytes)、画面表示version=`V0.53.14`。
+- 検証: `make clean && ./scripts/verify.sh`(0; stage155/game625/sound351/IMA14949/sprite197、cc65 strict、lint、LNX、voice cart、全PASS)、`make dist/asteroid-patrol-cadence.lnx`(0)、`python3 scripts/verify-phase-3r-gate-a-full-fixture-gearlynx.py`(終了コード1=FAIL、未達を正しく報告。ハーネス自体はエラーなく完走)、証跡`evidence/APS-053/phase-3r-gate-a-full-fixture-v038.json`。コミット・push・stash・reset・checkoutなし。
+- 設計差分: なし(ブリーフ通り、gate(a)ハーネス新規構築・計測のみ)。
+- **次のアクション**: gate(a)未達(33 VBlank、目標2以下)につき、ブリーフの指示通り実装(追加最適化)は行わず停止。dev-frontへエスカレーションし、Fable5判断(基準見直し/Suzy描画経路の再設計/撤退等)を仰ぐこと。あわせてTITLE校正基準の再校正要否も確認すること。
 
 ### APS-053 v035: Phase 3Rゲート最終確定 — SCB置き場529B確定・黒字判定（2026-08-18）
 

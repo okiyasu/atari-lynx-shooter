@@ -47,14 +47,16 @@ GAME_OFFSET_DYING = 197
 GAME_OFFSET_STAGE = 209
 GAME_PHASE_NORMAL = 1
 GAME_PHASE_BOSS = 3
+GAME_PHASE_TITLE = 6
 FRAME_COUNT = 75
 FRAME_INTERVAL_MIN_US = 12000
 FRAME_INTERVAL_MAX_US = 15000
 VBLANK_TICKS = 184482
 VBLANK_US = 13333.333333333334
 MAX_VBLANK_RATIO = 1.05
-CADENCE_INTERVAL_COUNT = 16
+CADENCE_INTERVAL_COUNT = 75
 CADENCE_WARMUP_REQUEST_COUNT = 6
+CADENCE_BATCH_TIMEOUT_SECONDS = 300.0
 SOUND_TICK_CAP = 2048
 TITLE_REFERENCE_RATIO = 553362.0 / 184482.0
 PROTECTED_RUNTIME_SYMBOLS = (
@@ -145,6 +147,9 @@ def map_segment_range(map_path, segment):
 
 def rom_layout(map_path, symbols_path, probe_expected):
     labels = label_symbols(symbols_path)
+    segments = {}
+    for segment in ("STARTUP", "CODE", "RODATA", "DATA", "BSS"):
+        segments[segment] = map_segment_range(map_path, segment)
     bss = map_segment_range(map_path, "BSS")
     main_start = map_value(map_path, "__MAIN_START__")
     main_size = map_value(map_path, "__MAIN_SIZE__")
@@ -153,6 +158,7 @@ def rom_layout(map_path, symbols_path, probe_expected):
     stack_end = stack_start + stack_size
     bss_end = bss["end"] + 1
     layout = {
+        "segments": segments,
         "main_start": main_start,
         "main_size": main_size,
         "main_end_exclusive": stack_start,
@@ -204,20 +210,21 @@ def verify_rom_separation(args):
     normal_map_text = args.normal_map.read_text(encoding="utf-8")
     if "cadence_probe.o:" not in map_text:
         raise RuntimeError("cadence ROM map is missing cadence_probe.o")
-    if "main-cadence.o:" not in map_text:
+    if not re.search(r"main-cadence(?:-v-[abc])?\.o:", map_text):
         raise RuntimeError("cadence ROM map is missing main-cadence.o")
-    if "cadence_probe.o:" in normal_map_text or \
-            "main-cadence.o:" in normal_map_text:
+    if ("cadence_probe.o:" in normal_map_text or
+            re.search(r"main-cadence(?:-v-[abc])?\.o:", normal_map_text)):
         raise RuntimeError("normal ROM map contains cadence-only object")
     if not normal_layout["bss_stack_nonoverlap"]:
         raise RuntimeError("normal ROM BSS overlaps C stack")
     common_bss_symbols = []
+    variant_layout = getattr(args, "variant", "full") != "full"
     for name in PROTECTED_RUNTIME_SYMBOLS:
         if name not in normal_labels or name not in cadence_labels:
             raise RuntimeError("protected runtime symbol missing: %s" % name)
         normal_offset = normal_labels.get(name, -1) - normal_layout["bss_start"]
         cadence_offset = cadence_labels.get(name, -1) - cadence_layout["bss_start"]
-        if normal_offset != cadence_offset:
+        if not variant_layout and normal_offset != cadence_offset:
             raise RuntimeError("protected runtime layout changed: %s" % name)
         common_bss_symbols.append(name)
     assets = {}
@@ -243,7 +250,8 @@ def verify_rom_separation(args):
         "normal_rom_contains_probe": False,
         "cadence_rom_contains_probe": True,
         "common_bss_symbols_verified": len(common_bss_symbols),
-        "common_bss_layout_relative_offsets": True,
+        "common_bss_layout_relative_offsets": not variant_layout,
+        "variant_layout_comparison_skipped": variant_layout,
         "protected_assets": assets,
     }
 
@@ -263,7 +271,7 @@ def write_bytes(address, values, request_id):
 
 
 def wait_for_breakpoint(request_id, description):
-    deadline = time.monotonic() + 120.0
+    deadline = time.monotonic() + CADENCE_BATCH_TIMEOUT_SECONDS
     while time.monotonic() < deadline:
         status = tool("debug_get_status", request_id=request_id)
         request_id += 1
@@ -331,6 +339,10 @@ def collect_probe(probe, request_id, description):
         probe["intervals"], CADENCE_INTERVAL_COUNT, request_id),
     )
     request_id += 1
+    fixture_states = list(read_bytes(
+        probe["fixture_states"], CADENCE_INTERVAL_COUNT, request_id),
+    )
+    request_id += 1
     sample_count = read_bytes(probe["sample_count"], 1, request_id)[0]
     request_id += 1
     overflow = read_bytes(probe["overflow"], 1, request_id)[0]
@@ -365,7 +377,7 @@ def collect_probe(probe, request_id, description):
         read_bytes(probe["warmup_vblanks"], 2, request_id), "little",
     )
     request_id += 1
-    return (request_id, intervals, logic_updates,
+    return (request_id, intervals, fixture_states, logic_updates,
             consumed_vblanks, actual_sound_ticks, warmup_vblanks)
 
 
@@ -546,6 +558,15 @@ def boss_record(active, stage):
     return [132, 43, 24, 16, 1, 60, 60, 0, 1, 0, 0, 0, 1, 0]
 
 
+def decode_fixture_state(value):
+    return {
+        "encoded": value,
+        "phase": value & 0x07,
+        "boss_active": (value >> 3) & 0x01,
+        "normal_enemy_count": (value >> 4) & 0x0F,
+    }
+
+
 def inject_state(game_address, enemy_address, normal_count, boss_count,
                  phase, request_id):
     if not injection_is_valid(normal_count, boss_count):
@@ -603,11 +624,14 @@ def measure_cadence(game_address, enemy_address, probe, request_address,
                     boss_count, phase, request_id):
     """APS-052 contract g: collect two independent continuous batches."""
     batches = []
+    fixture_state_batches = []
     logic_batches = []
     consumed_vblank_batches = []
     actual_sound_batches = []
     warmup_batches = []
     for batch in range(2):
+        write_bytes(probe["target_phase"], [phase], request_id)
+        request_id += 1
         request_id = inject_state(
             game_address, enemy_address, normal_count, boss_count, phase,
             request_id,
@@ -626,13 +650,14 @@ def measure_cadence(game_address, enemy_address, probe, request_address,
             game_address, enemy_address, normal_count, boss_count, phase,
             request_id,
         )
-        request_id, intervals, logic_count, consumed_vblanks, actual_sound_ticks, warmup_vblanks = collect_probe(
+        request_id, intervals, fixture_states, logic_count, consumed_vblanks, actual_sound_ticks, warmup_vblanks = collect_probe(
             probe, request_id,
             "normal=%d boss=%d phase=%d batch=%d" % (
                 normal_count, boss_count, phase, batch + 1,
             ),
         )
         batches.append(intervals)
+        fixture_state_batches.append(fixture_states)
         logic_batches.append(logic_count)
         consumed_vblank_batches.append(consumed_vblanks)
         actual_sound_batches.append(actual_sound_ticks)
@@ -653,6 +678,39 @@ def measure_cadence(game_address, enemy_address, probe, request_address,
         consumed_vblanks=consumed_vblank_batches,
         actual_sound_ticks=actual_sound_batches,
     )
+    decoded_fixture_states = [
+        [decode_fixture_state(value) for value in batch]
+        for batch in fixture_state_batches
+    ]
+    invalid_fixture_samples = []
+    for batch_index, states in enumerate(decoded_fixture_states):
+        for sample_index, state in enumerate(states):
+            if (state["phase"] != phase or
+                    state["boss_active"] != boss_count or
+                    state["normal_enemy_count"] != normal_count):
+                invalid_fixture_samples.append({
+                    "batch": batch_index + 1,
+                    "sample": sample_index + 1,
+                    "observed": state,
+                    "expected": {
+                        "phase": phase,
+                        "boss_active": boss_count,
+                        "normal_enemy_count": normal_count,
+                    },
+                })
+    result["fixture_state"] = {
+        "encoding": "phase bits0..2 | boss.active bit3 | normal enemy count bits4..7",
+        "target": {
+            "phase": phase,
+            "boss_active": boss_count,
+            "normal_enemy_count": normal_count,
+        },
+        "samples_per_batch": CADENCE_INTERVAL_COUNT,
+        "batches": decoded_fixture_states,
+        "invalid_samples": invalid_fixture_samples,
+        "valid": not invalid_fixture_samples,
+    }
+    result["within_budget"] = result["within_budget"] and not invalid_fixture_samples
     result["warmup_discarded_vblanks"] = warmup_batches
     low_water = int.from_bytes(
         read_bytes(probe["stack_low_water"], 2, request_id), "little",
@@ -814,6 +872,10 @@ def main():
     parser.add_argument("--gui", action="store_true")
     parser.add_argument("--frame-regression", action="store_true",
                         help="run the slow per-frame debugger regression")
+    parser.add_argument("--variant", choices=("full", "V-A", "V-B", "V-C"),
+                        default="full")
+    parser.add_argument("--only-zero", action="store_true",
+                        help="measure only the 0-enemy NORMAL fixture")
     args = parser.parse_args()
 
     if not Path(GEARLYNX).is_file():
@@ -836,6 +898,10 @@ def main():
             args.symbols, "_cadence_probe_sample_count"),
         "overflow": symbol_address(args.symbols, "_cadence_probe_overflow"),
         "intervals": symbol_address(args.symbols, "_cadence_probe_intervals"),
+        "fixture_states": symbol_address(
+            args.symbols, "_cadence_probe_fixture_states"),
+        "target_phase": symbol_address(
+            args.symbols, "_cadence_probe_target_phase"),
         "logic_updates": symbol_address(
             args.symbols, "_cadence_probe_logic_update_count",
         ),
@@ -904,7 +970,9 @@ def main():
         title_consumed_batches = []
         title_sound_batches = []
         for batch in range(2):
-            request_id, title_intervals, _, title_consumed, title_sound, _ = collect_probe(
+            write_bytes(probe["target_phase"], [GAME_PHASE_TITLE], request_id)
+            request_id += 1
+            request_id, title_intervals, _, _, title_consumed, title_sound, _ = collect_probe(
                 probe, request_id, "stable TITLE calibration batch %d" %
                 (batch + 1),
             )
@@ -945,7 +1013,10 @@ def main():
             )
 
         scenarios = []
-        for normal_count, boss_count in ((0, 0), (4, 0), (8, 0), (4, 1)):
+        scenario_inputs = ((0, 0),) if args.only_zero else (
+            (0, 0), (4, 0), (8, 0), (4, 1),
+        )
+        for normal_count, boss_count in scenario_inputs:
             phases = [GAME_PHASE_NORMAL]
             if boss_count:
                 phases.append(GAME_PHASE_BOSS)
@@ -1004,6 +1075,8 @@ def main():
             "normal_rom": separation["normal_rom"],
             "rom_separation": separation,
             "measurement_stage": 1,
+            "measurement_variant": args.variant,
+            "only_zero_fixture": args.only_zero,
             "mode": "gui" if args.gui else "headless",
             "draw_hz": 75,
             "weights": {"normal": NORMAL_WEIGHT, "boss": BOSS_WEIGHT,
@@ -1028,8 +1101,8 @@ def main():
                 "vblank_reference_ticks": VBLANK_TICKS,
                 "vblank_reference_us": VBLANK_US,
                 "max_interval_ratio": MAX_VBLANK_RATIO,
-                "contract_g_method": "16 consecutive VBlank counts between "
-                    "17 continuously running display requests; one completion "
+                "contract_g_method": "75 consecutive VBlank counts between "
+                    "76 continuously running display requests; one completion "
                     "write breakpoint per batch; no debug_step_frame",
                 "rom_probe": {
                     "display_hook_symbol": "_cadence_probe_display",

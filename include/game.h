@@ -49,12 +49,27 @@
 #define GAME_FRAME_INTERVAL_MAX_US 15000ul
 #define GAME_LOGIC_UPDATES_NUMERATOR 4u
 #define GAME_LOGIC_UPDATES_DENOMINATOR 1u
-#define GAME_LOGIC_UPDATES_MAX 128u
-#define GAME_SOUND_TICKS_MAX 2048u
+#define GAME_LOGIC_UPDATES_MAX 12u
+#define GAME_SOUND_TICKS_MAX 4u
+
+#define GAME_LOGIC_CREDIT_FOR_ELAPSED(elapsed_vblanks) \
+    ((unsigned long)(elapsed_vblanks) * \
+        (unsigned long)GAME_LOGIC_UPDATES_NUMERATOR)
+
+#define GAME_LOGIC_DISCARD_FOR_ELAPSED(elapsed_vblanks) \
+    ((GAME_LOGIC_CREDIT_FOR_ELAPSED(elapsed_vblanks) > \
+        (unsigned long)GAME_LOGIC_UPDATES_MAX) ? \
+        (GAME_LOGIC_CREDIT_FOR_ELAPSED(elapsed_vblanks) - \
+            (unsigned long)GAME_LOGIC_UPDATES_MAX) : 0ul)
 
 #define game_sound_ticks_for_draw_frame(elapsed_vblanks) \
     ((unsigned int)(((elapsed_vblanks) > GAME_SOUND_TICKS_MAX) ? \
         GAME_SOUND_TICKS_MAX : (elapsed_vblanks)))
+
+#define GAME_SOUND_DISCARD_FOR_ELAPSED(elapsed_vblanks) \
+    (((elapsed_vblanks) > GAME_SOUND_TICKS_MAX) ? \
+        ((unsigned long)(elapsed_vblanks) - \
+            (unsigned long)GAME_SOUND_TICKS_MAX) : 0ul)
 
 #define GAME_DISPLAY_READY_WAIT(busy_expression) \
     do { while ((busy_expression) != 0u) { } } while (0)

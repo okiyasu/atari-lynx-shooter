@@ -1,0 +1,2387 @@
+{
+  "all_bullets_stayed_full": true,
+  "all_enemies_boss_confirmed_valid": true,
+  "all_probe_fixture_states_valid": false,
+  "aps": "APS-053",
+  "batches": [
+    {
+      "actual_sound_ticks": 296,
+      "boss_active_every_hit": true,
+      "bullets_stayed_full": true,
+      "consumed_vblanks": 2403,
+      "enemies_boss_confirmed_valid": true,
+      "gate_a_max_vblank": 2,
+      "logic_updates": 888,
+      "maximum_us": 440000.0,
+      "maximum_vblank_interval": 33,
+      "maximum_within_gate": false,
+      "median_us": 440000.0,
+      "median_vblank_interval": 33,
+      "median_within_gate": false,
+      "min_enemy_bullets_active": 16,
+      "min_normal_enemies_active": 4,
+      "min_player_bullets_active": 12,
+      "probe_fixture_states_decoded": [
+        {
+          "boss_active": 1,
+          "encoded": 170,
+          "normal_enemy_count": 10,
+          "phase": 2
+        },
+        {
+          "boss_active": 1,
+          "encoded": 170,
+          "normal_enemy_count": 10,
+          "phase": 2
+        },
+        {
+          "boss_active": 1,
+          "encoded": 170,
+          "normal_enemy_count": 10,
+          "phase": 2
+        },
+        {
+          "boss_active": 0,
+          "encoded": 160,
+          "normal_enemy_count": 10,
+          "phase": 0
+        },
+        {
+          "boss_active": 0,
+          "encoded": 32,
+          "normal_enemy_count": 2,
+          "phase": 0
+        },
+        {
+          "boss_active": 0,
+          "encoded": 112,
+          "normal_enemy_count": 7,
+          "phase": 0
+        },
+        {
+          "boss_active": 1,
+          "encoded": 10,
+          "normal_enemy_count": 0,
+          "phase": 2
+        },
+        {
+          "boss_active": 1,
+          "encoded": 136,
+          "normal_enemy_count": 8,
+          "phase": 0
+        },
+        {
+          "boss_active": 0,
+          "encoded": 16,
+          "normal_enemy_count": 1,
+          "phase": 0
+        },
+        {
+          "boss_active": 1,
+          "encoded": 8,
+          "normal_enemy_count": 0,
+          "phase": 0
+        },
+        {
+          "boss_active": 0,
+          "encoded": 128,
+          "normal_enemy_count": 8,
+          "phase": 0
+        },
+        {
+          "boss_active": 0,
+          "encoded": 34,
+          "normal_enemy_count": 2,
+          "phase": 2
+        },
+        {
+          "boss_active": 1,
+          "encoded": 203,
+          "normal_enemy_count": 12,
+          "phase": 3
+        },
+        {
+          "boss_active": 0,
+          "encoded": 34,
+          "normal_enemy_count": 2,
+          "phase": 2
+        },
+        {
+          "boss_active": 1,
+          "encoded": 8,
+          "normal_enemy_count": 0,
+          "phase": 0
+        },
+        {
+          "boss_active": 0,
+          "encoded": 3,
+          "normal_enemy_count": 0,
+          "phase": 3
+        },
+        {
+          "boss_active": 1,
+          "encoded": 44,
+          "normal_enemy_count": 2,
+          "phase": 4
+        },
+        {
+          "boss_active": 0,
+          "encoded": 178,
+          "normal_enemy_count": 11,
+          "phase": 2
+        },
+        {
+          "boss_active": 1,
+          "encoded": 203,
+          "normal_enemy_count": 12,
+          "phase": 3
+        },
+        {
+          "boss_active": 0,
+          "encoded": 32,
+          "normal_enemy_count": 2,
+          "phase": 0
+        },
+        {
+          "boss_active": 0,
+          "encoded": 32,
+          "normal_enemy_count": 2,
+          "phase": 0
+        },
+        {
+          "boss_active": 1,
+          "encoded": 8,
+          "normal_enemy_count": 0,
+          "phase": 0
+        },
+        {
+          "boss_active": 1,
+          "encoded": 10,
+          "normal_enemy_count": 0,
+          "phase": 2
+        },
+        {
+          "boss_active": 1,
+          "encoded": 136,
+          "normal_enemy_count": 8,
+          "phase": 0
+        },
+        {
+          "boss_active": 0,
+          "encoded": 16,
+          "normal_enemy_count": 1,
+          "phase": 0
+        },
+        {
+          "boss_active": 1,
+          "encoded": 9,
+          "normal_enemy_count": 0,
+          "phase": 1
+        },
+        {
+          "boss_active": 0,
+          "encoded": 0,
+          "normal_enemy_count": 0,
+          "phase": 0
+        },
+        {
+          "boss_active": 0,
+          "encoded": 34,
+          "normal_enemy_count": 2,
+          "phase": 2
+        },
+        {
+          "boss_active": 1,
+          "encoded": 138,
+          "normal_enemy_count": 8,
+          "phase": 2
+        },
+        {
+          "boss_active": 0,
+          "encoded": 34,
+          "normal_enemy_count": 2,
+          "phase": 2
+        },
+        {
+          "boss_active": 0,
+          "encoded": 16,
+          "normal_enemy_count": 1,
+          "phase": 0
+        },
+        {
+          "boss_active": 0,
+          "encoded": 2,
+          "normal_enemy_count": 0,
+          "phase": 2
+        },
+        {
+          "boss_active": 1,
+          "encoded": 40,
+          "normal_enemy_count": 2,
+          "phase": 0
+        },
+        {
+          "boss_active": 0,
+          "encoded": 162,
+          "normal_enemy_count": 10,
+          "phase": 2
+        },
+        {
+          "boss_active": 1,
+          "encoded": 138,
+          "normal_enemy_count": 8,
+          "phase": 2
+        },
+        {
+          "boss_active": 0,
+          "encoded": 32,
+          "normal_enemy_count": 2,
+          "phase": 0
+        },
+        {
+          "boss_active": 0,
+          "encoded": 32,
+          "normal_enemy_count": 2,
+          "phase": 0
+        },
+        {
+          "boss_active": 1,
+          "encoded": 8,
+          "normal_enemy_count": 0,
+          "phase": 0
+        },
+        {
+          "boss_active": 1,
+          "encoded": 13,
+          "normal_enemy_count": 0,
+          "phase": 5
+        },
+        {
+          "boss_active": 1,
+          "encoded": 136,
+          "normal_enemy_count": 8,
+          "phase": 0
+        },
+        {
+          "boss_active": 0,
+          "encoded": 16,
+          "normal_enemy_count": 1,
+          "phase": 0
+        },
+        {
+          "boss_active": 0,
+          "encoded": 243,
+          "normal_enemy_count": 15,
+          "phase": 3
+        },
+        {
+          "boss_active": 0,
+          "encoded": 224,
+          "normal_enemy_count": 14,
+          "phase": 0
+        },
+        {
+          "boss_active": 1,
+          "encoded": 60,
+          "normal_enemy_count": 3,
+          "phase": 4
+        },
+        {
+          "boss_active": 0,
+          "encoded": 113,
+          "normal_enemy_count": 7,
+          "phase": 1
+        },
+        {
+          "boss_active": 0,
+          "encoded": 199,
+          "normal_enemy_count": 12,
+          "phase": 7
+        },
+        {
+          "boss_active": 1,
+          "encoded": 62,
+          "normal_enemy_count": 3,
+          "phase": 6
+        },
+        {
+          "boss_active": 0,
+          "encoded": 1,
+          "normal_enemy_count": 0,
+          "phase": 1
+        },
+        {
+          "boss_active": 0,
+          "encoded": 199,
+          "normal_enemy_count": 12,
+          "phase": 7
+        },
+        {
+          "boss_active": 1,
+          "encoded": 28,
+          "normal_enemy_count": 1,
+          "phase": 4
+        },
+        {
+          "boss_active": 0,
+          "encoded": 113,
+          "normal_enemy_count": 7,
+          "phase": 1
+        },
+        {
+          "boss_active": 0,
+          "encoded": 192,
+          "normal_enemy_count": 12,
+          "phase": 0
+        },
+        {
+          "boss_active": 1,
+          "encoded": 62,
+          "normal_enemy_count": 3,
+          "phase": 6
+        },
+        {
+          "boss_active": 0,
+          "encoded": 240,
+          "normal_enemy_count": 15,
+          "phase": 0
+        },
+        {
+          "boss_active": 1,
+          "encoded": 8,
+          "normal_enemy_count": 0,
+          "phase": 0
+        },
+        {
+          "boss_active": 1,
+          "encoded": 156,
+          "normal_enemy_count": 9,
+          "phase": 4
+        },
+        {
+          "boss_active": 0,
+          "encoded": 0,
+          "normal_enemy_count": 0,
+          "phase": 0
+        },
+        {
+          "boss_active": 1,
+          "encoded": 75,
+          "normal_enemy_count": 4,
+          "phase": 3
+        },
+        {
+          "boss_active": 1,
+          "encoded": 75,
+          "normal_enemy_count": 4,
+          "phase": 3
+        },
+        {
+          "boss_active": 1,
+          "encoded": 75,
+          "normal_enemy_count": 4,
+          "phase": 3
+        },
+        {
+          "boss_active": 1,
+          "encoded": 75,
+          "normal_enemy_count": 4,
+          "phase": 3
+        },
+        {
+          "boss_active": 1,
+          "encoded": 75,
+          "normal_enemy_count": 4,
+          "phase": 3
+        },
+        {
+          "boss_active": 1,
+          "encoded": 75,
+          "normal_enemy_count": 4,
+          "phase": 3
+        },
+        {
+          "boss_active": 1,
+          "encoded": 75,
+          "normal_enemy_count": 4,
+          "phase": 3
+        },
+        {
+          "boss_active": 1,
+          "encoded": 75,
+          "normal_enemy_count": 4,
+          "phase": 3
+        },
+        {
+          "boss_active": 1,
+          "encoded": 75,
+          "normal_enemy_count": 4,
+          "phase": 3
+        },
+        {
+          "boss_active": 1,
+          "encoded": 75,
+          "normal_enemy_count": 4,
+          "phase": 3
+        },
+        {
+          "boss_active": 1,
+          "encoded": 75,
+          "normal_enemy_count": 4,
+          "phase": 3
+        },
+        {
+          "boss_active": 1,
+          "encoded": 75,
+          "normal_enemy_count": 4,
+          "phase": 3
+        },
+        {
+          "boss_active": 1,
+          "encoded": 75,
+          "normal_enemy_count": 4,
+          "phase": 3
+        },
+        {
+          "boss_active": 1,
+          "encoded": 75,
+          "normal_enemy_count": 4,
+          "phase": 3
+        },
+        {
+          "boss_active": 1,
+          "encoded": 75,
+          "normal_enemy_count": 4,
+          "phase": 3
+        },
+        {
+          "boss_active": 1,
+          "encoded": 75,
+          "normal_enemy_count": 4,
+          "phase": 3
+        },
+        {
+          "boss_active": 1,
+          "encoded": 75,
+          "normal_enemy_count": 4,
+          "phase": 3
+        },
+        {
+          "boss_active": 1,
+          "encoded": 75,
+          "normal_enemy_count": 4,
+          "phase": 3
+        }
+      ],
+      "probe_fixture_states_integrity": {
+        "note": "Not a gate-blocking check. The probe's own fixture encoding is corrupted by a scratch-buffer conflict with Phase 3R movable-object SCB construction (see module docstring); ground truth is enemies_boss_confirmed_valid below, derived from direct _game/_game_enemies reads at every hit.",
+        "valid": false
+      },
+      "probe_fixture_states_invalid_samples": [
+        {
+          "observed": {
+            "boss_active": 1,
+            "encoded": 170,
+            "normal_enemy_count": 10,
+            "phase": 2
+          },
+          "sample": 1
+        },
+        {
+          "observed": {
+            "boss_active": 1,
+            "encoded": 170,
+            "normal_enemy_count": 10,
+            "phase": 2
+          },
+          "sample": 2
+        },
+        {
+          "observed": {
+            "boss_active": 1,
+            "encoded": 170,
+            "normal_enemy_count": 10,
+            "phase": 2
+          },
+          "sample": 3
+        },
+        {
+          "observed": {
+            "boss_active": 0,
+            "encoded": 160,
+            "normal_enemy_count": 10,
+            "phase": 0
+          },
+          "sample": 4
+        },
+        {
+          "observed": {
+            "boss_active": 0,
+            "encoded": 32,
+            "normal_enemy_count": 2,
+            "phase": 0
+          },
+          "sample": 5
+        },
+        {
+          "observed": {
+            "boss_active": 0,
+            "encoded": 112,
+            "normal_enemy_count": 7,
+            "phase": 0
+          },
+          "sample": 6
+        },
+        {
+          "observed": {
+            "boss_active": 1,
+            "encoded": 10,
+            "normal_enemy_count": 0,
+            "phase": 2
+          },
+          "sample": 7
+        },
+        {
+          "observed": {
+            "boss_active": 1,
+            "encoded": 136,
+            "normal_enemy_count": 8,
+            "phase": 0
+          },
+          "sample": 8
+        },
+        {
+          "observed": {
+            "boss_active": 0,
+            "encoded": 16,
+            "normal_enemy_count": 1,
+            "phase": 0
+          },
+          "sample": 9
+        },
+        {
+          "observed": {
+            "boss_active": 1,
+            "encoded": 8,
+            "normal_enemy_count": 0,
+            "phase": 0
+          },
+          "sample": 10
+        },
+        {
+          "observed": {
+            "boss_active": 0,
+            "encoded": 128,
+            "normal_enemy_count": 8,
+            "phase": 0
+          },
+          "sample": 11
+        },
+        {
+          "observed": {
+            "boss_active": 0,
+            "encoded": 34,
+            "normal_enemy_count": 2,
+            "phase": 2
+          },
+          "sample": 12
+        },
+        {
+          "observed": {
+            "boss_active": 1,
+            "encoded": 203,
+            "normal_enemy_count": 12,
+            "phase": 3
+          },
+          "sample": 13
+        },
+        {
+          "observed": {
+            "boss_active": 0,
+            "encoded": 34,
+            "normal_enemy_count": 2,
+            "phase": 2
+          },
+          "sample": 14
+        },
+        {
+          "observed": {
+            "boss_active": 1,
+            "encoded": 8,
+            "normal_enemy_count": 0,
+            "phase": 0
+          },
+          "sample": 15
+        },
+        {
+          "observed": {
+            "boss_active": 0,
+            "encoded": 3,
+            "normal_enemy_count": 0,
+            "phase": 3
+          },
+          "sample": 16
+        },
+        {
+          "observed": {
+            "boss_active": 1,
+            "encoded": 44,
+            "normal_enemy_count": 2,
+            "phase": 4
+          },
+          "sample": 17
+        },
+        {
+          "observed": {
+            "boss_active": 0,
+            "encoded": 178,
+            "normal_enemy_count": 11,
+            "phase": 2
+          },
+          "sample": 18
+        },
+        {
+          "observed": {
+            "boss_active": 1,
+            "encoded": 203,
+            "normal_enemy_count": 12,
+            "phase": 3
+          },
+          "sample": 19
+        },
+        {
+          "observed": {
+            "boss_active": 0,
+            "encoded": 32,
+            "normal_enemy_count": 2,
+            "phase": 0
+          },
+          "sample": 20
+        },
+        {
+          "observed": {
+            "boss_active": 0,
+            "encoded": 32,
+            "normal_enemy_count": 2,
+            "phase": 0
+          },
+          "sample": 21
+        },
+        {
+          "observed": {
+            "boss_active": 1,
+            "encoded": 8,
+            "normal_enemy_count": 0,
+            "phase": 0
+          },
+          "sample": 22
+        },
+        {
+          "observed": {
+            "boss_active": 1,
+            "encoded": 10,
+            "normal_enemy_count": 0,
+            "phase": 2
+          },
+          "sample": 23
+        },
+        {
+          "observed": {
+            "boss_active": 1,
+            "encoded": 136,
+            "normal_enemy_count": 8,
+            "phase": 0
+          },
+          "sample": 24
+        },
+        {
+          "observed": {
+            "boss_active": 0,
+            "encoded": 16,
+            "normal_enemy_count": 1,
+            "phase": 0
+          },
+          "sample": 25
+        },
+        {
+          "observed": {
+            "boss_active": 1,
+            "encoded": 9,
+            "normal_enemy_count": 0,
+            "phase": 1
+          },
+          "sample": 26
+        },
+        {
+          "observed": {
+            "boss_active": 0,
+            "encoded": 0,
+            "normal_enemy_count": 0,
+            "phase": 0
+          },
+          "sample": 27
+        },
+        {
+          "observed": {
+            "boss_active": 0,
+            "encoded": 34,
+            "normal_enemy_count": 2,
+            "phase": 2
+          },
+          "sample": 28
+        },
+        {
+          "observed": {
+            "boss_active": 1,
+            "encoded": 138,
+            "normal_enemy_count": 8,
+            "phase": 2
+          },
+          "sample": 29
+        },
+        {
+          "observed": {
+            "boss_active": 0,
+            "encoded": 34,
+            "normal_enemy_count": 2,
+            "phase": 2
+          },
+          "sample": 30
+        },
+        {
+          "observed": {
+            "boss_active": 0,
+            "encoded": 16,
+            "normal_enemy_count": 1,
+            "phase": 0
+          },
+          "sample": 31
+        },
+        {
+          "observed": {
+            "boss_active": 0,
+            "encoded": 2,
+            "normal_enemy_count": 0,
+            "phase": 2
+          },
+          "sample": 32
+        },
+        {
+          "observed": {
+            "boss_active": 1,
+            "encoded": 40,
+            "normal_enemy_count": 2,
+            "phase": 0
+          },
+          "sample": 33
+        },
+        {
+          "observed": {
+            "boss_active": 0,
+            "encoded": 162,
+            "normal_enemy_count": 10,
+            "phase": 2
+          },
+          "sample": 34
+        },
+        {
+          "observed": {
+            "boss_active": 1,
+            "encoded": 138,
+            "normal_enemy_count": 8,
+            "phase": 2
+          },
+          "sample": 35
+        },
+        {
+          "observed": {
+            "boss_active": 0,
+            "encoded": 32,
+            "normal_enemy_count": 2,
+            "phase": 0
+          },
+          "sample": 36
+        },
+        {
+          "observed": {
+            "boss_active": 0,
+            "encoded": 32,
+            "normal_enemy_count": 2,
+            "phase": 0
+          },
+          "sample": 37
+        },
+        {
+          "observed": {
+            "boss_active": 1,
+            "encoded": 8,
+            "normal_enemy_count": 0,
+            "phase": 0
+          },
+          "sample": 38
+        },
+        {
+          "observed": {
+            "boss_active": 1,
+            "encoded": 13,
+            "normal_enemy_count": 0,
+            "phase": 5
+          },
+          "sample": 39
+        },
+        {
+          "observed": {
+            "boss_active": 1,
+            "encoded": 136,
+            "normal_enemy_count": 8,
+            "phase": 0
+          },
+          "sample": 40
+        },
+        {
+          "observed": {
+            "boss_active": 0,
+            "encoded": 16,
+            "normal_enemy_count": 1,
+            "phase": 0
+          },
+          "sample": 41
+        },
+        {
+          "observed": {
+            "boss_active": 0,
+            "encoded": 243,
+            "normal_enemy_count": 15,
+            "phase": 3
+          },
+          "sample": 42
+        },
+        {
+          "observed": {
+            "boss_active": 0,
+            "encoded": 224,
+            "normal_enemy_count": 14,
+            "phase": 0
+          },
+          "sample": 43
+        },
+        {
+          "observed": {
+            "boss_active": 1,
+            "encoded": 60,
+            "normal_enemy_count": 3,
+            "phase": 4
+          },
+          "sample": 44
+        },
+        {
+          "observed": {
+            "boss_active": 0,
+            "encoded": 113,
+            "normal_enemy_count": 7,
+            "phase": 1
+          },
+          "sample": 45
+        },
+        {
+          "observed": {
+            "boss_active": 0,
+            "encoded": 199,
+            "normal_enemy_count": 12,
+            "phase": 7
+          },
+          "sample": 46
+        },
+        {
+          "observed": {
+            "boss_active": 1,
+            "encoded": 62,
+            "normal_enemy_count": 3,
+            "phase": 6
+          },
+          "sample": 47
+        },
+        {
+          "observed": {
+            "boss_active": 0,
+            "encoded": 1,
+            "normal_enemy_count": 0,
+            "phase": 1
+          },
+          "sample": 48
+        },
+        {
+          "observed": {
+            "boss_active": 0,
+            "encoded": 199,
+            "normal_enemy_count": 12,
+            "phase": 7
+          },
+          "sample": 49
+        },
+        {
+          "observed": {
+            "boss_active": 1,
+            "encoded": 28,
+            "normal_enemy_count": 1,
+            "phase": 4
+          },
+          "sample": 50
+        },
+        {
+          "observed": {
+            "boss_active": 0,
+            "encoded": 113,
+            "normal_enemy_count": 7,
+            "phase": 1
+          },
+          "sample": 51
+        },
+        {
+          "observed": {
+            "boss_active": 0,
+            "encoded": 192,
+            "normal_enemy_count": 12,
+            "phase": 0
+          },
+          "sample": 52
+        },
+        {
+          "observed": {
+            "boss_active": 1,
+            "encoded": 62,
+            "normal_enemy_count": 3,
+            "phase": 6
+          },
+          "sample": 53
+        },
+        {
+          "observed": {
+            "boss_active": 0,
+            "encoded": 240,
+            "normal_enemy_count": 15,
+            "phase": 0
+          },
+          "sample": 54
+        },
+        {
+          "observed": {
+            "boss_active": 1,
+            "encoded": 8,
+            "normal_enemy_count": 0,
+            "phase": 0
+          },
+          "sample": 55
+        },
+        {
+          "observed": {
+            "boss_active": 1,
+            "encoded": 156,
+            "normal_enemy_count": 9,
+            "phase": 4
+          },
+          "sample": 56
+        },
+        {
+          "observed": {
+            "boss_active": 0,
+            "encoded": 0,
+            "normal_enemy_count": 0,
+            "phase": 0
+          },
+          "sample": 57
+        }
+      ],
+      "raw_interval_vblank_counts": [
+        11,
+        33,
+        33,
+        32,
+        33,
+        33,
+        33,
+        32,
+        33,
+        33,
+        33,
+        32,
+        33,
+        33,
+        33,
+        32,
+        33,
+        33,
+        33,
+        33,
+        32,
+        33,
+        33,
+        33,
+        32,
+        33,
+        33,
+        33,
+        32,
+        33,
+        33,
+        33,
+        33,
+        32,
+        33,
+        33,
+        33,
+        32,
+        33,
+        33,
+        33,
+        33,
+        32,
+        33,
+        33,
+        33,
+        33,
+        32,
+        33,
+        33,
+        33,
+        32,
+        33,
+        33,
+        33,
+        32,
+        33,
+        33,
+        33,
+        32,
+        33,
+        33,
+        33,
+        33,
+        32,
+        33,
+        33,
+        33,
+        32,
+        33,
+        33,
+        33,
+        33,
+        32,
+        33
+      ],
+      "reinjection_count": 82,
+      "samples": 75,
+      "total_display_request_hits": 83,
+      "warmup_vblanks": 175
+    },
+    {
+      "actual_sound_ticks": 296,
+      "boss_active_every_hit": true,
+      "bullets_stayed_full": true,
+      "consumed_vblanks": 2404,
+      "enemies_boss_confirmed_valid": true,
+      "gate_a_max_vblank": 2,
+      "logic_updates": 888,
+      "maximum_us": 440000.0,
+      "maximum_vblank_interval": 33,
+      "maximum_within_gate": false,
+      "median_us": 440000.0,
+      "median_vblank_interval": 33,
+      "median_within_gate": false,
+      "min_enemy_bullets_active": 16,
+      "min_normal_enemies_active": 4,
+      "min_player_bullets_active": 12,
+      "probe_fixture_states_decoded": [
+        {
+          "boss_active": 1,
+          "encoded": 170,
+          "normal_enemy_count": 10,
+          "phase": 2
+        },
+        {
+          "boss_active": 1,
+          "encoded": 170,
+          "normal_enemy_count": 10,
+          "phase": 2
+        },
+        {
+          "boss_active": 1,
+          "encoded": 170,
+          "normal_enemy_count": 10,
+          "phase": 2
+        },
+        {
+          "boss_active": 0,
+          "encoded": 160,
+          "normal_enemy_count": 10,
+          "phase": 0
+        },
+        {
+          "boss_active": 0,
+          "encoded": 32,
+          "normal_enemy_count": 2,
+          "phase": 0
+        },
+        {
+          "boss_active": 0,
+          "encoded": 112,
+          "normal_enemy_count": 7,
+          "phase": 0
+        },
+        {
+          "boss_active": 1,
+          "encoded": 10,
+          "normal_enemy_count": 0,
+          "phase": 2
+        },
+        {
+          "boss_active": 1,
+          "encoded": 136,
+          "normal_enemy_count": 8,
+          "phase": 0
+        },
+        {
+          "boss_active": 0,
+          "encoded": 16,
+          "normal_enemy_count": 1,
+          "phase": 0
+        },
+        {
+          "boss_active": 1,
+          "encoded": 8,
+          "normal_enemy_count": 0,
+          "phase": 0
+        },
+        {
+          "boss_active": 0,
+          "encoded": 128,
+          "normal_enemy_count": 8,
+          "phase": 0
+        },
+        {
+          "boss_active": 0,
+          "encoded": 34,
+          "normal_enemy_count": 2,
+          "phase": 2
+        },
+        {
+          "boss_active": 1,
+          "encoded": 203,
+          "normal_enemy_count": 12,
+          "phase": 3
+        },
+        {
+          "boss_active": 0,
+          "encoded": 34,
+          "normal_enemy_count": 2,
+          "phase": 2
+        },
+        {
+          "boss_active": 1,
+          "encoded": 8,
+          "normal_enemy_count": 0,
+          "phase": 0
+        },
+        {
+          "boss_active": 0,
+          "encoded": 3,
+          "normal_enemy_count": 0,
+          "phase": 3
+        },
+        {
+          "boss_active": 1,
+          "encoded": 44,
+          "normal_enemy_count": 2,
+          "phase": 4
+        },
+        {
+          "boss_active": 0,
+          "encoded": 178,
+          "normal_enemy_count": 11,
+          "phase": 2
+        },
+        {
+          "boss_active": 1,
+          "encoded": 203,
+          "normal_enemy_count": 12,
+          "phase": 3
+        },
+        {
+          "boss_active": 0,
+          "encoded": 32,
+          "normal_enemy_count": 2,
+          "phase": 0
+        },
+        {
+          "boss_active": 0,
+          "encoded": 32,
+          "normal_enemy_count": 2,
+          "phase": 0
+        },
+        {
+          "boss_active": 1,
+          "encoded": 8,
+          "normal_enemy_count": 0,
+          "phase": 0
+        },
+        {
+          "boss_active": 1,
+          "encoded": 10,
+          "normal_enemy_count": 0,
+          "phase": 2
+        },
+        {
+          "boss_active": 1,
+          "encoded": 136,
+          "normal_enemy_count": 8,
+          "phase": 0
+        },
+        {
+          "boss_active": 0,
+          "encoded": 16,
+          "normal_enemy_count": 1,
+          "phase": 0
+        },
+        {
+          "boss_active": 1,
+          "encoded": 9,
+          "normal_enemy_count": 0,
+          "phase": 1
+        },
+        {
+          "boss_active": 0,
+          "encoded": 0,
+          "normal_enemy_count": 0,
+          "phase": 0
+        },
+        {
+          "boss_active": 0,
+          "encoded": 34,
+          "normal_enemy_count": 2,
+          "phase": 2
+        },
+        {
+          "boss_active": 1,
+          "encoded": 138,
+          "normal_enemy_count": 8,
+          "phase": 2
+        },
+        {
+          "boss_active": 0,
+          "encoded": 34,
+          "normal_enemy_count": 2,
+          "phase": 2
+        },
+        {
+          "boss_active": 0,
+          "encoded": 16,
+          "normal_enemy_count": 1,
+          "phase": 0
+        },
+        {
+          "boss_active": 0,
+          "encoded": 2,
+          "normal_enemy_count": 0,
+          "phase": 2
+        },
+        {
+          "boss_active": 1,
+          "encoded": 40,
+          "normal_enemy_count": 2,
+          "phase": 0
+        },
+        {
+          "boss_active": 0,
+          "encoded": 162,
+          "normal_enemy_count": 10,
+          "phase": 2
+        },
+        {
+          "boss_active": 1,
+          "encoded": 138,
+          "normal_enemy_count": 8,
+          "phase": 2
+        },
+        {
+          "boss_active": 0,
+          "encoded": 32,
+          "normal_enemy_count": 2,
+          "phase": 0
+        },
+        {
+          "boss_active": 0,
+          "encoded": 32,
+          "normal_enemy_count": 2,
+          "phase": 0
+        },
+        {
+          "boss_active": 1,
+          "encoded": 8,
+          "normal_enemy_count": 0,
+          "phase": 0
+        },
+        {
+          "boss_active": 1,
+          "encoded": 13,
+          "normal_enemy_count": 0,
+          "phase": 5
+        },
+        {
+          "boss_active": 1,
+          "encoded": 136,
+          "normal_enemy_count": 8,
+          "phase": 0
+        },
+        {
+          "boss_active": 0,
+          "encoded": 16,
+          "normal_enemy_count": 1,
+          "phase": 0
+        },
+        {
+          "boss_active": 0,
+          "encoded": 243,
+          "normal_enemy_count": 15,
+          "phase": 3
+        },
+        {
+          "boss_active": 0,
+          "encoded": 224,
+          "normal_enemy_count": 14,
+          "phase": 0
+        },
+        {
+          "boss_active": 1,
+          "encoded": 60,
+          "normal_enemy_count": 3,
+          "phase": 4
+        },
+        {
+          "boss_active": 0,
+          "encoded": 113,
+          "normal_enemy_count": 7,
+          "phase": 1
+        },
+        {
+          "boss_active": 0,
+          "encoded": 199,
+          "normal_enemy_count": 12,
+          "phase": 7
+        },
+        {
+          "boss_active": 1,
+          "encoded": 62,
+          "normal_enemy_count": 3,
+          "phase": 6
+        },
+        {
+          "boss_active": 0,
+          "encoded": 1,
+          "normal_enemy_count": 0,
+          "phase": 1
+        },
+        {
+          "boss_active": 0,
+          "encoded": 199,
+          "normal_enemy_count": 12,
+          "phase": 7
+        },
+        {
+          "boss_active": 1,
+          "encoded": 28,
+          "normal_enemy_count": 1,
+          "phase": 4
+        },
+        {
+          "boss_active": 0,
+          "encoded": 113,
+          "normal_enemy_count": 7,
+          "phase": 1
+        },
+        {
+          "boss_active": 0,
+          "encoded": 192,
+          "normal_enemy_count": 12,
+          "phase": 0
+        },
+        {
+          "boss_active": 1,
+          "encoded": 62,
+          "normal_enemy_count": 3,
+          "phase": 6
+        },
+        {
+          "boss_active": 0,
+          "encoded": 240,
+          "normal_enemy_count": 15,
+          "phase": 0
+        },
+        {
+          "boss_active": 1,
+          "encoded": 8,
+          "normal_enemy_count": 0,
+          "phase": 0
+        },
+        {
+          "boss_active": 1,
+          "encoded": 156,
+          "normal_enemy_count": 9,
+          "phase": 4
+        },
+        {
+          "boss_active": 0,
+          "encoded": 0,
+          "normal_enemy_count": 0,
+          "phase": 0
+        },
+        {
+          "boss_active": 1,
+          "encoded": 75,
+          "normal_enemy_count": 4,
+          "phase": 3
+        },
+        {
+          "boss_active": 1,
+          "encoded": 75,
+          "normal_enemy_count": 4,
+          "phase": 3
+        },
+        {
+          "boss_active": 1,
+          "encoded": 75,
+          "normal_enemy_count": 4,
+          "phase": 3
+        },
+        {
+          "boss_active": 1,
+          "encoded": 75,
+          "normal_enemy_count": 4,
+          "phase": 3
+        },
+        {
+          "boss_active": 1,
+          "encoded": 75,
+          "normal_enemy_count": 4,
+          "phase": 3
+        },
+        {
+          "boss_active": 1,
+          "encoded": 75,
+          "normal_enemy_count": 4,
+          "phase": 3
+        },
+        {
+          "boss_active": 1,
+          "encoded": 75,
+          "normal_enemy_count": 4,
+          "phase": 3
+        },
+        {
+          "boss_active": 1,
+          "encoded": 75,
+          "normal_enemy_count": 4,
+          "phase": 3
+        },
+        {
+          "boss_active": 1,
+          "encoded": 75,
+          "normal_enemy_count": 4,
+          "phase": 3
+        },
+        {
+          "boss_active": 1,
+          "encoded": 75,
+          "normal_enemy_count": 4,
+          "phase": 3
+        },
+        {
+          "boss_active": 1,
+          "encoded": 75,
+          "normal_enemy_count": 4,
+          "phase": 3
+        },
+        {
+          "boss_active": 1,
+          "encoded": 75,
+          "normal_enemy_count": 4,
+          "phase": 3
+        },
+        {
+          "boss_active": 1,
+          "encoded": 75,
+          "normal_enemy_count": 4,
+          "phase": 3
+        },
+        {
+          "boss_active": 1,
+          "encoded": 75,
+          "normal_enemy_count": 4,
+          "phase": 3
+        },
+        {
+          "boss_active": 1,
+          "encoded": 75,
+          "normal_enemy_count": 4,
+          "phase": 3
+        },
+        {
+          "boss_active": 1,
+          "encoded": 75,
+          "normal_enemy_count": 4,
+          "phase": 3
+        },
+        {
+          "boss_active": 1,
+          "encoded": 75,
+          "normal_enemy_count": 4,
+          "phase": 3
+        },
+        {
+          "boss_active": 1,
+          "encoded": 75,
+          "normal_enemy_count": 4,
+          "phase": 3
+        }
+      ],
+      "probe_fixture_states_integrity": {
+        "note": "Not a gate-blocking check. The probe's own fixture encoding is corrupted by a scratch-buffer conflict with Phase 3R movable-object SCB construction (see module docstring); ground truth is enemies_boss_confirmed_valid below, derived from direct _game/_game_enemies reads at every hit.",
+        "valid": false
+      },
+      "probe_fixture_states_invalid_samples": [
+        {
+          "observed": {
+            "boss_active": 1,
+            "encoded": 170,
+            "normal_enemy_count": 10,
+            "phase": 2
+          },
+          "sample": 1
+        },
+        {
+          "observed": {
+            "boss_active": 1,
+            "encoded": 170,
+            "normal_enemy_count": 10,
+            "phase": 2
+          },
+          "sample": 2
+        },
+        {
+          "observed": {
+            "boss_active": 1,
+            "encoded": 170,
+            "normal_enemy_count": 10,
+            "phase": 2
+          },
+          "sample": 3
+        },
+        {
+          "observed": {
+            "boss_active": 0,
+            "encoded": 160,
+            "normal_enemy_count": 10,
+            "phase": 0
+          },
+          "sample": 4
+        },
+        {
+          "observed": {
+            "boss_active": 0,
+            "encoded": 32,
+            "normal_enemy_count": 2,
+            "phase": 0
+          },
+          "sample": 5
+        },
+        {
+          "observed": {
+            "boss_active": 0,
+            "encoded": 112,
+            "normal_enemy_count": 7,
+            "phase": 0
+          },
+          "sample": 6
+        },
+        {
+          "observed": {
+            "boss_active": 1,
+            "encoded": 10,
+            "normal_enemy_count": 0,
+            "phase": 2
+          },
+          "sample": 7
+        },
+        {
+          "observed": {
+            "boss_active": 1,
+            "encoded": 136,
+            "normal_enemy_count": 8,
+            "phase": 0
+          },
+          "sample": 8
+        },
+        {
+          "observed": {
+            "boss_active": 0,
+            "encoded": 16,
+            "normal_enemy_count": 1,
+            "phase": 0
+          },
+          "sample": 9
+        },
+        {
+          "observed": {
+            "boss_active": 1,
+            "encoded": 8,
+            "normal_enemy_count": 0,
+            "phase": 0
+          },
+          "sample": 10
+        },
+        {
+          "observed": {
+            "boss_active": 0,
+            "encoded": 128,
+            "normal_enemy_count": 8,
+            "phase": 0
+          },
+          "sample": 11
+        },
+        {
+          "observed": {
+            "boss_active": 0,
+            "encoded": 34,
+            "normal_enemy_count": 2,
+            "phase": 2
+          },
+          "sample": 12
+        },
+        {
+          "observed": {
+            "boss_active": 1,
+            "encoded": 203,
+            "normal_enemy_count": 12,
+            "phase": 3
+          },
+          "sample": 13
+        },
+        {
+          "observed": {
+            "boss_active": 0,
+            "encoded": 34,
+            "normal_enemy_count": 2,
+            "phase": 2
+          },
+          "sample": 14
+        },
+        {
+          "observed": {
+            "boss_active": 1,
+            "encoded": 8,
+            "normal_enemy_count": 0,
+            "phase": 0
+          },
+          "sample": 15
+        },
+        {
+          "observed": {
+            "boss_active": 0,
+            "encoded": 3,
+            "normal_enemy_count": 0,
+            "phase": 3
+          },
+          "sample": 16
+        },
+        {
+          "observed": {
+            "boss_active": 1,
+            "encoded": 44,
+            "normal_enemy_count": 2,
+            "phase": 4
+          },
+          "sample": 17
+        },
+        {
+          "observed": {
+            "boss_active": 0,
+            "encoded": 178,
+            "normal_enemy_count": 11,
+            "phase": 2
+          },
+          "sample": 18
+        },
+        {
+          "observed": {
+            "boss_active": 1,
+            "encoded": 203,
+            "normal_enemy_count": 12,
+            "phase": 3
+          },
+          "sample": 19
+        },
+        {
+          "observed": {
+            "boss_active": 0,
+            "encoded": 32,
+            "normal_enemy_count": 2,
+            "phase": 0
+          },
+          "sample": 20
+        },
+        {
+          "observed": {
+            "boss_active": 0,
+            "encoded": 32,
+            "normal_enemy_count": 2,
+            "phase": 0
+          },
+          "sample": 21
+        },
+        {
+          "observed": {
+            "boss_active": 1,
+            "encoded": 8,
+            "normal_enemy_count": 0,
+            "phase": 0
+          },
+          "sample": 22
+        },
+        {
+          "observed": {
+            "boss_active": 1,
+            "encoded": 10,
+            "normal_enemy_count": 0,
+            "phase": 2
+          },
+          "sample": 23
+        },
+        {
+          "observed": {
+            "boss_active": 1,
+            "encoded": 136,
+            "normal_enemy_count": 8,
+            "phase": 0
+          },
+          "sample": 24
+        },
+        {
+          "observed": {
+            "boss_active": 0,
+            "encoded": 16,
+            "normal_enemy_count": 1,
+            "phase": 0
+          },
+          "sample": 25
+        },
+        {
+          "observed": {
+            "boss_active": 1,
+            "encoded": 9,
+            "normal_enemy_count": 0,
+            "phase": 1
+          },
+          "sample": 26
+        },
+        {
+          "observed": {
+            "boss_active": 0,
+            "encoded": 0,
+            "normal_enemy_count": 0,
+            "phase": 0
+          },
+          "sample": 27
+        },
+        {
+          "observed": {
+            "boss_active": 0,
+            "encoded": 34,
+            "normal_enemy_count": 2,
+            "phase": 2
+          },
+          "sample": 28
+        },
+        {
+          "observed": {
+            "boss_active": 1,
+            "encoded": 138,
+            "normal_enemy_count": 8,
+            "phase": 2
+          },
+          "sample": 29
+        },
+        {
+          "observed": {
+            "boss_active": 0,
+            "encoded": 34,
+            "normal_enemy_count": 2,
+            "phase": 2
+          },
+          "sample": 30
+        },
+        {
+          "observed": {
+            "boss_active": 0,
+            "encoded": 16,
+            "normal_enemy_count": 1,
+            "phase": 0
+          },
+          "sample": 31
+        },
+        {
+          "observed": {
+            "boss_active": 0,
+            "encoded": 2,
+            "normal_enemy_count": 0,
+            "phase": 2
+          },
+          "sample": 32
+        },
+        {
+          "observed": {
+            "boss_active": 1,
+            "encoded": 40,
+            "normal_enemy_count": 2,
+            "phase": 0
+          },
+          "sample": 33
+        },
+        {
+          "observed": {
+            "boss_active": 0,
+            "encoded": 162,
+            "normal_enemy_count": 10,
+            "phase": 2
+          },
+          "sample": 34
+        },
+        {
+          "observed": {
+            "boss_active": 1,
+            "encoded": 138,
+            "normal_enemy_count": 8,
+            "phase": 2
+          },
+          "sample": 35
+        },
+        {
+          "observed": {
+            "boss_active": 0,
+            "encoded": 32,
+            "normal_enemy_count": 2,
+            "phase": 0
+          },
+          "sample": 36
+        },
+        {
+          "observed": {
+            "boss_active": 0,
+            "encoded": 32,
+            "normal_enemy_count": 2,
+            "phase": 0
+          },
+          "sample": 37
+        },
+        {
+          "observed": {
+            "boss_active": 1,
+            "encoded": 8,
+            "normal_enemy_count": 0,
+            "phase": 0
+          },
+          "sample": 38
+        },
+        {
+          "observed": {
+            "boss_active": 1,
+            "encoded": 13,
+            "normal_enemy_count": 0,
+            "phase": 5
+          },
+          "sample": 39
+        },
+        {
+          "observed": {
+            "boss_active": 1,
+            "encoded": 136,
+            "normal_enemy_count": 8,
+            "phase": 0
+          },
+          "sample": 40
+        },
+        {
+          "observed": {
+            "boss_active": 0,
+            "encoded": 16,
+            "normal_enemy_count": 1,
+            "phase": 0
+          },
+          "sample": 41
+        },
+        {
+          "observed": {
+            "boss_active": 0,
+            "encoded": 243,
+            "normal_enemy_count": 15,
+            "phase": 3
+          },
+          "sample": 42
+        },
+        {
+          "observed": {
+            "boss_active": 0,
+            "encoded": 224,
+            "normal_enemy_count": 14,
+            "phase": 0
+          },
+          "sample": 43
+        },
+        {
+          "observed": {
+            "boss_active": 1,
+            "encoded": 60,
+            "normal_enemy_count": 3,
+            "phase": 4
+          },
+          "sample": 44
+        },
+        {
+          "observed": {
+            "boss_active": 0,
+            "encoded": 113,
+            "normal_enemy_count": 7,
+            "phase": 1
+          },
+          "sample": 45
+        },
+        {
+          "observed": {
+            "boss_active": 0,
+            "encoded": 199,
+            "normal_enemy_count": 12,
+            "phase": 7
+          },
+          "sample": 46
+        },
+        {
+          "observed": {
+            "boss_active": 1,
+            "encoded": 62,
+            "normal_enemy_count": 3,
+            "phase": 6
+          },
+          "sample": 47
+        },
+        {
+          "observed": {
+            "boss_active": 0,
+            "encoded": 1,
+            "normal_enemy_count": 0,
+            "phase": 1
+          },
+          "sample": 48
+        },
+        {
+          "observed": {
+            "boss_active": 0,
+            "encoded": 199,
+            "normal_enemy_count": 12,
+            "phase": 7
+          },
+          "sample": 49
+        },
+        {
+          "observed": {
+            "boss_active": 1,
+            "encoded": 28,
+            "normal_enemy_count": 1,
+            "phase": 4
+          },
+          "sample": 50
+        },
+        {
+          "observed": {
+            "boss_active": 0,
+            "encoded": 113,
+            "normal_enemy_count": 7,
+            "phase": 1
+          },
+          "sample": 51
+        },
+        {
+          "observed": {
+            "boss_active": 0,
+            "encoded": 192,
+            "normal_enemy_count": 12,
+            "phase": 0
+          },
+          "sample": 52
+        },
+        {
+          "observed": {
+            "boss_active": 1,
+            "encoded": 62,
+            "normal_enemy_count": 3,
+            "phase": 6
+          },
+          "sample": 53
+        },
+        {
+          "observed": {
+            "boss_active": 0,
+            "encoded": 240,
+            "normal_enemy_count": 15,
+            "phase": 0
+          },
+          "sample": 54
+        },
+        {
+          "observed": {
+            "boss_active": 1,
+            "encoded": 8,
+            "normal_enemy_count": 0,
+            "phase": 0
+          },
+          "sample": 55
+        },
+        {
+          "observed": {
+            "boss_active": 1,
+            "encoded": 156,
+            "normal_enemy_count": 9,
+            "phase": 4
+          },
+          "sample": 56
+        },
+        {
+          "observed": {
+            "boss_active": 0,
+            "encoded": 0,
+            "normal_enemy_count": 0,
+            "phase": 0
+          },
+          "sample": 57
+        }
+      ],
+      "raw_interval_vblank_counts": [
+        11,
+        33,
+        33,
+        33,
+        32,
+        33,
+        33,
+        33,
+        33,
+        32,
+        33,
+        33,
+        33,
+        33,
+        32,
+        33,
+        33,
+        33,
+        33,
+        32,
+        33,
+        33,
+        33,
+        32,
+        33,
+        33,
+        33,
+        33,
+        32,
+        33,
+        33,
+        33,
+        32,
+        33,
+        33,
+        33,
+        33,
+        32,
+        33,
+        33,
+        33,
+        33,
+        32,
+        33,
+        33,
+        33,
+        32,
+        33,
+        33,
+        33,
+        32,
+        33,
+        33,
+        33,
+        32,
+        33,
+        33,
+        33,
+        33,
+        32,
+        33,
+        33,
+        33,
+        32,
+        33,
+        33,
+        33,
+        33,
+        32,
+        33,
+        33,
+        33,
+        33,
+        32,
+        33
+      ],
+      "reinjection_count": 81,
+      "samples": 75,
+      "total_display_request_hits": 82,
+      "warmup_vblanks": 175
+    }
+  ],
+  "calibration_gate": {
+    "blocking": false,
+    "gate": "stable TITLE display_request / Timer 2 VBlank",
+    "measured_medians": [
+      4,
+      4
+    ],
+    "measured_raw": [
+      [
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        5,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        5,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4
+      ],
+      [
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        5,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        5,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4,
+        4
+      ]
+    ],
+    "note": "FAILED but treated as non-blocking: reproduced identically (measured=[4, 4]) by the unmodified reference script scripts/verify-frame-pacing-gearlynx.py --only-zero on this same clean build, so this is pre-existing repo/ROM drift, not a defect in this new harness. Escalate to Fable5/dev-front for recalibration decision; not fixed here.",
+    "passed": false,
+    "reference_ratio": 2.9995446710248155,
+    "reproducible": true,
+    "tolerance": 0.05
+  },
+  "fixture": "boss(1) + 4 normal enemies + 12/12 player bullets + 16/16 enemy bullets",
+  "gate": "A",
+  "gate_a_accepted": false,
+  "gate_a_pass_fail_basis": "maximum_vblank_interval per batch (strict, every sampled interval must fit the budget, not just the median)",
+  "main_spare": {
+    "cadence": {
+      "main_limit_bytes": 47112,
+      "main_region_total_bytes": 48696,
+      "main_spare_bytes": 1867,
+      "map": "build/asteroid-patrol-cadence.map",
+      "segment_sizes_bytes": {
+        "BSS": 2813,
+        "CODE": 35019,
+        "DATA": 306,
+        "LOWCODE": 16,
+        "ONCE": 27,
+        "RODATA": 6955,
+        "STARTUP": 109
+      },
+      "stack_size_bytes": 1584,
+      "used_bytes": 45245
+    },
+    "release": {
+      "main_limit_bytes": 46776,
+      "main_region_total_bytes": 48696,
+      "main_spare_bytes": 1975,
+      "map": "build/asteroid-patrol.map",
+      "segment_sizes_bytes": {
+        "BSS": 2720,
+        "CODE": 34670,
+        "DATA": 306,
+        "LOWCODE": 16,
+        "ONCE": 27,
+        "RODATA": 6953,
+        "STARTUP": 109
+      },
+      "stack_size_bytes": 1920,
+      "used_bytes": 44801
+    }
+  },
+  "method": {
+    "fixture_hold": "full fixture (bullets included) re-injected at every _game_display_request breakpoint hit -- unlike verify-frame-pacing-gearlynx.py's single end-of-batch stop -- because player bullet position is not data-freezable (fixed BULLET_SPEED) and would otherwise decay to 0 active within a handful of samples; enemy bullets are frozen via velocity_x=velocity_y=0. Re-injection happens only while the CPU is paused at the exact function entry, so it does not consume emulated VBlank time or perturb the interval the ROM is about to record.",
+    "gate_a_criterion": "2 VBlank or fewer",
+    "independent_batch_count": 2,
+    "samples_per_batch": 75,
+    "source": "ROM Timer 2 VBlank counter sampled by the display-request hook (scripts/cadence_probe.s, unmodified)",
+    "warmup_display_requests": 6
+  },
+  "phase": "3R",
+  "probe_fixture_states_conflict_finding": "scripts/cadence_probe.s's _cadence_probe_fixture_states array (a diagnostic-only readback aid, unrelated to the Timer 2 VBlank interval counts used for the gate A pass/fail number) is written into the shared _title_voice_scratch_buffer. On this build, Phase 3R's movable-object SCB construction also uses that scratch space every draw, clobbering the probe's array between when the ROM writes it and when this script reads it back at batch end. This was cross-checked against an independent, direct read of _game/_game_enemies at every single hit (activity_samples / enemies_boss_confirmed_valid), which shows the actual fixture (boss + 4 enemies) held correctly for the entire measurement -- so this does not affect gate A's VBlank numbers, only that one diagnostic array. Not fixed here (scripts/cadence_probe.s is in the protected/do-not-touch list); flagging for dev-front/Fable5.",
+  "release_rom": {
+    "path": "dist/asteroid-patrol.lnx",
+    "sha256": "23958e87e89b212d30cc5cda8a5abe92b13b661593273a6f81cf8496a6449aac",
+    "size_bytes": 59065
+  },
+  "rom": {
+    "path": "dist/asteroid-patrol-cadence.lnx",
+    "sha256": "6e2e08da748bc0c4db731d95eb437dc9ba89baa6e7ff34c35c44f313ed92a897",
+    "size_bytes": 59416
+  },
+  "run_maxima_vblank": [
+    33,
+    33
+  ],
+  "run_medians_vblank": [
+    33,
+    33
+  ],
+  "same_conclusion": true,
+  "status": "done"
+}

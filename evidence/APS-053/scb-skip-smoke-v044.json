@@ -1,0 +1,91 @@
+{
+  "aps": "APS-053",
+  "chain_addresses": {
+    "active_data": "0xAA18",
+    "empty_data": "0xAA1C",
+    "scb1": "0xA9D4",
+    "scb2": "0xA9E7",
+    "scb3": "0xA9FA",
+    "scb4": "0xAA0D"
+  },
+  "chain_bytes": 73,
+  "chain_write_readback_match": true,
+  "check": "pre-implementation required check #2 (SKIP smoke)",
+  "checks": {
+    "a_skip_bit_prevents_draw": true,
+    "active_reference_sprite_drew_as_expected": true,
+    "b_empty_header_draws_zero_pixels": true,
+    "b_empty_header_latches_penpal_for_reusepal_follower": true,
+    "chain_write_readback_match": true
+  },
+  "design_implication": "SCB static chain (SKIP-driven activation, always-non-SKIP palette headers) confirmed safe to implement",
+  "framebuffer": {
+    "changed_byte_offsets": [
+      2410,
+      2440
+    ],
+    "expected_changed_byte_offsets": [
+      2410,
+      2440
+    ],
+    "no_stray_writes": true,
+    "other_page_untouched": true,
+    "scb1_active_reference": {
+      "actual": "0xFA",
+      "expected": "0xFA",
+      "match": true,
+      "offset": 2410
+    },
+    "scb2_skip_target": {
+      "actual": "0xAA",
+      "expected_if_skip_honored": "0xAA",
+      "expected_if_skip_ignored": "0xCA",
+      "offset": 2420,
+      "skip_honored": true
+    },
+    "scb4_reusepal_target": {
+      "actual": "0x3A",
+      "expected_from_scb3_penpal": "0x3A",
+      "match": true,
+      "offset": 2440
+    },
+    "target_page": "c038",
+    "target_page_cpu_address": "0xC038"
+  },
+  "method": {
+    "active_data_bytes": [
+      "0x03",
+      "0x84",
+      "0x00",
+      "0x00"
+    ],
+    "chain": "SCB1(active,pen0=0x0F) -> SCB2(SKIP,pen0=0x0C) -> SCB3(header,active,pen0=0x03,data=1-byte empty sprite) -> SCB4(REUSEPAL,active,no own penpal) -> terminator",
+    "empty_data_bytes": [
+      "0x00"
+    ],
+    "release_source_or_rom_modified": false,
+    "sentinel": "0xAA",
+    "technique": "overwrite title_voice_scratch_buffer (shared with static_layer's own SCB construction, see verify-static-layer-readback-gearlynx.py) before the already-in-flight real _tgi_ioctl(tgi_sprite) call proceeds via debug_step_out"
+  },
+  "registers": {
+    "DISPADR": "0xE018",
+    "VIDBAS": "0xC038"
+  },
+  "rom": {
+    "path": "dist/asteroid-patrol.lnx",
+    "sha256": "23958e87e89b212d30cc5cda8a5abe92b13b661593273a6f81cf8496a6449aac",
+    "size_bytes": 59065
+  },
+  "sentinel_prefill": {
+    "page_c038_all_sentinel": true,
+    "page_e018_all_sentinel": true
+  },
+  "status": "PASS",
+  "symbols": {
+    "_game": "0xA66D",
+    "_game_display_sync_complete": "0x02A7",
+    "_tgi_ioctl": "0x846D",
+    "_title_voice_scratch_buffer": "0xA9D4"
+  },
+  "version": "v044"
+}

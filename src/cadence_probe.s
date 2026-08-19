@@ -24,14 +24,25 @@
         .export         _cadence_probe_overflow
         .export         _cadence_probe_intervals
         .export         _cadence_probe_sound_tick_count
+        .export         _cadence_probe_target_phase
+        .export         _cadence_probe_capture_state
+        .export         _cadence_probe_hold_fixture
         .interruptor    cadence_probe_irq
         .import         _game_timing_reset_baseline
+        .import         _game
+        .import         _game_enemies
+        .import         _title_voice_scratch_buffer
+        .export         _cadence_probe_fixture_states
         .include        "lynx.inc"
 
 ; APS-052 logic batches use 16 intervals so the real game-update path can
 ; complete two independent batches before a fixture reaches a phase boundary.
-CADENCE_INTERVAL_COUNT = 16
+CADENCE_INTERVAL_COUNT = 75
 CADENCE_WARMUP_REQUEST_COUNT = 6
+GAME_PHASE_OFFSET = 210
+GAME_BOSS_ACTIVE_OFFSET = 154
+GAME_ENEMY_RECORD_SIZE = 12
+GAME_ENEMY_COUNT = 8
 
         .bss
 _cadence_probe_armed:        .res 1
@@ -44,6 +55,7 @@ _cadence_probe_warmup:      .res 1
 _cadence_probe_overflow:     .res 1
 _cadence_probe_logic_update_count: .res 4
 _cadence_probe_elapsed_vblank_count: .res 4
+_cadence_probe_target_phase: .res 1
 
         ; Keep actual sound-tick readback in ZP so the cadence probe does not
         ; grow production BSS or move the C stack reservation.
@@ -232,4 +244,61 @@ _cadence_probe_sound_tick:
         bne     @sound_done
         inc     _cadence_probe_sound_tick_count + 3
 @sound_done:
+        rts
+
+; Capture phase|boss|normal-enemy-count immediately before the display hook.
+; Reading the real GameState and enemy array avoids treating debugger
+; injection intent as proof that the fixture stayed valid.
+_cadence_probe_capture_state:
+        lda     _cadence_probe_active
+        beq     @done
+        lda     _cadence_probe_warmup
+        bne     @done
+        lda     _cadence_probe_sample_count
+        cmp     #CADENCE_INTERVAL_COUNT
+        bcs     @done
+        ldx     #0
+        ldy     #0
+@enemy_loop:
+        lda     _game_enemies + 4,x
+        beq     @next_enemy
+        iny
+@next_enemy:
+        txa
+        clc
+        adc     #GAME_ENEMY_RECORD_SIZE
+        tax
+        cpx     #(GAME_ENEMY_COUNT * GAME_ENEMY_RECORD_SIZE)
+        bcc     @enemy_loop
+        tya
+        asl
+        asl
+        asl
+        asl
+        ldx     _cadence_probe_sample_count
+        sta     _cadence_probe_fixture_states,x
+        lda     _game + GAME_PHASE_OFFSET
+        and     #$07
+        ora     _cadence_probe_fixture_states,x
+        ldy     _game + GAME_BOSS_ACTIVE_OFFSET
+        beq     @store_state
+        ora     #$08
+@store_state:
+        sta     _cadence_probe_fixture_states,x
+@done:  rts
+
+; State samples reuse the existing title voice scratch buffer. The cadence
+; ROM writes here only while the voice is idle and does not enlarge BSS.
+_cadence_probe_fixture_states = _title_voice_scratch_buffer + 539
+
+; Measurement-only fixture fence. The verifier selects the desired phase
+; before arming a batch. Resetting phase_timer before each logic update keeps
+; the long 75-sample batch in one deterministic phase without touching the
+; release main loop or GameState code.
+_cadence_probe_hold_fixture:
+        lda     _cadence_probe_active
+        beq     @done
+        lda     _cadence_probe_target_phase
+        sta     _game + GAME_PHASE_OFFSET
+@done:  clc
         rts

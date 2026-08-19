@@ -12,4 +12,11 @@ void title_voice_stop(void);
 unsigned char title_voice_is_playing(void);
 unsigned char title_voice_had_underrun(void);
 
+/* Scratch storage shared with the static Suzy layer while no voice stream is
+ * active. The static layer reserves the first 539 bytes for SCBs/HUD data;
+ * the voice player owns the whole storage during playback. These users are
+ * never concurrent, and callers must not retain the pointer across a voice
+ * start. */
+extern unsigned char title_voice_scratch_buffer[5][128];
+
 #endif

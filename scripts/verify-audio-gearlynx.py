@@ -48,6 +48,13 @@ GAME_OFFSET_SFX_STATE = GAME_OFFSET_SOUND + 6
 GAME_OFFSET_OUTPUT_SFX = GAME_OFFSET_SOUND + 18
 GAME_PHASE_NORMAL = 1
 GAME_PHASE_TITLE = 6
+SHOT_SFX_OUTPUTS = (
+    (1, 15, 28, 3),
+    (1, 12, 22, 3),
+)
+# Static helper address in the release map: main.o CODE starts at 0x0298,
+# and sound_backend_apply_all is offset 0x0309 in that object.
+SOUND_APPLY_ALL_ADDRESS = 0x05A1
 LOGICAL_VOLUME_OFFSETS = {
     0: GAME_OFFSET_SOUND + 12,
     2: GAME_OFFSET_SOUND + 16,
@@ -268,6 +275,31 @@ def trace_lines(id_):
     return lines
 
 
+def sound_state_snapshot(game_address, id_):
+    raw = read_bytes(game_address + GAME_OFFSET_SOUND, 22, id_)
+    return {
+        "raw": raw.hex(),
+        "bgm_active": raw[0],
+        "bgm_id": raw[1],
+        "bgm_step": raw[2],
+        "bgm_remaining": raw[3],
+        "bass_step": raw[4],
+        "bass_remaining": raw[5],
+        "sfx_id": raw[6],
+        "sfx_step": raw[7],
+        "sfx_remaining": raw[8],
+        "pending_stage_clear": raw[9],
+        "output_bgm": list(raw[10:14]),
+        "output_bgm_bass": list(raw[14:18]),
+        "output_sfx": list(raw[18:22]),
+    }
+
+
+def diagnostic_event(diagnostic, name, payload):
+    if diagnostic is not None:
+        diagnostic["events"].append({"event": name, **payload})
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--seconds", type=float, default=8.0)
@@ -284,7 +316,22 @@ def main():
     parser.add_argument("--map", default="build/asteroid-patrol.map")
     parser.add_argument("--poll-interval", type=float, default=0.1)
     parser.add_argument("--screenshot", default="/tmp/gearlynx-audio-check.png")
+    parser.add_argument(
+        "--diagnostic-output", type=Path, default=None,
+        help="write non-invasive game/sound/MIKEY boundary evidence as JSON",
+    )
     args = parser.parse_args()
+
+    diagnostic = None
+    result_code = 1
+    if args.diagnostic_output is not None:
+        diagnostic = {
+            "diagnostic": "MIKEY audio channel boundary",
+            "channel": args.channel,
+            "seconds": args.seconds,
+            "rom": str(args.rom),
+            "events": [],
+        }
 
     proc = subprocess.Popen(
         [
@@ -319,6 +366,14 @@ def main():
 
         game_address = main_bss_game_address(args.map)
         voice_address = title_voice_state_address(args.map)
+        if diagnostic is not None:
+            diagnostic.update({
+                "game_address": "0x%04X" % game_address,
+                "voice_state_address": "0x%04X" % voice_address,
+                "logical_volume_address": "0x%04X" % (
+                    game_address + LOGICAL_VOLUME_OFFSETS[args.channel]
+                ),
+            })
         tool("debug_continue")
         _, _, request_id = wait_for_game_state(
             game_address,
@@ -333,6 +388,11 @@ def main():
             2,
             "stable armed TITLE",
         )
+        diagnostic_event(diagnostic, "stable_title", {
+            "game": game_snapshot(game_address, request_id),
+            "voice": voice_snapshot(voice_address, request_id + 1),
+            "sound": sound_state_snapshot(game_address, request_id + 2),
+        })
         tool(
             "controller_macro",
             {"commands": [{"press": "a"}]},
@@ -371,7 +431,16 @@ def main():
             request_id,
             "title voice completion and Stage 1 BGM start",
         )
+        diagnostic_event(diagnostic, "stage1_bgm_started", {
+            "game": game_snapshot(game_address, request_id),
+            "voice": voice_snapshot(voice_address, request_id + 1),
+            "sound": sound_state_snapshot(game_address, request_id + 2),
+        })
 
+        sync_address = label_address(
+            Path(args.symbols), "_game_display_sync_complete"
+        )
+        apply_address = SOUND_APPLY_ALL_ADDRESS if args.channel == 1 else None
         if args.channel == 1:
             _, _, request_id = wait_for_game_state(
                 game_address,
@@ -389,6 +458,32 @@ def main():
             tool("debug_pause", id_=request_id)
             request_id += 1
             request_id = wait_until_paused(request_id)
+            # Stop at the real sound-apply entry. Injecting at the later sync
+            # callback lets the short SFX be consumed by the next sound tick
+            # before sound_backend_apply_all observes it.
+            tool(
+                "set_breakpoint",
+                {"address": f"{apply_address:04X}"},
+                id_=request_id,
+            )
+            request_id += 1
+            tool(
+                "set_breakpoint",
+                {"address": f"{sync_address:04X}"},
+                id_=request_id,
+            )
+            request_id += 1
+            tool("debug_continue", id_=request_id)
+            request_id += 1
+            request_id = wait_for_breakpoint(
+                request_id, "first sound apply before SFX injection"
+            )
+            diagnostic_event(diagnostic, "before_sfx_injection", {
+                "game": game_snapshot(game_address, request_id),
+                "voice": voice_snapshot(voice_address, request_id + 1),
+                "sound": sound_state_snapshot(game_address, request_id + 2),
+                "mikey": tool("get_mikey_audio", {"channel": 1}, id_=request_id + 3),
+            })
             write_bytes(
                 game_address + GAME_OFFSET_SFX_STATE,
                 [1, 0, 4, 0],
@@ -401,6 +496,12 @@ def main():
                 request_id,
             )
             request_id += 1
+            diagnostic_event(diagnostic, "after_sfx_injection", {
+                "game": game_snapshot(game_address, request_id),
+                "voice": voice_snapshot(voice_address, request_id + 1),
+                "sound": sound_state_snapshot(game_address, request_id + 2),
+                "mikey": tool("get_mikey_audio", {"channel": 1}, id_=request_id + 3),
+            })
             tool(
                 "set_trace_log",
                 {
@@ -421,12 +522,16 @@ def main():
                 id_=request_id,
             )
             request_id += 1
-            tool("debug_continue", id_=request_id)
-            request_id += 1
         else:
             request_id = wait_for_channel_active(
                 args.channel, game_address, voice_address, request_id
             )
+            tool(
+                "set_breakpoint",
+                {"address": f"{sync_address:04X}"},
+                id_=request_id,
+            )
+            request_id += 1
 
         shot = tool("get_screenshot", id_=request_id)
         request_id += 1
@@ -434,15 +539,6 @@ def main():
             f.write(base64.b64decode(shot["data"]))
         print(f"screenshot: {args.screenshot}")
 
-        sync_address = label_address(
-            Path(args.symbols), "_game_display_sync_complete"
-        )
-        tool(
-            "set_breakpoint",
-            {"address": f"{sync_address:04X}"},
-            id_=request_id,
-        )
-        request_id += 1
         last_backup = None
         note_changes = []
         gain_pairs = set()
@@ -464,22 +560,6 @@ def main():
             regs = {r[0]: r[2] for r in ch["registers"]}
             backup = regs.get("backup")
             hardware_volume = int(regs.get("volume", "0x00"), 16)
-            if args.channel == 1 and not ch["enabled"]:
-                # The shot SFX is shorter than the long BGM runs. Re-arm the
-                # same deterministic fixture at an apply boundary so the
-                # synchronized gain/pitch sampling observes repeated shots.
-                write_bytes(
-                    game_address + GAME_OFFSET_SFX_STATE,
-                    [1, 0, 4, 0],
-                    req_id,
-                )
-                req_id += 1
-                write_bytes(
-                    game_address + GAME_OFFSET_OUTPUT_SFX,
-                    [1, 15, 28, 3],
-                    req_id,
-                )
-                req_id += 1
             if ch["enabled"]:
                 expected = scaled_volume(logical)
                 if hardware_volume != expected:
@@ -490,10 +570,63 @@ def main():
                 elapsed = time.monotonic() - start
                 note_changes.append((elapsed, backup, regs.get("volume")))
                 last_backup = backup
+            diagnostic_event(diagnostic, "apply_boundary", {
+                "sample_index": sample_index + 1,
+                "logical_volume": logical,
+                "expected_hardware_volume": scaled_volume(logical),
+                "mikey": ch,
+                "registers": regs,
+                "logical_memory_readback": read_bytes(
+                    logical_address, 1, req_id + 2
+                ).hex(),
+                "game": game_snapshot(game_address, req_id),
+                "voice": voice_snapshot(voice_address, req_id + 1),
+                "sound": sound_state_snapshot(game_address, req_id + 2),
+            })
             sample_index += 1
+            if args.channel == 1:
+                # Re-arm at the next real apply entry, after the previous
+                # apply has been observed and before production can consume
+                # another short SFX.
+                tool("debug_continue", id_=req_id)
+                req_id += 1
+                req_id = wait_for_breakpoint(
+                    req_id, "next sound apply before SFX rearm"
+                )
+                sfx_step = sample_index % len(SHOT_SFX_OUTPUTS)
+                sound_before_rearm = sound_state_snapshot(game_address, req_id)
+                req_id += 1
+                logical_memory_before_rearm = read_bytes(
+                    logical_address, 1, req_id
+                ).hex()
+                req_id += 1
+                write_bytes(
+                    game_address + GAME_OFFSET_SFX_STATE,
+                    [1, sfx_step, 4, 0],
+                    req_id,
+                )
+                req_id += 1
+                write_bytes(
+                    game_address + GAME_OFFSET_OUTPUT_SFX,
+                    list(SHOT_SFX_OUTPUTS[sfx_step]),
+                    req_id,
+                )
+                req_id += 1
+                diagnostic_event(diagnostic, "sfx_rearm", {
+                    "sample_index": sample_index,
+                    "sfx_step": sfx_step,
+                    "game": game_snapshot(game_address, req_id),
+                    "voice": voice_snapshot(voice_address, req_id + 1),
+                    "sound_before_rearm": sound_before_rearm,
+                    "logical_memory_before_rearm": logical_memory_before_rearm,
+                    "mikey_before_rearm": ch,
+                })
 
         tool("remove_breakpoint", {"address": f"{sync_address:04X}"}, id_=req_id)
         req_id += 1
+        if apply_address is not None:
+            tool("remove_breakpoint", {"address": f"{apply_address:04X}"}, id_=req_id)
+            req_id += 1
 
         print(f"channel {args.channel}: {len(note_changes)} note change(s) in {args.seconds}s")
         for elapsed, backup, vol in note_changes:
@@ -509,6 +642,8 @@ def main():
             print("channel B trace:")
             for line in channel_trace[:80]:
                 print("  " + line)
+            if diagnostic is not None:
+                diagnostic["trace_lines"] = channel_trace[:200]
 
         minimum_note_changes = 1 if args.channel == 1 else 2
         if len(note_changes) < minimum_note_changes:
@@ -526,11 +661,19 @@ def main():
             )
             return 1
         print("OK: channel is active and cycling through multiple pitches")
+        result_code = 0
         return 0
     except RuntimeError as error:
         print(f"FAIL: {error}", file=sys.stderr)
         return 1
     finally:
+        if diagnostic is not None:
+            diagnostic["exit_code"] = result_code
+            args.diagnostic_output.parent.mkdir(parents=True, exist_ok=True)
+            args.diagnostic_output.write_text(
+                json.dumps(diagnostic, indent=2, sort_keys=True) + "\n",
+                encoding="utf-8",
+            )
         proc.terminate()
         try:
             proc.wait(timeout=5)

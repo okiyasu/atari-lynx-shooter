@@ -5,12 +5,17 @@
 
 #ifdef CADENCE_PROBE
 #include "cadence_probe.h"
+#include "scb_split_probe.h"
 #endif
 #include "game.h"
 #include "game_timing.h"
 #include "sprite_data.h"
+#include "static_layer.h"
 #include "title_voice.h"
 #include "version.h"
+#ifdef CADENCE_PROBE
+#include "cadence_probe.h"
+#endif
 
 #define GAME_COLOR_BLACK 0u
 #define GAME_COLOR_WHITE 15u
@@ -78,36 +83,6 @@
  * DC-balanced (equal 1s and 0s -- see the table below) may set it,
  * which turns them into clean triangle waves instead. */
 #define SOUND_INTEGRATE_MODE 0x20u
-
-typedef struct Star {
-    unsigned char x;
-    unsigned char y;
-} Star;
-
-typedef struct PlanetRun {
-    unsigned char y;
-    unsigned char x0;
-    unsigned char x1;
-    unsigned char palette_index;
-} PlanetRun;
-
-typedef struct BackgroundTheme {
-    unsigned char background_color;
-    unsigned char planet_colors[2];
-    unsigned char far_star_color;
-    unsigned char near_star_color;
-} BackgroundTheme;
-
-typedef struct SkyRun {
-    unsigned char y;
-    unsigned char x0;
-    unsigned char x1;
-} SkyRun;
-
-typedef struct CloudGroup {
-    unsigned char x;
-    unsigned char y;
-} CloudGroup;
 
 typedef struct SoundPitchRegister {
     unsigned char reload;
@@ -239,129 +214,6 @@ static const SoundChannelMap sound_channel_map[SOUND_CHANNEL_MAP_COUNT] = {
     { SOUND_CHANNEL_B, &sound_hardware_sfx, &game.sound.output_sfx }
 };
 
-static const BackgroundTheme background_themes[
-    GAME_BACKGROUND_THEME_COUNT] = {
-    { GAME_COLOR_BLACK,
-        { GAME_COLOR_PLANET_BODY, GAME_COLOR_PLANET_DETAIL },
-        GAME_COLOR_FAR_STAR, GAME_COLOR_NEAR_STAR },
-    { GAME_COLOR_SKY,
-        { GAME_COLOR_MOUNTAIN, GAME_COLOR_MOUNTAIN },
-        GAME_COLOR_MID_CLOUD, GAME_COLOR_NEAR_CLOUD },
-    { GAME_COLOR_CAVE_WALL,
-        { GAME_COLOR_CAVE_SHADOW, GAME_COLOR_CAVE_SHADOW },
-        GAME_COLOR_CAVE_ROCK, GAME_COLOR_CAVE_NEAR }
-};
-
-static const PlanetRun planet_runs[32] = {
-    { 0u, 11u, 20u, 0u }, { 1u, 7u, 24u, 0u },
-    { 2u, 5u, 26u, 0u }, { 3u, 3u, 28u, 0u },
-    { 4u, 2u, 29u, 0u }, { 5u, 1u, 30u, 0u },
-    { 6u, 0u, 31u, 0u }, { 7u, 0u, 31u, 0u },
-    { 8u, 0u, 31u, 0u }, { 9u, 0u, 31u, 0u },
-    { 10u, 0u, 31u, 0u }, { 11u, 0u, 31u, 0u },
-    { 12u, 0u, 31u, 0u }, { 13u, 0u, 31u, 0u },
-    { 14u, 0u, 31u, 0u }, { 15u, 0u, 31u, 0u },
-    { 16u, 0u, 31u, 0u }, { 17u, 0u, 31u, 0u },
-    { 18u, 1u, 30u, 0u }, { 19u, 2u, 29u, 0u },
-    { 20u, 3u, 28u, 0u }, { 21u, 5u, 26u, 0u },
-    { 22u, 7u, 24u, 0u }, { 23u, 11u, 20u, 0u },
-    { 5u, 9u, 13u, 1u }, { 6u, 7u, 15u, 1u },
-    { 7u, 7u, 15u, 1u }, { 8u, 9u, 13u, 1u },
-    { 14u, 20u, 24u, 1u }, { 15u, 18u, 25u, 1u },
-    { 16u, 19u, 25u, 1u }, { 17u, 21u, 23u, 1u }
-};
-
-/* SKY far layer: fixed 192-pixel mountain/horizon horizontal runs. */
-static const SkyRun mountain_runs[31] = {
-    { 58u, 14u, 18u }, { 59u, 13u, 19u }, { 60u, 12u, 20u },
-    { 61u, 11u, 21u }, { 62u, 10u, 23u }, { 63u, 9u, 25u },
-    { 64u, 8u, 27u }, { 65u, 7u, 29u }, { 66u, 6u, 31u },
-    { 63u, 63u, 67u }, { 64u, 61u, 69u }, { 65u, 59u, 71u },
-    { 66u, 57u, 73u }, { 67u, 54u, 76u }, { 68u, 50u, 80u },
-    { 60u, 118u, 122u }, { 61u, 116u, 124u },
-    { 62u, 114u, 126u }, { 63u, 112u, 128u },
-    { 64u, 109u, 131u }, { 65u, 106u, 134u },
-    { 66u, 102u, 138u },
-    { 70u, 0u, 191u }, { 71u, 0u, 191u },
-    { 72u, 0u, 191u }, { 73u, 0u, 191u },
-    { 74u, 0u, 191u }, { 75u, 0u, 191u },
-    { 76u, 0u, 191u }, { 77u, 0u, 191u },
-    { 78u, 0u, 191u }
-};
-
-static const CloudGroup mid_clouds[8] = {
-    { 4u, 22u }, { 25u, 47u }, { 47u, 31u }, { 68u, 57u },
-    { 89u, 18u }, { 109u, 42u }, { 130u, 28u }, { 150u, 53u }
-};
-
-static const CloudGroup near_clouds[5] = {
-    { 8u, 72u }, { 41u, 82u }, { 75u, 68u },
-    { 108u, 87u }, { 141u, 76u }
-};
-
-static const SkyRun mid_cloud_shape[5] = {
-    { 0u, 3u, 7u }, { 1u, 1u, 10u }, { 2u, 0u, 12u },
-    { 3u, 2u, 11u }, { 4u, 4u, 9u }
-};
-
-static const SkyRun near_cloud_shape[7] = {
-    { 0u, 5u, 12u }, { 1u, 2u, 15u }, { 2u, 0u, 18u },
-    { 3u, 0u, 20u }, { 4u, 1u, 19u }, { 5u, 3u, 17u },
-    { 6u, 6u, 14u }
-};
-
-/* CAVE layers: 192px wall cracks, 160px rock skin and near formations. */
-static const SkyRun cave_wall_runs[18] = {
-    { 24u, 8u, 20u }, { 25u, 17u, 22u }, { 26u, 21u, 24u },
-    { 47u, 52u, 65u }, { 48u, 50u, 55u }, { 49u, 48u, 52u },
-    { 68u, 92u, 108u }, { 69u, 105u, 111u }, { 70u, 109u, 114u },
-    { 31u, 137u, 151u }, { 32u, 134u, 140u },
-    { 33u, 132u, 136u }, { 82u, 166u, 184u },
-    { 83u, 163u, 170u }, { 84u, 160u, 165u },
-    { 57u, 116u, 121u }, { 58u, 118u, 125u },
-    { 59u, 123u, 129u }
-};
-
-static const SkyRun cave_rock_runs[22] = {
-    { 10u, 0u, 159u }, { 11u, 0u, 159u }, { 12u, 0u, 159u },
-    { 13u, 0u, 28u }, { 13u, 36u, 75u }, { 13u, 84u, 121u },
-    { 13u, 130u, 159u }, { 14u, 0u, 18u }, { 14u, 45u, 64u },
-    { 14u, 94u, 111u }, { 14u, 141u, 159u },
-    { 98u, 0u, 159u }, { 97u, 0u, 159u }, { 96u, 0u, 159u },
-    { 95u, 0u, 24u }, { 95u, 34u, 70u }, { 95u, 79u, 116u },
-    { 95u, 126u, 159u }, { 94u, 0u, 14u }, { 94u, 43u, 61u },
-    { 94u, 89u, 107u }, { 94u, 137u, 159u }
-};
-
-static const SkyRun cave_near_runs[26] = {
-    { 15u, 11u, 22u }, { 16u, 13u, 20u }, { 17u, 15u, 19u },
-    { 18u, 16u, 18u }, { 19u, 17u, 17u },
-    { 15u, 59u, 71u }, { 16u, 61u, 69u }, { 17u, 63u, 68u },
-    { 18u, 65u, 67u }, { 19u, 66u, 66u },
-    { 15u, 120u, 133u }, { 16u, 122u, 131u },
-    { 17u, 124u, 129u }, { 18u, 126u, 128u },
-    { 19u, 127u, 127u }, { 93u, 30u, 42u },
-    { 92u, 32u, 40u }, { 91u, 34u, 38u }, { 90u, 35u, 37u },
-    { 89u, 36u, 36u }, { 93u, 84u, 97u }, { 92u, 86u, 95u },
-    { 91u, 88u, 93u }, { 90u, 90u, 92u }, { 89u, 91u, 91u },
-    { 93u, 145u, 159u }
-};
-
-static const Star far_stars[10] = {
-    { 4u, 17u }, { 19u, 72u }, { 37u, 31u }, { 55u, 90u },
-    { 74u, 52u }, { 91u, 14u }, { 108u, 81u }, { 127u, 39u },
-    { 143u, 65u }, { 155u, 24u }
-};
-
-static const Star near_stars[7] = {
-    { 11u, 42u }, { 33u, 84u }, { 58u, 20u }, { 82u, 62u },
-    { 106u, 95u }, { 132u, 29u }, { 151u, 74u }
-};
-
-static const unsigned char power_item_mask[GAME_POWER_ITEM_HEIGHT] = {
-    0x60u, 0xf0u, 0xf0u, 0x60u
-};
-
 static const unsigned char explosion_masks[GAME_EXPLOSION_STAGES][8] = {
     { 0x00u, 0x00u, 0x18u, 0x3cu, 0x3cu, 0x18u, 0x00u, 0x00u },
     { 0x00u, 0x24u, 0x18u, 0x7eu, 0x7eu, 0x18u, 0x24u, 0x00u },
@@ -369,14 +221,59 @@ static const unsigned char explosion_masks[GAME_EXPLOSION_STAGES][8] = {
     { 0x42u, 0x81u, 0x24u, 0x00u, 0x00u, 0x24u, 0x81u, 0x42u }
 };
 
-static const unsigned char asteroid_masks[2][8] = {
-    { 0x18u, 0x7cu, 0xfeu, 0xdbu, 0xffu, 0x7eu, 0x3cu, 0x18u },
-    { 0x1cu, 0x7eu, 0xffu, 0xbdu, 0x7fu, 0x3eu, 0x1cu, 0x08u }
+/* APS-053 Phase 3R: Suzy packed-bitmap (1bpp, PACKED encoding, see
+ * scripts/generate-static-layer.py encode_packed) replacements for the
+ * pre-3R raw 8-bit-row masks these five shapes used with draw_mask/
+ * draw_rect. Each is a single solid color (the movable_scb_* header's
+ * penpal[0] supplies the real 0-15 palette value, set once at chain-init
+ * time -- see the header initializers below), so no penpal table is
+ * authored here -- unlike the 13 preview-authored sprites,
+ * these are not part of the bpp gate (verify-phase-3r-sprite-bpp-gate.py)
+ * and were re-encoded by hand from the removed mask arrays with the same
+ * encode_packed() call used to generate them; see .briefs/APS-053/v036.md. */
+static const unsigned char power_item_shape[13] = {
+    0x03u, 0x93u, 0x00u, 0x03u, 0x1cu, 0x00u, 0x03u, 0x1cu, 0x00u, 0x03u,
+    0x93u, 0x00u, 0x00u
 };
 
-static const unsigned char falling_rock_masks[2][8] = {
-    { 0x18u, 0x3cu, 0x7eu, 0xffu, 0xdbu, 0x7eu, 0x3cu, 0x18u },
-    { 0x0cu, 0x3eu, 0x7fu, 0xffu, 0xbdu, 0x7eu, 0x38u, 0x10u }
+static const unsigned char asteroid_shape_0[25] = {
+    0x03u, 0xa0u, 0xc0u, 0x03u, 0x80u, 0x90u, 0x03u, 0x34u, 0x00u, 0x03u,
+    0xbeu, 0xd8u, 0x03u, 0x3cu, 0x00u, 0x03u, 0x80u, 0xb0u, 0x03u, 0x88u,
+    0x38u, 0x03u, 0xa0u, 0xc0u, 0x00u
+};
+
+static const unsigned char asteroid_shape_1[26] = {
+    0x03u, 0xa8u, 0xe0u, 0x03u, 0x80u, 0xb0u, 0x03u, 0x3cu, 0x00u, 0x04u,
+    0x8cu, 0x3cu, 0x50u, 0x03u, 0x80u, 0xd0u, 0x03u, 0x88u, 0x48u, 0x03u,
+    0xa8u, 0xe0u, 0x03u, 0x1au, 0x10u, 0x00u
+};
+
+static const unsigned char* const asteroid_shapes[2] = {
+    asteroid_shape_0, asteroid_shape_1
+};
+
+static const unsigned char falling_rock_shape_0[25] = {
+    0x03u, 0xa0u, 0xc0u, 0x03u, 0x88u, 0x38u, 0x03u, 0x80u, 0xb0u, 0x03u,
+    0x3cu, 0x00u, 0x03u, 0xbeu, 0xd8u, 0x03u, 0x80u, 0xb0u, 0x03u, 0x88u,
+    0x38u, 0x03u, 0xa0u, 0xc0u, 0x00u
+};
+
+static const unsigned char falling_rock_shape_1[26] = {
+    0x03u, 0x1au, 0x38u, 0x03u, 0x88u, 0x48u, 0x03u, 0x80u, 0xd0u, 0x03u,
+    0x3cu, 0x00u, 0x04u, 0x8cu, 0x3cu, 0x50u, 0x03u, 0x80u, 0xb0u, 0x03u,
+    0xa1u, 0xc0u, 0x03u, 0x98u, 0x80u, 0x00u
+};
+
+static const unsigned char* const falling_rock_shapes[2] = {
+    falling_rock_shape_0, falling_rock_shape_1
+};
+
+static const unsigned char player_bullet_shape[7] = {
+    0x03u, 0x97u, 0x00u, 0x03u, 0x97u, 0x00u, 0x00u
+};
+
+static const unsigned char enemy_bullet_shape[7] = {
+    0x03u, 0x97u, 0x00u, 0x03u, 0x8au, 0x00u, 0x00u
 };
 
 static void sound_backend_silence_channel(volatile unsigned char* channel,
@@ -494,180 +391,9 @@ unsigned char game_input_poll(void)
     return input;
 }
 
-static void draw_rect(const GameRect* rect, unsigned char color)
-{
-    unsigned int y0;
-    unsigned int y1;
-
-    y0 = rect->y;
-    y1 = (unsigned int)rect->y + rect->height - 1u;
-    if (y1 < GAME_HUD_HEIGHT) {
-        return;
-    }
-    if (y0 < GAME_HUD_HEIGHT) {
-        y0 = GAME_HUD_HEIGHT;
-    }
-    if (y0 >= GAME_SCREEN_HEIGHT) {
-        return;
-    }
-    tgi_setcolor(color);
-    tgi_bar(rect->x, y0,
-        (unsigned int)rect->x + rect->width - 1u,
-        y1);
-}
-
-static unsigned char scroll_x(unsigned char x, unsigned char offset)
-{
-    if (x >= offset) {
-        return (unsigned char)(x - offset);
-    }
-    return (unsigned char)(GAME_SCREEN_WIDTH - (offset - x));
-}
-
-/* Screen-clipped one-pixel-high horizontal run. Shared clipping core
- * for planet, sky/cave and boss run drawing (APS-021): those callers
- * previously repeated the same clamp-and-bar sequence. */
-static void draw_clipped_hline(int x0, int x1, int y, unsigned char color)
-{
-    if (y < 0 || y >= (int)GAME_SCREEN_HEIGHT || x1 < 0 ||
-        x0 >= (int)GAME_SCREEN_WIDTH) {
-        return;
-    }
-    if (x0 < 0) {
-        x0 = 0;
-    }
-    if (x1 >= (int)GAME_SCREEN_WIDTH) {
-        x1 = (int)GAME_SCREEN_WIDTH - 1;
-    }
-    tgi_setcolor(color);
-    tgi_bar((unsigned int)x0, (unsigned int)y,
-        (unsigned int)x1, (unsigned int)y);
-}
-
-static void draw_planet(const GameState* game,
-    const BackgroundTheme* theme)
-{
-    unsigned char i;
-    int draw_x;
-    int draw_y;
-
-    draw_x = (int)GAME_PLANET_BASE_X - (int)game->planet_offset;
-    if (draw_x < -(int)GAME_PLANET_WIDTH) {
-        draw_x += (int)GAME_PLANET_SCROLL_PERIOD;
-    }
-    for (i = 0u; i < 32u; ++i) {
-        draw_y = (int)GAME_PLANET_BASE_Y + (int)planet_runs[i].y;
-        if (draw_y < (int)GAME_HUD_HEIGHT) {
-            continue;
-        }
-        draw_clipped_hline(draw_x + (int)planet_runs[i].x0,
-            draw_x + (int)planet_runs[i].x1, draw_y,
-            theme->planet_colors[planet_runs[i].palette_index]);
-    }
-}
-
-static void draw_background(const GameState* game,
-    const BackgroundTheme* theme)
-{
-    unsigned char i;
-    unsigned char x;
-    unsigned int x1;
-
-    tgi_setcolor(theme->far_star_color);
-    for (i = 0u; i < 10u; ++i) {
-        x = scroll_x(far_stars[i].x, game->far_star_offset);
-        tgi_bar(x, far_stars[i].y, x, far_stars[i].y);
-    }
-
-    tgi_setcolor(theme->near_star_color);
-    for (i = 0u; i < 7u; ++i) {
-        x = scroll_x(near_stars[i].x, game->near_star_offset);
-        x1 = (unsigned int)x + 1u;
-        if (x1 >= GAME_SCREEN_WIDTH) {
-            x1 = GAME_SCREEN_WIDTH - 1u;
-        }
-        tgi_bar(x, near_stars[i].y, x1, near_stars[i].y);
-    }
-}
-
-static void draw_sky_run(int base_x, int base_y, const SkyRun* run,
-    unsigned char color)
-{
-    draw_clipped_hline(base_x + (int)run->x0, base_x + (int)run->x1,
-        base_y + (int)run->y, color);
-}
-
-static void draw_mountains(const GameState* game,
-    const BackgroundTheme* theme)
-{
-    unsigned char i;
-    int base_x;
-
-    base_x = -(int)game->planet_offset;
-    for (i = 0u; i < 31u; ++i) {
-        draw_sky_run(base_x, 0, &mountain_runs[i],
-            theme->planet_colors[0]);
-        draw_sky_run(base_x + (int)GAME_PLANET_SCROLL_PERIOD, 0,
-            &mountain_runs[i], theme->planet_colors[0]);
-    }
-}
-
-static void draw_cloud_groups(const CloudGroup* groups,
-    unsigned char group_count, const SkyRun* shape,
-    unsigned char run_count, unsigned char offset, unsigned char color)
-{
-    unsigned char group;
-    unsigned char run;
-    int base_x;
-    int base_y;
-
-    for (group = 0u; group < group_count; ++group) {
-        base_x = (int)scroll_x(groups[group].x, offset);
-        base_y = groups[group].y;
-        for (run = 0u; run < run_count; ++run) {
-            draw_sky_run(base_x, base_y, &shape[run], color);
-            draw_sky_run(base_x - (int)GAME_SCREEN_WIDTH, base_y,
-                &shape[run], color);
-        }
-    }
-}
-
-static void draw_sky_background(const GameState* game,
-    const BackgroundTheme* theme)
-{
-    draw_mountains(game, theme);
-    draw_cloud_groups(mid_clouds, 8u, mid_cloud_shape, 5u,
-        game->far_star_offset, theme->far_star_color);
-    draw_cloud_groups(near_clouds, 5u, near_cloud_shape, 7u,
-        game->near_star_offset, theme->near_star_color);
-}
-
-static void draw_periodic_runs(const SkyRun* runs,
-    unsigned char run_count, unsigned int period, unsigned char offset,
-    unsigned char color)
-{
-    unsigned char i;
-    int base_x;
-
-    base_x = -(int)offset;
-    for (i = 0u; i < run_count; ++i) {
-        draw_sky_run(base_x, 0, &runs[i], color);
-        draw_sky_run(base_x + (int)period, 0, &runs[i], color);
-    }
-}
-
-static void draw_cave_background(const GameState* game,
-    const BackgroundTheme* theme)
-{
-    draw_periodic_runs(cave_wall_runs, 18u,
-        GAME_PLANET_SCROLL_PERIOD, game->planet_offset,
-        theme->planet_colors[0]);
-    draw_periodic_runs(cave_rock_runs, 22u, GAME_SCREEN_WIDTH,
-        game->far_star_offset, theme->far_star_color);
-    draw_periodic_runs(cave_near_runs, 26u, GAME_SCREEN_WIDTH,
-        game->near_star_offset, theme->near_star_color);
-}
-
+/* APS-053 Phase 3R: the player death explosion FX is not one of the 41
+ * movable objects converted to Suzy SCBs (see the movable_scb_env_header
+ * comment below) -- it stays on this row-mask/tgi_bar path. */
 static void draw_mask(int x, int y,
     unsigned char width, unsigned char height,
     const unsigned char* rows, unsigned char color)
@@ -718,218 +444,690 @@ static void draw_mask(int x, int y,
     }
 }
 
-static void format_score(unsigned long score, char* text)
-{
-    unsigned char i;
+/* APS-053 Phase 3R2 (v045, replacing the v036 dynamic-append design):
+ * movable objects (player/enemy/boss/power item/bullets/environment
+ * hazards) are drawn as one static Suzy SCB chain, built once at startup
+ * (movable_scb_init) and linked forever after. Every frame only mutates
+ * SPRCTL1's SKIP bit plus hpos/vpos/data in place -- no SCB is ever
+ * appended, sized, or re-linked at runtime. Suzy is fixed at 1x scale
+ * project-wide (APS-050), so SPRCTL1's HSIZE/VSIZE reload is never needed
+ * here: the hardware HSIZE/VSIZE registers already hold 0x0100 (1x) left
+ * over from the last SCB in the background chain (src/static_layer.c
+ * reset_scb always writes 0x0100 except for the one full-screen clear
+ * sprite, which static_layer_draw() always submits first in that same
+ * chain, before this one runs). SCB_RENONE/SCB_RENONE_PAL (_suzy.h,
+ * 11B/19B) are used instead of the 23B SCB_REHV_PAL the background layer
+ * uses, dropping the HSIZE/VSIZE/stretch/tilt fields this chain never
+ * reloads.
+ *
+ * Chain layout (fixed link order == current draw order, see
+ * .briefs/APS-053/v044.md "chain construction"):
+ *   env header (19B, own penpal) -> env[0..GAME_MAX_ENVIRONMENT_OBJECTS-1]
+ *     (11B each, REUSEPAL)
+ *   -> player (19B, own penpal -- single slot, never REUSEPAL)
+ *   -> enemy header (19B) -> enemy[0..GAME_MAX_ENEMIES-1] (11B each)
+ *   -> boss (19B) -> power item (19B)
+ *   -> player-bullet header (19B) ->
+ *      pbullet[0..GAME_MAX_PLAYER_BULLETS-1] (11B each)
+ *   -> enemy-bullet header (19B) ->
+ *      ebullet[0..GAME_MAX_ENEMY_BULLETS-1] (11B each) -> next = NULL
+ * A palette header SCB is only needed ahead of a *multi-slot* kind so a
+ * SKIPped follower never leaves its group without a palette to REUSEPAL
+ * from (scripts/verify-scb-skip-smoke-gearlynx.py, v044, confirmed SKIP
+ * honored and header-latches-for-follower safe on gearlynx). The three
+ * single-slot kinds (player/boss/power item) carry their own penpal and
+ * may be freely SKIPped without a header. Every sprite belonging to one
+ * kind shares one real-color penpal table (confirmed by
+ * scripts/verify-phase-3r-sprite-bpp-gate.py together with the stage
+ * roster: each stage's enemy_formation draws from exactly one of the
+ * "enemy"/"mineral" sprite kinds, never both in the same frame), so the
+ * enemy header's penpal/sprctl0 only need refreshing on stage change
+ * (movable_scb_on_stage_change), not every frame.
+ *
+ * GAME_MAX_ENVIRONMENT_OBJECTS is 2 here (asteroids and falling rocks are
+ * mutually exclusive per stage and share this env group), not the 4
+ * v044's byte-budget comment assumed -- see .briefs/APS-053/v045.md for
+ * the corrected count. Byte budget: 19 + 2*11 + 19 + 19 + 8*11 + 19 + 19
+ * + 19 + 12*11 + 19 + 16*11 = 551B fixed static storage (vs. 529B for the
+ * old dynamic pool; +22B net, not v044's estimated +44B, because of the
+ * corrected env count). */
+static const unsigned char movable_scb_empty_sprite[1] = { 0x00u };
 
-    text[SCORE_DIGITS] = '\0';
-    for (i = SCORE_DIGITS; i != 0u; --i) {
-        text[i - 1u] = (char)('0' + (score % 10ul));
-        score /= 10ul;
-    }
-}
+/* APS-053 v046 test-only: movable_scb_empty_sprite is file-static, so it
+ * has no exported debug symbol the gate(b) pixel-verification harness
+ * can resolve from the .lbl file (cc65 does not export `static` symbols
+ * to -Ln output) to distinguish a palette-only header SCB (data == this
+ * address) from a real object SCB in the now-always-full static chain.
+ * This non-static pointer exists purely for that; its value is a
+ * link-time address constant. Not read by any production code path.
+ * Always compiled in (not CADENCE_PROBE-only) since gate(b) runs against
+ * the release ROM. */
+const unsigned char* const movable_scb_empty_sprite_debug_export =
+    movable_scb_empty_sprite;
 
-/* APS-050: preview-authored sprites carry a per-sprite anchor
- * (collision-rect-center minus visual-bbox-center, computed once by
- * scripts/generate-stage-data.py). Frame 1 is an overlay delta (1..6 runs)
- * applied on top of frame 0, so draw_sprite() visits frame 0 first and
- * frame 1 second instead of drawing a second full frame. All sprites,
- * including bosses, draw at 1x through draw_sprite_run_scaled via this same
- * visitor. */
-typedef struct SpriteDrawOrigin {
-    int ox;
-    int oy;
-    unsigned char scale;
-} SpriteDrawOrigin;
+/* v046 (see .briefs/APS-053/v046.md, Fable5 review): SCB_RENONE's
+ * hpos/vpos are `signed int` (16-bit), but every movable object's
+ * rect.x/rect.y is `unsigned char` (0..255, never negative), so the high
+ * byte is always zero once written. cc65 compiles a plain `p->hpos =
+ * (signed int)obj->rect.x` through a generic 16-bit runtime store helper
+ * (staxspidx, ~55 cycles) that zero-extends and stores both bytes every
+ * time. These macros instead store only the low byte (the struct's
+ * static initializers already zero the high byte once, and it is never
+ * written by anything else), which cc65 compiles to a single 8-bit
+ * store. Little-endian assumption is safe: this is a 6502 target. */
+#define MOVABLE_SET_HPOS(scb, value) \
+    (((unsigned char*)&(scb)->hpos)[0] = (unsigned char)(value))
+#define MOVABLE_SET_VPOS(scb, value) \
+    (((unsigned char*)&(scb)->vpos)[0] = (unsigned char)(value))
 
-static void draw_sprite_run_scaled(int x0, int x1, int y,
-    unsigned char color, void* context)
-{
-    const SpriteDrawOrigin* origin;
-    int screen_x0;
-    int screen_x1;
-    int screen_y;
-    unsigned char row;
-    int draw_y;
+/* v045 addendum (see .briefs/APS-053/v045.md, Fable5 design review): the
+ * v044-shaped movable_scb_init that filled every field with sequential
+ * runtime assignments compiled to ~1.1KB of CODE (41 slots x several
+ * field writes each), blowing the RAM budget derived from a stale
+ * baseline. Every one of those fields is a compile-time/link-time
+ * constant (chain `next` pointers, sprctl0/1, sprcoll, fixed data/penpal
+ * for the always-same-shape kinds), so this chain is instead built as
+ * static initializers -- CODE cost zero, same DATA-segment storage a
+ * runtime init would've needed. Declaration order is chain-tail-first
+ * (ebullet -> ... -> env_header) so every `next` initializer only takes
+ * the address of an object already fully declared above it: C allows an
+ * initializer to take the address of any linkage-visible object, but not
+ * to read another object's *value* at compile time, so only pointer
+ * fields (next/data) and pure-constant fields can be filled this way --
+ * enemy header's stage-dependent penpal/sprctl0 and player's
+ * definition-derived penpal/sprctl0 still need the small runtime
+ * fixup in movable_scb_init below (verified buildable: cc65 accepts
+ * static initializers containing another static object's address either
+ * direction, see the .briefs/APS-053/v045.md compile spike). */
+static SCB_RENONE movable_scb_ebullet[GAME_MAX_ENEMY_BULLETS] = {
+    { (unsigned char)(BPP_1 | TYPE_NONCOLL),
+      (unsigned char)(PACKED | RENONE | REUSEPAL | SKIP), NO_COLLIDE,
+      (char*)&movable_scb_ebullet[1], (unsigned char*)enemy_bullet_shape,
+      0, 0 },
+    { (unsigned char)(BPP_1 | TYPE_NONCOLL),
+      (unsigned char)(PACKED | RENONE | REUSEPAL | SKIP), NO_COLLIDE,
+      (char*)&movable_scb_ebullet[2], (unsigned char*)enemy_bullet_shape,
+      0, 0 },
+    { (unsigned char)(BPP_1 | TYPE_NONCOLL),
+      (unsigned char)(PACKED | RENONE | REUSEPAL | SKIP), NO_COLLIDE,
+      (char*)&movable_scb_ebullet[3], (unsigned char*)enemy_bullet_shape,
+      0, 0 },
+    { (unsigned char)(BPP_1 | TYPE_NONCOLL),
+      (unsigned char)(PACKED | RENONE | REUSEPAL | SKIP), NO_COLLIDE,
+      (char*)&movable_scb_ebullet[4], (unsigned char*)enemy_bullet_shape,
+      0, 0 },
+    { (unsigned char)(BPP_1 | TYPE_NONCOLL),
+      (unsigned char)(PACKED | RENONE | REUSEPAL | SKIP), NO_COLLIDE,
+      (char*)&movable_scb_ebullet[5], (unsigned char*)enemy_bullet_shape,
+      0, 0 },
+    { (unsigned char)(BPP_1 | TYPE_NONCOLL),
+      (unsigned char)(PACKED | RENONE | REUSEPAL | SKIP), NO_COLLIDE,
+      (char*)&movable_scb_ebullet[6], (unsigned char*)enemy_bullet_shape,
+      0, 0 },
+    { (unsigned char)(BPP_1 | TYPE_NONCOLL),
+      (unsigned char)(PACKED | RENONE | REUSEPAL | SKIP), NO_COLLIDE,
+      (char*)&movable_scb_ebullet[7], (unsigned char*)enemy_bullet_shape,
+      0, 0 },
+    { (unsigned char)(BPP_1 | TYPE_NONCOLL),
+      (unsigned char)(PACKED | RENONE | REUSEPAL | SKIP), NO_COLLIDE,
+      (char*)&movable_scb_ebullet[8], (unsigned char*)enemy_bullet_shape,
+      0, 0 },
+    { (unsigned char)(BPP_1 | TYPE_NONCOLL),
+      (unsigned char)(PACKED | RENONE | REUSEPAL | SKIP), NO_COLLIDE,
+      (char*)&movable_scb_ebullet[9], (unsigned char*)enemy_bullet_shape,
+      0, 0 },
+    { (unsigned char)(BPP_1 | TYPE_NONCOLL),
+      (unsigned char)(PACKED | RENONE | REUSEPAL | SKIP), NO_COLLIDE,
+      (char*)&movable_scb_ebullet[10], (unsigned char*)enemy_bullet_shape,
+      0, 0 },
+    { (unsigned char)(BPP_1 | TYPE_NONCOLL),
+      (unsigned char)(PACKED | RENONE | REUSEPAL | SKIP), NO_COLLIDE,
+      (char*)&movable_scb_ebullet[11], (unsigned char*)enemy_bullet_shape,
+      0, 0 },
+    { (unsigned char)(BPP_1 | TYPE_NONCOLL),
+      (unsigned char)(PACKED | RENONE | REUSEPAL | SKIP), NO_COLLIDE,
+      (char*)&movable_scb_ebullet[12], (unsigned char*)enemy_bullet_shape,
+      0, 0 },
+    { (unsigned char)(BPP_1 | TYPE_NONCOLL),
+      (unsigned char)(PACKED | RENONE | REUSEPAL | SKIP), NO_COLLIDE,
+      (char*)&movable_scb_ebullet[13], (unsigned char*)enemy_bullet_shape,
+      0, 0 },
+    { (unsigned char)(BPP_1 | TYPE_NONCOLL),
+      (unsigned char)(PACKED | RENONE | REUSEPAL | SKIP), NO_COLLIDE,
+      (char*)&movable_scb_ebullet[14], (unsigned char*)enemy_bullet_shape,
+      0, 0 },
+    { (unsigned char)(BPP_1 | TYPE_NONCOLL),
+      (unsigned char)(PACKED | RENONE | REUSEPAL | SKIP), NO_COLLIDE,
+      (char*)&movable_scb_ebullet[15], (unsigned char*)enemy_bullet_shape,
+      0, 0 },
+    { (unsigned char)(BPP_1 | TYPE_NONCOLL),
+      (unsigned char)(PACKED | RENONE | REUSEPAL | SKIP), NO_COLLIDE,
+      (char*)0, (unsigned char*)enemy_bullet_shape, 0, 0 }
+};
 
-    origin = (const SpriteDrawOrigin*)context;
-    screen_x0 = origin->ox + x0 * (int)origin->scale;
-    screen_x1 = origin->ox + (x1 + 1) * (int)origin->scale - 1;
-    screen_y = origin->oy + y * (int)origin->scale;
-    for (row = 0u; row < origin->scale; ++row) {
-        draw_y = screen_y + (int)row;
-        if (draw_y < (int)GAME_HUD_HEIGHT) {
-            continue;
-        }
-        draw_clipped_hline(screen_x0, screen_x1, draw_y, color);
-    }
-}
+static SCB_RENONE_PAL movable_scb_ebullet_header = {
+    (unsigned char)(BPP_1 | TYPE_NONCOLL), (unsigned char)(PACKED | RENONE),
+    NO_COLLIDE, (char*)&movable_scb_ebullet[0],
+    (unsigned char*)movable_scb_empty_sprite, 0, 0,
+    { GAME_COLOR_ENEMY_BULLET, 0u, 0u, 0u, 0u, 0u, 0u, 0u }
+};
 
-static void draw_sprite(int x, int y, unsigned char sprite_id,
-    unsigned char animation_frame)
-{
-    const GameSpriteDefinition* def;
-    SpriteDrawOrigin origin;
+static SCB_RENONE movable_scb_pbullet[GAME_MAX_PLAYER_BULLETS] = {
+    { (unsigned char)(BPP_1 | TYPE_NONCOLL),
+      (unsigned char)(PACKED | RENONE | REUSEPAL | SKIP), NO_COLLIDE,
+      (char*)&movable_scb_pbullet[1], (unsigned char*)player_bullet_shape,
+      0, 0 },
+    { (unsigned char)(BPP_1 | TYPE_NONCOLL),
+      (unsigned char)(PACKED | RENONE | REUSEPAL | SKIP), NO_COLLIDE,
+      (char*)&movable_scb_pbullet[2], (unsigned char*)player_bullet_shape,
+      0, 0 },
+    { (unsigned char)(BPP_1 | TYPE_NONCOLL),
+      (unsigned char)(PACKED | RENONE | REUSEPAL | SKIP), NO_COLLIDE,
+      (char*)&movable_scb_pbullet[3], (unsigned char*)player_bullet_shape,
+      0, 0 },
+    { (unsigned char)(BPP_1 | TYPE_NONCOLL),
+      (unsigned char)(PACKED | RENONE | REUSEPAL | SKIP), NO_COLLIDE,
+      (char*)&movable_scb_pbullet[4], (unsigned char*)player_bullet_shape,
+      0, 0 },
+    { (unsigned char)(BPP_1 | TYPE_NONCOLL),
+      (unsigned char)(PACKED | RENONE | REUSEPAL | SKIP), NO_COLLIDE,
+      (char*)&movable_scb_pbullet[5], (unsigned char*)player_bullet_shape,
+      0, 0 },
+    { (unsigned char)(BPP_1 | TYPE_NONCOLL),
+      (unsigned char)(PACKED | RENONE | REUSEPAL | SKIP), NO_COLLIDE,
+      (char*)&movable_scb_pbullet[6], (unsigned char*)player_bullet_shape,
+      0, 0 },
+    { (unsigned char)(BPP_1 | TYPE_NONCOLL),
+      (unsigned char)(PACKED | RENONE | REUSEPAL | SKIP), NO_COLLIDE,
+      (char*)&movable_scb_pbullet[7], (unsigned char*)player_bullet_shape,
+      0, 0 },
+    { (unsigned char)(BPP_1 | TYPE_NONCOLL),
+      (unsigned char)(PACKED | RENONE | REUSEPAL | SKIP), NO_COLLIDE,
+      (char*)&movable_scb_pbullet[8], (unsigned char*)player_bullet_shape,
+      0, 0 },
+    { (unsigned char)(BPP_1 | TYPE_NONCOLL),
+      (unsigned char)(PACKED | RENONE | REUSEPAL | SKIP), NO_COLLIDE,
+      (char*)&movable_scb_pbullet[9], (unsigned char*)player_bullet_shape,
+      0, 0 },
+    { (unsigned char)(BPP_1 | TYPE_NONCOLL),
+      (unsigned char)(PACKED | RENONE | REUSEPAL | SKIP), NO_COLLIDE,
+      (char*)&movable_scb_pbullet[10], (unsigned char*)player_bullet_shape,
+      0, 0 },
+    { (unsigned char)(BPP_1 | TYPE_NONCOLL),
+      (unsigned char)(PACKED | RENONE | REUSEPAL | SKIP), NO_COLLIDE,
+      (char*)&movable_scb_pbullet[11], (unsigned char*)player_bullet_shape,
+      0, 0 },
+    { (unsigned char)(BPP_1 | TYPE_NONCOLL),
+      (unsigned char)(PACKED | RENONE | REUSEPAL | SKIP), NO_COLLIDE,
+      (char*)&movable_scb_ebullet_header, (unsigned char*)player_bullet_shape,
+      0, 0 }
+};
+
+static SCB_RENONE_PAL movable_scb_pbullet_header = {
+    (unsigned char)(BPP_1 | TYPE_NONCOLL), (unsigned char)(PACKED | RENONE),
+    NO_COLLIDE, (char*)&movable_scb_pbullet[0],
+    (unsigned char*)movable_scb_empty_sprite, 0, 0,
+    { GAME_COLOR_BULLET, 0u, 0u, 0u, 0u, 0u, 0u, 0u }
+};
+
+static SCB_RENONE_PAL movable_scb_power_item = {
+    (unsigned char)(BPP_1 | TYPE_NONCOLL),
+    (unsigned char)(PACKED | RENONE | SKIP), NO_COLLIDE,
+    (char*)&movable_scb_pbullet_header, (unsigned char*)power_item_shape,
+    0, 0,
+    { GAME_COLOR_POWER_ITEM, 0u, 0u, 0u, 0u, 0u, 0u, 0u }
+};
+
+/* Boss's sprctl0/penpal/data are appearance-dependent (resolved at
+ * runtime by movable_scb_update_boss from the first active appearance),
+ * so this initializer only fixes the fields that never change: sprcoll,
+ * chain linkage, and an initially-SKIPped sprctl1. */
+static SCB_RENONE_PAL movable_scb_boss = {
+    0u, (unsigned char)(PACKED | RENONE | SKIP), NO_COLLIDE,
+    (char*)&movable_scb_power_item, (unsigned char*)0, 0, 0,
+    { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u }
+};
+
+/* Enemy slots' sprctl0/data are sprite-kind-dependent (resolved at
+ * runtime by movable_scb_update's per-slot cache), so only the
+ * always-constant fields are initialized here. */
+static SCB_RENONE movable_scb_enemy[GAME_MAX_ENEMIES] = {
+    { 0u, (unsigned char)(PACKED | RENONE | REUSEPAL | SKIP), NO_COLLIDE,
+      (char*)&movable_scb_enemy[1], (unsigned char*)0, 0, 0 },
+    { 0u, (unsigned char)(PACKED | RENONE | REUSEPAL | SKIP), NO_COLLIDE,
+      (char*)&movable_scb_enemy[2], (unsigned char*)0, 0, 0 },
+    { 0u, (unsigned char)(PACKED | RENONE | REUSEPAL | SKIP), NO_COLLIDE,
+      (char*)&movable_scb_enemy[3], (unsigned char*)0, 0, 0 },
+    { 0u, (unsigned char)(PACKED | RENONE | REUSEPAL | SKIP), NO_COLLIDE,
+      (char*)&movable_scb_enemy[4], (unsigned char*)0, 0, 0 },
+    { 0u, (unsigned char)(PACKED | RENONE | REUSEPAL | SKIP), NO_COLLIDE,
+      (char*)&movable_scb_enemy[5], (unsigned char*)0, 0, 0 },
+    { 0u, (unsigned char)(PACKED | RENONE | REUSEPAL | SKIP), NO_COLLIDE,
+      (char*)&movable_scb_enemy[6], (unsigned char*)0, 0, 0 },
+    { 0u, (unsigned char)(PACKED | RENONE | REUSEPAL | SKIP), NO_COLLIDE,
+      (char*)&movable_scb_enemy[7], (unsigned char*)0, 0, 0 },
+    { 0u, (unsigned char)(PACKED | RENONE | REUSEPAL | SKIP), NO_COLLIDE,
+      (char*)&movable_scb_boss, (unsigned char*)0, 0, 0 }
+};
+
+/* Enemy header's sprctl0/penpal are stage-dependent (filled by
+ * movable_scb_on_stage_change on the first update); this default just
+ * keeps the header a valid, harmless (0-pixel, black) SCB before that
+ * runs. */
+static SCB_RENONE_PAL movable_scb_enemy_header = {
+    (unsigned char)(BPP_1 | TYPE_NONCOLL), (unsigned char)(PACKED | RENONE),
+    NO_COLLIDE, (char*)&movable_scb_enemy[0],
+    (unsigned char*)movable_scb_empty_sprite, 0, 0,
+    { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u }
+};
+
+/* Player's sprctl0/penpal come from GAME_SPRITE_PLAYER's
+ * GameSpriteDefinition (an extern const array element -- its *value*
+ * isn't a compile-time constant expression, only its address is), so
+ * they're filled by the small runtime fixup in movable_scb_init. */
+static SCB_RENONE_PAL movable_scb_player = {
+    0u, (unsigned char)(PACKED | RENONE | SKIP), NO_COLLIDE,
+    (char*)&movable_scb_enemy_header, (unsigned char*)0, 0, 0,
+    { 0u, 0u, 0u, 0u, 0u, 0u, 0u, 0u }
+};
+
+static SCB_RENONE movable_scb_env[GAME_MAX_ENVIRONMENT_OBJECTS] = {
+    { (unsigned char)(BPP_1 | TYPE_NONCOLL),
+      (unsigned char)(PACKED | RENONE | REUSEPAL | SKIP), NO_COLLIDE,
+      (char*)&movable_scb_env[1], (unsigned char*)0, 0, 0 },
+    { (unsigned char)(BPP_1 | TYPE_NONCOLL),
+      (unsigned char)(PACKED | RENONE | REUSEPAL | SKIP), NO_COLLIDE,
+      (char*)&movable_scb_player, (unsigned char*)0, 0, 0 }
+};
+
+static SCB_RENONE_PAL movable_scb_env_header = {
+    (unsigned char)(BPP_1 | TYPE_NONCOLL), (unsigned char)(PACKED | RENONE),
+    NO_COLLIDE, (char*)&movable_scb_env[0],
+    (unsigned char*)movable_scb_empty_sprite, 0, 0,
+    { GAME_COLOR_ENVIRONMENT_BODY, 0u, 0u, 0u, 0u, 0u, 0u, 0u }
+};
+
+#ifdef CADENCE_PROBE
+/* APS-053 v045 test-only: movable_scb_env_header is file-static, so it
+ * has no exported debug symbol the gate(a) breakdown harness can resolve
+ * from the .lbl file (cc65 does not export `static` symbols to -Ln
+ * output). This non-static pointer exists purely so the harness can
+ * resolve the static chain's head address; its own address is a
+ * link-time constant (movable_scb_env_header is already fully declared
+ * above), so no runtime assignment is needed. Not read by any
+ * production code path. */
+void* scb_split_probe_chain_head = &movable_scb_env_header;
+#endif
+
+/* Per-slot cache for the two "sprite kind" groups (enemy/boss): avoids
+ * re-deriving frame pointers/anchor from game_sprite_definitions every
+ * frame when a slot keeps drawing the same sprite id, which is the
+ * common case. This is v044's original 7B shape (sprite_id + both frame
+ * pointers + dx/dy), restored per Fable5's v045 review after the actual
+ * RAM shortfall was traced to movable_scb_init's CODE size, not this
+ * cache's DATA size -- the 3B compressed shape (sprite_id + definition
+ * pointer only) traded ~40B of DATA for ~150-200B of CODE and slower
+ * per-frame re-derivation, which is a bad trade once init is free.
+ * [0..GAME_MAX_ENEMIES-1] = enemy slots, [GAME_MAX_ENEMIES] = boss.
+ * GAME_SPRITE_INVALID (0xFF) is not a valid game_sprite_definitions
+ * index, so every slot starts as a guaranteed cache miss. */
+typedef struct MovableSpriteCache {
+    unsigned char sprite_id;
+    const unsigned char* frame0_ptr;
+    const unsigned char* frame1_ptr;
     signed char dx;
     signed char dy;
+} MovableSpriteCache;
+static MovableSpriteCache movable_sprite_cache[GAME_MAX_ENEMIES + 1u] = {
+    { GAME_SPRITE_INVALID, (const unsigned char*)0, (const unsigned char*)0,
+      0, 0 },
+    { GAME_SPRITE_INVALID, (const unsigned char*)0, (const unsigned char*)0,
+      0, 0 },
+    { GAME_SPRITE_INVALID, (const unsigned char*)0, (const unsigned char*)0,
+      0, 0 },
+    { GAME_SPRITE_INVALID, (const unsigned char*)0, (const unsigned char*)0,
+      0, 0 },
+    { GAME_SPRITE_INVALID, (const unsigned char*)0, (const unsigned char*)0,
+      0, 0 },
+    { GAME_SPRITE_INVALID, (const unsigned char*)0, (const unsigned char*)0,
+      0, 0 },
+    { GAME_SPRITE_INVALID, (const unsigned char*)0, (const unsigned char*)0,
+      0, 0 },
+    { GAME_SPRITE_INVALID, (const unsigned char*)0, (const unsigned char*)0,
+      0, 0 },
+    { GAME_SPRITE_INVALID, (const unsigned char*)0, (const unsigned char*)0,
+      0, 0 }
+};
+#define MOVABLE_BOSS_CACHE_SLOT GAME_MAX_ENEMIES
 
+/* Player's sprite id is fixed for the whole run (GAME_SPRITE_PLAYER), so
+ * its definition pointer is a compile-time address constant. */
+static const GameSpriteDefinition* movable_scb_player_def =
+    &game_sprite_definitions[GAME_SPRITE_PLAYER];
+
+/* Cache key for movable_scb_on_stage_change: the enemy header's
+ * penpal/sprctl0 only need refreshing when the stage's enemy roster
+ * (and therefore its shared sprite kind) changes, not every frame. 0xFF
+ * never matches a real GameStageConfig.enemy_formation_id, forcing a
+ * refresh on the first update. */
+static unsigned char movable_scb_enemy_formation_id = 0xFFu;
+
+#ifdef CADENCE_PROBE
+/* APS-053 v040 test-only: with movable_scb_* now file-static named
+ * structs (no single contiguous pool any more), the gate(a) breakdown
+ * harness resolves timing landmarks from scb_split_marker_begin/
+ * finish_enter/finish_exit only; it no longer reads back pool contents
+ * through an exported pointer. See .briefs/APS-053/v045.md "existing
+ * assets" and the corresponding harness update in
+ * scripts/verify-phase-3r-gate-a-breakdown-gearlynx.py. */
+#endif
+
+/* Only the two fields that depend on an extern const array *value*
+ * (not just its address, which the static initializers above already
+ * captured) -- GAME_SPRITE_PLAYER's own sprctl0/penpal -- need a runtime
+ * fixup; everything else about the chain is link-time constant. */
+static void movable_scb_init(void)
+{
+    movable_scb_player.sprctl0 = movable_scb_player_def->sprctl0;
+    movable_scb_player.penpal[0] = movable_scb_player_def->penpal[0];
+    movable_scb_player.penpal[1] = movable_scb_player_def->penpal[1];
+    movable_scb_player.penpal[2] = movable_scb_player_def->penpal[2];
+}
+
+/* Refreshes the enemy palette header only when the stage's enemy roster
+ * changes (verify-phase-3r-sprite-bpp-gate.py-confirmed: every stage's
+ * roster shares one sprite kind, so slot 0 of the formation is a safe
+ * representative for the whole stage). */
+static void movable_scb_on_stage_change(const GameStageConfig* stage_config)
+{
+    const GameEnemyFormationSlot* slot0;
+    unsigned char sprite_id;
+    const GameSpriteDefinition* def;
+
+    if (movable_scb_enemy_formation_id == stage_config->enemy_formation_id) {
+        return;
+    }
+    movable_scb_enemy_formation_id = stage_config->enemy_formation_id;
+    slot0 = game_get_enemy_formation_slot(stage_config->enemy_formation_id,
+        0u);
+    if (slot0 == (const GameEnemyFormationSlot*)0) {
+        return;
+    }
+    sprite_id = game_enemy_sprite_ids[slot0->type];
     if (sprite_id >= GAME_SPRITE_COUNT) {
         return;
     }
     def = &game_sprite_definitions[sprite_id];
-    /* anchor is packed as (dx+8) in the high nibble and (dy+8) in the low
-     * nibble (each 0..15, range -8..7); a plain subtract undoes the bias
-     * without a branch. */
-    dx = (signed char)((def->anchor >> 4) & 0x0Fu) - 8;
-    dy = (signed char)(def->anchor & 0x0Fu) - 8;
-    origin.ox = x + dx;
-    origin.oy = y + dy;
-    origin.scale = 1u;
-    (void)game_sprite_visit_runs(0, 0, sprite_id, 0u, draw_sprite_run_scaled,
-        &origin);
-    if (animation_frame != 0u) {
-        (void)game_sprite_visit_runs(0, 0, sprite_id, 1u,
-            draw_sprite_run_scaled, &origin);
-    }
+    movable_scb_enemy_header.sprctl0 = def->sprctl0;
+    movable_scb_enemy_header.penpal[0] = def->penpal[0];
+    movable_scb_enemy_header.penpal[1] = def->penpal[1];
+    movable_scb_enemy_header.penpal[2] = def->penpal[2];
 }
 
-static void draw_boss(const GameBoss* boss, unsigned char animation_frame)
+static void movable_scb_update_boss(const GameState* game,
+    unsigned char frame)
 {
+    const GameBoss* boss = &game->boss;
     unsigned char sprite_id;
+    MovableSpriteCache* cache;
 
-    if (boss->appearance_id >= GAME_BOSS_APPEARANCE_COUNT) {
+    /* Caller (movable_scb_update) only reaches this function when
+     * game->phase != GAME_PHASE_ALL_CLEAR, so that check is not repeated
+     * here (see .briefs/APS-053/v046.md Fable5 finding: re-evaluating a
+     * loop-invariant condition every call/iteration was a measured
+     * cost). */
+    if (boss->active == 0u ||
+        boss->appearance_id >= GAME_BOSS_APPEARANCE_COUNT) {
+        movable_scb_boss.sprctl1 = (unsigned char)(PACKED | RENONE | SKIP);
         return;
     }
     sprite_id = game_boss_sprite_ids[boss->appearance_id];
     if (sprite_id == GAME_SPRITE_INVALID) {
+        movable_scb_boss.sprctl1 = (unsigned char)(PACKED | RENONE | SKIP);
         return;
     }
-    draw_sprite(boss->rect.x, boss->rect.y, sprite_id, animation_frame);
-}
+    cache = &movable_sprite_cache[MOVABLE_BOSS_CACHE_SLOT];
+    if (cache->sprite_id != sprite_id) {
+        const GameSpriteDefinition* def = &game_sprite_definitions[sprite_id];
 
-static unsigned char tiny_glyph_row(char glyph, unsigned char row)
-{
-    static const unsigned char digits[10][5] = {
-        { 7u, 5u, 5u, 5u, 7u }, { 2u, 6u, 2u, 2u, 7u },
-        { 7u, 1u, 7u, 4u, 7u }, { 7u, 1u, 7u, 1u, 7u },
-        { 5u, 5u, 7u, 1u, 1u }, { 7u, 4u, 7u, 1u, 7u },
-        { 7u, 4u, 7u, 5u, 7u }, { 7u, 1u, 2u, 2u, 2u },
-        { 7u, 5u, 7u, 5u, 7u }, { 7u, 5u, 7u, 1u, 7u }
-    };
-    static const unsigned char letters[8][5] = {
-        { 7u, 4u, 7u, 1u, 7u }, /* S */
-        { 7u, 2u, 2u, 2u, 7u }, /* I */
-        { 5u, 7u, 7u, 7u, 5u }, /* N */
-        { 5u, 5u, 5u, 7u, 2u }, /* W */
-        { 6u, 5u, 6u, 5u, 6u }, /* B */
-        { 7u, 4u, 4u, 4u, 7u }, /* C */
-        { 2u, 5u, 7u, 5u, 5u }, /* A */
-        { 4u, 4u, 4u, 4u, 7u }  /* L */
-    };
-
-    if (glyph >= '0' && glyph <= '9') {
-        return digits[(unsigned char)(glyph - '0')][row];
+        cache->sprite_id = sprite_id;
+        cache->frame0_ptr = game_sprite_packed_data + def->frame0_offset;
+        cache->frame1_ptr = game_sprite_packed_data + def->frame1_offset;
+        cache->dx = (signed char)((def->anchor >> 4) & 0x0Fu) - 8;
+        cache->dy = (signed char)(def->anchor & 0x0Fu) - 8;
+        movable_scb_boss.sprctl0 = def->sprctl0;
+        movable_scb_boss.penpal[0] = def->penpal[0];
+        movable_scb_boss.penpal[1] = def->penpal[1];
+        movable_scb_boss.penpal[2] = def->penpal[2];
     }
-    if (glyph == 'S') return letters[0][row];
-    if (glyph == 'I') return letters[1][row];
-    if (glyph == 'N') return letters[2][row];
-    if (glyph == 'W') return letters[3][row];
-    if (glyph == 'B') return letters[4][row];
-    if (glyph == 'C') return letters[5][row];
-    if (glyph == 'A') return letters[6][row];
-    if (glyph == 'L') return letters[7][row];
-    return 0u;
+    movable_scb_boss.sprctl1 = (unsigned char)(PACKED | RENONE);
+    movable_scb_boss.data = (unsigned char*)(frame != 0u ? cache->frame1_ptr :
+        cache->frame0_ptr);
+    movable_scb_boss.hpos = (signed int)(boss->rect.x + cache->dx);
+    movable_scb_boss.vpos = (signed int)(boss->rect.y + cache->dy);
 }
 
-static void draw_tiny_text(unsigned char x, unsigned char y,
-    const char* text, unsigned char color)
+/* Per-frame differential update: walks each kind's static slots with a
+ * pointer (cc65 generates tighter code for pointer walks than indexed
+ * array access) and only ever writes SPRCTL1 (SKIP bit)/hpos/vpos/data
+ * (animated kinds only) -- see .briefs/APS-053/v044.md "frame-by-frame
+ * differential update". Death/liveness conditions are a verbatim mirror
+ * of the pre-v045 append conditions (draw_environment/draw_game). The
+ * chain is always submitted in full, including an ALL_CLEAR frame where
+ * every slot is SKIPped: the four always-present palette headers still
+ * draw (0 pixels each), which is the intentionally cheap fallback v044
+ * chose over conditionally omitting the whole submit. */
+static void movable_scb_update(const GameState* game,
+    const GameStageConfig* stage_config)
 {
-    unsigned char column;
-    unsigned char row;
-    unsigned char bits;
+    unsigned char i;
+    unsigned char frame;
+    unsigned char all_clear;
+    SCB_RENONE* p;
 
-    tgi_setcolor(color);
-    while (*text != '\0') {
-        for (row = 0u; row < 5u; ++row) {
-            bits = tiny_glyph_row(*text, row);
-            for (column = 0u; column < 3u; ++column) {
-                if ((bits & (unsigned char)(4u >> column)) != 0u) {
-                    tgi_bar(x + column, y + row, x + column, y + row);
+#ifdef CADENCE_PROBE
+    scb_split_marker_begin();
+#endif
+    frame = game->animation_frame;
+    all_clear = (unsigned char)(game->phase == GAME_PHASE_ALL_CLEAR);
+    movable_scb_on_stage_change(stage_config);
+
+    /* --- environment hazards: asteroids/falling rocks are mutually
+     * exclusive per stage (GameStageConfig.environment_id) and share this
+     * env group; wind stages don't use SCB movable objects at all (see
+     * draw_wind_band, still TGI). game->phase is only tested once here
+     * (branch, not per-slot), and each object array is walked by pointer
+     * instead of `game->asteroids[i]`-style indexing. */
+    if (game->phase == GAME_PHASE_NORMAL &&
+        stage_config->environment_id == GAME_ENVIRONMENT_ASTEROIDS) {
+        const GameAsteroid* obj = game->asteroids;
+
+        p = movable_scb_env;
+        for (i = 0u; i < GAME_MAX_ENVIRONMENT_OBJECTS; ++i, ++p, ++obj) {
+            if (obj->active != 0u) {
+                p->sprctl1 = (unsigned char)(PACKED | RENONE | REUSEPAL);
+                p->data = (unsigned char*)asteroid_shapes[frame];
+                MOVABLE_SET_HPOS(p, obj->rect.x);
+                MOVABLE_SET_VPOS(p, obj->rect.y);
+            } else {
+                p->sprctl1 = (unsigned char)(PACKED | RENONE | REUSEPAL |
+                    SKIP);
+            }
+        }
+    } else if (game->phase == GAME_PHASE_NORMAL &&
+        stage_config->environment_id != GAME_ENVIRONMENT_WIND) {
+        const GameFallingRock* obj = game->falling_rocks;
+
+        p = movable_scb_env;
+        for (i = 0u; i < GAME_MAX_ENVIRONMENT_OBJECTS; ++i, ++p, ++obj) {
+            if (obj->state == GAME_ROCK_STATE_FALLING) {
+                p->sprctl1 = (unsigned char)(PACKED | RENONE | REUSEPAL);
+                p->data = (unsigned char*)falling_rock_shapes[frame];
+                MOVABLE_SET_HPOS(p, obj->rect.x);
+                MOVABLE_SET_VPOS(p, obj->rect.y);
+            } else {
+                p->sprctl1 = (unsigned char)(PACKED | RENONE | REUSEPAL |
+                    SKIP);
+            }
+        }
+    } else {
+        p = movable_scb_env;
+        for (i = 0u; i < GAME_MAX_ENVIRONMENT_OBJECTS; ++i, ++p) {
+            p->sprctl1 = (unsigned char)(PACKED | RENONE | REUSEPAL | SKIP);
+        }
+    }
+
+    /* v046 (see .briefs/APS-053/v046.md, Fable5 review): re-evaluating
+     * `game->phase != GAME_PHASE_ALL_CLEAR` every loop iteration below
+     * (41 slots across player/enemy/boss/power_item/pbullet/ebullet) cost
+     * ~48 cycles/iteration in the generated code -- game->phase is
+     * loop-invariant, so it is tested once here instead and the two
+     * outcomes are two separate, unconditioned code paths. */
+    if (all_clear != 0u) {
+        movable_scb_player.sprctl1 = (unsigned char)(PACKED | RENONE | SKIP);
+        p = movable_scb_enemy;
+        for (i = 0u; i < GAME_MAX_ENEMIES; ++i, ++p) {
+            p->sprctl1 = (unsigned char)(PACKED | RENONE | REUSEPAL | SKIP);
+        }
+        movable_scb_boss.sprctl1 = (unsigned char)(PACKED | RENONE | SKIP);
+        movable_scb_power_item.sprctl1 =
+            (unsigned char)(PACKED | RENONE | SKIP);
+        p = movable_scb_pbullet;
+        for (i = 0u; i < GAME_MAX_PLAYER_BULLETS; ++i, ++p) {
+            p->sprctl1 = (unsigned char)(PACKED | RENONE | REUSEPAL | SKIP);
+        }
+        p = movable_scb_ebullet;
+        for (i = 0u; i < GAME_MAX_ENEMY_BULLETS; ++i, ++p) {
+            p->sprctl1 = (unsigned char)(PACKED | RENONE | REUSEPAL | SKIP);
+        }
+    } else {
+        /* --- player --- */
+        if (game->dying == 0u && game_player_is_visible(game) != 0u) {
+            movable_scb_player.sprctl1 = (unsigned char)(PACKED | RENONE);
+            movable_scb_player.data =
+                (unsigned char*)(game_sprite_packed_data +
+                (frame != 0u ? movable_scb_player_def->frame1_offset :
+                    movable_scb_player_def->frame0_offset));
+            movable_scb_player.hpos = (signed int)(game->player.x +
+                ((signed char)((movable_scb_player_def->anchor >> 4) &
+                    0x0Fu) - 8));
+            movable_scb_player.vpos = (signed int)(game->player.y +
+                ((signed char)(movable_scb_player_def->anchor & 0x0Fu) -
+                    8));
+        } else {
+            movable_scb_player.sprctl1 =
+                (unsigned char)(PACKED | RENONE | SKIP);
+        }
+
+        /* --- enemies (sprite kind, per-slot cache, pointer walk instead
+         * of game_enemy_at(game, i)'s repeated game->enemies reload) --- */
+        {
+            const GameEnemy* enemy = game->enemies;
+
+            p = movable_scb_enemy;
+            for (i = 0u; i < GAME_MAX_ENEMIES; ++i, ++p, ++enemy) {
+                MovableSpriteCache* cache = &movable_sprite_cache[i];
+                unsigned char sprite_id;
+
+                if (enemy->active == 0u ||
+                    enemy->rect.x >= GAME_SCREEN_WIDTH) {
+                    p->sprctl1 = (unsigned char)(PACKED | RENONE | REUSEPAL |
+                        SKIP);
+                    continue;
+                }
+                sprite_id = game_enemy_sprite_ids[enemy->type];
+                if (cache->sprite_id != sprite_id) {
+                    const GameSpriteDefinition* def =
+                        &game_sprite_definitions[sprite_id];
+
+                    cache->sprite_id = sprite_id;
+                    cache->frame0_ptr =
+                        game_sprite_packed_data + def->frame0_offset;
+                    cache->frame1_ptr =
+                        game_sprite_packed_data + def->frame1_offset;
+                    cache->dx =
+                        (signed char)((def->anchor >> 4) & 0x0Fu) - 8;
+                    cache->dy = (signed char)(def->anchor & 0x0Fu) - 8;
+                    p->sprctl0 = def->sprctl0;
+                }
+                p->sprctl1 = (unsigned char)(PACKED | RENONE | REUSEPAL);
+                p->data = (unsigned char*)(frame != 0u ? cache->frame1_ptr :
+                    cache->frame0_ptr);
+                p->hpos = (signed int)(enemy->rect.x + cache->dx);
+                p->vpos = (signed int)(enemy->rect.y + cache->dy);
+            }
+        }
+
+        /* --- boss (game->phase != ALL_CLEAR already established) --- */
+        movable_scb_update_boss(game, frame);
+
+        /* --- power item --- */
+        if (game->power_item.active != 0u) {
+            movable_scb_power_item.sprctl1 =
+                (unsigned char)(PACKED | RENONE);
+            movable_scb_power_item.hpos =
+                (signed int)game->power_item.rect.x;
+            movable_scb_power_item.vpos =
+                (signed int)game->power_item.rect.y;
+        } else {
+            movable_scb_power_item.sprctl1 =
+                (unsigned char)(PACKED | RENONE | SKIP);
+        }
+
+        /* --- player bullets (pointer walk) --- */
+        {
+            const GameBullet* bullet = game->bullets;
+
+            p = movable_scb_pbullet;
+            for (i = 0u; i < GAME_MAX_PLAYER_BULLETS; ++i, ++p, ++bullet) {
+                if (bullet->active != 0u) {
+                    p->sprctl1 = (unsigned char)(PACKED | RENONE | REUSEPAL);
+                    MOVABLE_SET_HPOS(p, bullet->rect.x);
+                    MOVABLE_SET_VPOS(p, bullet->rect.y);
+                } else {
+                    p->sprctl1 = (unsigned char)(PACKED | RENONE | REUSEPAL |
+                        SKIP);
                 }
             }
         }
-        x = (unsigned char)(x + 4u);
-        ++text;
+
+        /* --- enemy bullets (pointer walk) --- */
+        {
+            const GameEnemyBullet* ebullet = game->enemy_bullets;
+
+            p = movable_scb_ebullet;
+            for (i = 0u; i < GAME_MAX_ENEMY_BULLETS; ++i, ++p, ++ebullet) {
+                if (ebullet->active != 0u &&
+                    ebullet->rect.y >= GAME_HUD_HEIGHT) {
+                    p->sprctl1 = (unsigned char)(PACKED | RENONE | REUSEPAL);
+                    MOVABLE_SET_HPOS(p, ebullet->rect.x);
+                    MOVABLE_SET_VPOS(p, ebullet->rect.y);
+                } else {
+                    p->sprctl1 = (unsigned char)(PACKED | RENONE | REUSEPAL |
+                        SKIP);
+                }
+            }
+        }
     }
-}
 
-static char phase_symbol(const GameState* game)
-{
-    if (game->phase == GAME_PHASE_STAGE_INTRO) return 'I';
-    if (game->phase == GAME_PHASE_NORMAL) return 'N';
-    if (game->phase == GAME_PHASE_WARNING) return 'W';
-    if (game->phase == GAME_PHASE_BOSS) return 'B';
-    if (game->phase == GAME_PHASE_STAGE_CLEAR) return 'C';
-    return 'A';
-}
-
-static void format_counter(unsigned int value, char* text)
-{
-    unsigned char i;
-
-    text[4u] = '\0';
-    for (i = 4u; i != 0u; --i) {
-        text[i - 1u] = (char)('0' + (value % 10u));
-        value /= 10u;
-    }
-}
-
-static void draw_hud(const GameState* game)
-{
-    char score_text[SCORE_DIGITS + 1u];
-    char timer_text[5u];
-    char hud_text[21u];
-
-    format_score(game->score, score_text);
-    format_counter(game->phase_timer, timer_text);
-    hud_text[0] = 'S';
-    hud_text[1] = (char)('0' + game->stage);
-    hud_text[2] = ' ';
-    hud_text[3] = phase_symbol(game);
-    hud_text[4] = timer_text[0];
-    hud_text[5] = timer_text[1];
-    hud_text[6] = timer_text[2];
-    hud_text[7] = timer_text[3];
-    hud_text[8] = ' ';
-    hud_text[9] = score_text[0];
-    hud_text[10] = score_text[1];
-    hud_text[11] = score_text[2];
-    hud_text[12] = score_text[3];
-    hud_text[13] = score_text[4];
-    hud_text[14] = ' ';
-    hud_text[15] = 'L';
-    hud_text[16] = (char)('0' + game->lives);
-    hud_text[17] = ' ';
-    hud_text[18] = 'W';
-    hud_text[19] = (char)('0' + game->weapon_level);
-    hud_text[20] = '\0';
-    tgi_setcolor(GAME_COLOR_BLACK);
-    tgi_bar(0u, 0u, GAME_SCREEN_WIDTH - 1u, GAME_HUD_HEIGHT - 1u);
-    draw_tiny_text(2u, 2u, hud_text, GAME_COLOR_WHITE);
-    tgi_setcolor(GAME_COLOR_NEAR_STAR);
-    tgi_line(0u, GAME_HUD_HEIGHT - 1u, GAME_SCREEN_WIDTH - 1u,
-        GAME_HUD_HEIGHT - 1u);
+#ifdef CADENCE_PROBE
+    scb_split_marker_finish_enter();
+#endif
+    tgi_sprite((char*)&movable_scb_env_header);
+#ifdef CADENCE_PROBE
+    scb_split_marker_finish_exit();
+#endif
 }
 
 static void draw_phase_overlay(const GameState* game)
 {
     if (game->phase == GAME_PHASE_WARNING) {
-        tgi_outtextxy(52u, 45u, "WARNING");
+        static_layer_text(52, 45, "WARNING", GAME_COLOR_WHITE);
     } else if (game->phase == GAME_PHASE_STAGE_CLEAR) {
-        tgi_outtextxy(36u, 45u, "STAGE CLEAR");
+        static_layer_text(36, 45, "STAGE CLEAR", GAME_COLOR_WHITE);
     } else if (game->phase == GAME_PHASE_ALL_CLEAR) {
-        tgi_outtextxy(44u, 40u, "ALL CLEAR");
-        tgi_outtextxy(36u, 58u, "A/B TO RESTART");
+        static_layer_text(44, 40, "ALL CLEAR", GAME_COLOR_WHITE);
+        static_layer_text(36, 58, "A/B TO RESTART", GAME_COLOR_WHITE);
     }
 }
 
@@ -977,6 +1175,11 @@ static void draw_wind_band(const GameWindBand* wind)
     }
 }
 
+/* TGI-only overlays for the environment hazards: the asteroid/falling-rock
+ * bodies themselves are now part of the static movable SCB chain
+ * (movable_scb_update's env group), so this function only draws what was
+ * never SCB-eligible -- the falling-rock warning/impact TGI runs and the
+ * wind band (never converted, see draw_wind_band). */
 static void draw_environment(const GameState* game,
     const GameStageConfig* stage_config)
 {
@@ -986,49 +1189,35 @@ static void draw_environment(const GameState* game,
         return;
     }
     if (stage_config->environment_id == GAME_ENVIRONMENT_ASTEROIDS) {
-        for (i = 0u; i < GAME_MAX_ENVIRONMENT_OBJECTS; ++i) {
-            if (game->asteroids[i].active != 0u) {
-                draw_mask(game->asteroids[i].rect.x,
-                    game->asteroids[i].rect.y,
-                    GAME_ENVIRONMENT_OBJECT_WIDTH,
-                    GAME_ENVIRONMENT_OBJECT_HEIGHT,
-                    asteroid_masks[game->animation_frame],
-                    GAME_COLOR_ENVIRONMENT_BODY);
-            }
-        }
-    } else if (stage_config->environment_id == GAME_ENVIRONMENT_WIND) {
+        return;
+    }
+    if (stage_config->environment_id == GAME_ENVIRONMENT_WIND) {
         if (game->wind.state != GAME_WIND_STATE_INACTIVE) {
             draw_wind_band(&game->wind);
         }
-    } else {
-        for (i = 0u; i < GAME_MAX_ENVIRONMENT_OBJECTS; ++i) {
-            const GameFallingRock* rock;
-            unsigned char y;
+        return;
+    }
+    for (i = 0u; i < GAME_MAX_ENVIRONMENT_OBJECTS; ++i) {
+        const GameFallingRock* rock;
+        unsigned char y;
 
-            rock = &game->falling_rocks[i];
-            if (rock->state == GAME_ROCK_STATE_WARNING) {
-                tgi_setcolor(GAME_COLOR_WIND_ACTIVE);
-                for (y = 14u; y < 91u; y = (unsigned char)(y + 12u)) {
-                    tgi_bar(rock->rect.x + 3u, y,
-                        rock->rect.x + 4u, y + 2u);
-                }
-                tgi_line(rock->rect.x, 94u,
-                    rock->rect.x + GAME_ENVIRONMENT_OBJECT_WIDTH - 1u, 94u);
-                tgi_line(rock->rect.x, 94u, rock->rect.x + 2u, 91u);
-                tgi_line(rock->rect.x + 7u, 94u,
-                    rock->rect.x + 5u, 91u);
-            } else if (rock->state == GAME_ROCK_STATE_FALLING) {
-                draw_mask(rock->rect.x, rock->rect.y,
-                    GAME_ENVIRONMENT_OBJECT_WIDTH,
-                    GAME_ENVIRONMENT_OBJECT_HEIGHT,
-                    falling_rock_masks[game->animation_frame],
-                    GAME_COLOR_ENVIRONMENT_BODY);
-            } else if (rock->state == GAME_ROCK_STATE_IMPACT) {
-                tgi_setcolor(GAME_COLOR_ENVIRONMENT_DETAIL);
-                tgi_line(rock->rect.x, 98u, rock->rect.x + 7u, 98u);
-                tgi_line(rock->rect.x + 2u, 96u,
-                    rock->rect.x + 5u, 96u);
+        rock = &game->falling_rocks[i];
+        if (rock->state == GAME_ROCK_STATE_WARNING) {
+            tgi_setcolor(GAME_COLOR_WIND_ACTIVE);
+            for (y = 14u; y < 91u; y = (unsigned char)(y + 12u)) {
+                tgi_bar(rock->rect.x + 3u, y,
+                    rock->rect.x + 4u, y + 2u);
             }
+            tgi_line(rock->rect.x, 94u,
+                rock->rect.x + GAME_ENVIRONMENT_OBJECT_WIDTH - 1u, 94u);
+            tgi_line(rock->rect.x, 94u, rock->rect.x + 2u, 91u);
+            tgi_line(rock->rect.x + 7u, 94u,
+                rock->rect.x + 5u, 91u);
+        } else if (rock->state == GAME_ROCK_STATE_IMPACT) {
+            tgi_setcolor(GAME_COLOR_ENVIRONMENT_DETAIL);
+            tgi_line(rock->rect.x, 98u, rock->rect.x + 7u, 98u);
+            tgi_line(rock->rect.x + 2u, 96u,
+                rock->rect.x + 5u, 96u);
         }
     }
 }
@@ -1039,39 +1228,24 @@ static void draw_environment(const GameState* game,
  * controls and above the version without overlap on the 160x102 display. */
 static void draw_voice_credit(void)
 {
-    static const unsigned char suffix[5][7] = {
-        { 48u, 64u, 128u, 128u, 128u, 64u, 48u },
-        { 248u, 136u, 248u, 32u, 248u, 80u, 136u },
-        { 160u, 240u, 160u, 184u, 224u, 160u, 184u },
-        { 240u, 8u, 8u, 240u, 128u, 128u, 248u },
-        { 96u, 16u, 8u, 8u, 8u, 16u, 96u }
-    };
-    unsigned char glyph;
-
-    tgi_outtextxy(VOICE_CREDIT_ASCII_X, VOICE_CREDIT_Y,
-        "VOICEVOX:Nemo");
-    for (glyph = 0u; glyph < 5u; ++glyph) {
-        draw_mask(VOICE_CREDIT_SUFFIX_X + glyph * 6u, VOICE_CREDIT_Y,
-            5u, 7u, suffix[glyph], GAME_COLOR_WHITE);
-    }
+    static_layer_title_text(VOICE_CREDIT_ASCII_X, VOICE_CREDIT_Y, 4u,
+        GAME_COLOR_WHITE);
+    static_layer_credit_suffix(VOICE_CREDIT_SUFFIX_X, VOICE_CREDIT_Y,
+        GAME_COLOR_WHITE);
 }
 
 static void draw_game(const GameState* game)
 {
     const GameStageConfig* stage_config;
-    const BackgroundTheme* theme;
-    unsigned char i;
 
     if (game->phase == GAME_PHASE_TITLE) {
-        tgi_setbgcolor(GAME_COLOR_BLACK);
-        tgi_clear();
-        tgi_setcolor(GAME_COLOR_WHITE);
-        tgi_outtextxy(24u, 18u, "ASTEROID PATROL");
-        tgi_outtextxy(32u, 42u, "A/B TO START");
-        tgi_outtextxy(28u, 62u, "ARROWS: MOVE");
-        tgi_outtextxy(36u, 74u, "A/B: FIRE");
+        static_layer_draw(0, GAME_BACKGROUND_THEME_SPACE);
+        static_layer_title_text(24, 18, 0u, GAME_COLOR_WHITE);
+        static_layer_title_text(32, 42, 1u, GAME_COLOR_WHITE);
+        static_layer_title_text(28, 62, 2u, GAME_COLOR_WHITE);
+        static_layer_title_text(36, 74, 3u, GAME_COLOR_WHITE);
         draw_voice_credit();
-        tgi_outtextxy(52u, 90u, "V" GAME_VERSION_STRING);
+        static_layer_text(52, 90, "V" GAME_VERSION_STRING, GAME_COLOR_WHITE);
         game_display_request();
         return;
     }
@@ -1081,89 +1255,42 @@ static void draw_game(const GameState* game)
         tgi_setpalette(game_stage_palettes[game->stage - 1u]);
         active_palette_stage = game->stage;
     }
-    theme = &background_themes[stage_config->background_theme_id];
-    tgi_setbgcolor(theme->background_color);
-    tgi_clear();
-    if (stage_config->background_theme_id == GAME_BACKGROUND_THEME_SKY) {
-        draw_sky_background(game, theme);
-    } else if (stage_config->background_theme_id ==
-        GAME_BACKGROUND_THEME_CAVE) {
-        draw_cave_background(game, theme);
-    } else {
-        draw_planet(game, theme);
-        draw_background(game, theme);
+#if defined(CADENCE_PROBE) && defined(CADENCE_VARIANT)
+#if CADENCE_VARIANT == 3
+    game_display_request();
+    return;
+#elif CADENCE_VARIANT == 2
+    if (game->phase != GAME_PHASE_ALL_CLEAR &&
+        game->dying == 0u && game_player_is_visible(game) != 0u) {
+        draw_sprite(game->player.x, game->player.y,
+            GAME_SPRITE_PLAYER, game->animation_frame);
     }
-    draw_hud(game);
+    game_display_request();
+    return;
+#elif CADENCE_VARIANT == 1
+    static_layer_draw(game, stage_config->background_theme_id);
+    game_display_request();
+    return;
+#endif
+#endif
+    static_layer_draw(game, stage_config->background_theme_id);
     tgi_setcolor(GAME_COLOR_WHITE);
     draw_phase_overlay(game);
     draw_environment(game, stage_config);
-
-    if (game->phase != GAME_PHASE_ALL_CLEAR) {
-        if (game->dying != 0u) {
-            draw_mask((int)game->player.x,
-                (int)game->player.y - 1, 8u, 8u,
-                explosion_masks[game->explosion_timer /
-                    GAME_EXPLOSION_STAGE_FRAMES],
-                GAME_COLOR_EXPLOSION);
-        } else if (game_player_is_visible(game) != 0u) {
-            draw_sprite(game->player.x, game->player.y,
-                GAME_SPRITE_PLAYER, game->animation_frame);
-        }
-        for (i = 0u; i < GAME_MAX_ENEMIES; ++i) {
-            const GameEnemy* enemy;
-
-            enemy = game_enemy_at(game, i);
-            if (enemy->active != 0u &&
-                enemy->rect.x < GAME_SCREEN_WIDTH) {
-                draw_sprite(enemy->rect.x, enemy->rect.y,
-                    game_enemy_sprite_ids[enemy->type],
-                    game->animation_frame);
-            }
-        }
-        if (game->boss.active != 0u) {
-            draw_boss(&game->boss, game->animation_frame);
-        }
-        if (game->power_item.active != 0u) {
-            draw_mask(game->power_item.rect.x, game->power_item.rect.y,
-                GAME_POWER_ITEM_WIDTH, GAME_POWER_ITEM_HEIGHT,
-                power_item_mask, GAME_COLOR_POWER_ITEM);
-        }
-        for (i = 0u; i < GAME_MAX_PLAYER_BULLETS; ++i) {
-            if (game->bullets[i].active != 0u) {
-                draw_rect(&game->bullets[i].rect, GAME_COLOR_BULLET);
-            }
-        }
-        for (i = 0u; i < GAME_MAX_ENEMY_BULLETS; ++i) {
-            if (game->enemy_bullets[i].active != 0u) {
-                unsigned int x1;
-                unsigned int y1;
-
-                x1 = (unsigned int)game->enemy_bullets[i].rect.x + 2u;
-                y1 = (unsigned int)game->enemy_bullets[i].rect.y + 1u;
-                if (game->enemy_bullets[i].rect.y >= GAME_HUD_HEIGHT) {
-                    if (x1 >= GAME_SCREEN_WIDTH) {
-                        x1 = GAME_SCREEN_WIDTH - 1u;
-                    }
-                    if (y1 >= GAME_SCREEN_HEIGHT) {
-                        y1 = GAME_SCREEN_HEIGHT - 1u;
-                    }
-                    tgi_setcolor(GAME_COLOR_ENEMY_BULLET);
-                    tgi_bar(game->enemy_bullets[i].rect.x,
-                        game->enemy_bullets[i].rect.y, x1,
-                        game->enemy_bullets[i].rect.y);
-                    tgi_bar((unsigned int)game->enemy_bullets[i].rect.x + 1u,
-                        y1, (unsigned int)game->enemy_bullets[i].rect.x + 1u,
-                        y1);
-                }
-            }
-        }
+    if (game->phase != GAME_PHASE_ALL_CLEAR && game->dying != 0u) {
+        draw_mask((int)game->player.x,
+            (int)game->player.y - 1, 8u, 8u,
+            explosion_masks[game->explosion_timer /
+                GAME_EXPLOSION_STAGE_FRAMES],
+            GAME_COLOR_EXPLOSION);
     }
+    movable_scb_update(game, stage_config);
     if (game->game_over != 0u) {
-        tgi_outtextxy(48u, 40u, "GAME OVER");
+        static_layer_text(48, 40, "GAME OVER", GAME_COLOR_WHITE);
         if (game->game_over_voice_complete != 0u) {
-            tgi_outtextxy(40u, 58u, "A/B TO TITLE");
+            static_layer_text(40, 58, "A/B TO TITLE", GAME_COLOR_WHITE);
         } else {
-            tgi_outtextxy(48u, 58u, "VOICE...");
+            static_layer_text(48, 58, "VOICE...", GAME_COLOR_WHITE);
         }
     }
     game_display_request();
@@ -1171,7 +1298,10 @@ static void draw_game(const GameState* game)
 
 void game_display_request(void)
 {
+    static_layer_text_flush();
 #ifdef CADENCE_PROBE
+    cadence_probe_hold_fixture();
+    cadence_probe_capture_state();
     cadence_probe_display();
 #endif
     tgi_updatedisplay();
@@ -1202,6 +1332,7 @@ void main(void)
     game.enemies = game_enemies;
     game_init(&game);
     active_palette_stage = 0u;
+    movable_scb_init();
     for (;;) {
         /* Pipeline gameplay work while the previous VBLANK swap is pending.
          * Only wait immediately before reusing the completed back buffer. */
@@ -1213,6 +1344,9 @@ void main(void)
         logic_updates = game_logic_updates_for_draw_frame(elapsed_vblanks,
             0);
         while (logic_updates != 0u) {
+#ifdef CADENCE_PROBE
+            cadence_probe_hold_fixture();
+#endif
             game_update_logic(&game, input);
 #ifdef CADENCE_PROBE
             /* Count only after the real game update returns. */
@@ -1220,6 +1354,8 @@ void main(void)
 #endif
             --logic_updates;
         }
+#ifdef CADENCE_PROBE
+#endif
         sound_ticks = game_sound_ticks_for_draw_frame(elapsed_vblanks);
         while (sound_ticks != 0u) {
             game_sound_tick(&game);

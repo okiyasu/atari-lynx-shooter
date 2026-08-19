@@ -1,5 +1,28 @@
 # APS-053 evidence
 
+## v044 実装前必須確認2: SKIPスモークテスト（2026-08-18）
+
+`.briefs/APS-053/v044.md`の実装前必須確認2点目。SCB静的チェーン化の実装に先立ち、gearlynx上で(a) SPRCTL1のSKIPビット(0x04)が実際に描画をスキップすること、(b) パレット専用ヘッダ(空データ、1バイトの空スプライト`{0x00}`)が0ピクセル描画かつpenpalを正しくラッチすることを最小手順で確認した。新規`scripts/verify-scb-skip-smoke-gearlynx.py`を追加(release ROM/ソースは変更なし、`verify-static-layer-readback-gearlynx.py`/O5診断が確立済みの手法—`title_voice_scratch_buffer`(static_layerと共有のscratch)を実`_tgi_ioctl`エントリで上書きしてから`debug_step_out`で本来の描画を続行させる—を再利用)。
+
+4 SCB(SCB1: active pen0=0x0F、SCB2: SKIP pen0=0x0C、SCB3: header active pen0=0x03 data=1バイト空スプライト、SCB4: REUSEPAL active data=実データ)を1チェーンとして注入した。結果は全項目PASS: SCB1(参照用)は期待通り`0xFA`で描画、SCB2(SKIP)は`0xAA`(sentinel)のまま不変=SKIP honored、SCB4(REUSEPAL)は`0x3A`=SCB3のpenpal[0](0x03)を正しく継承(SCB1/SCB2の色0xF/0xCではない)、ページ全体の変化byteは期待通り2箇所(SCB1・SCB4のoffsetのみ)でSCB2・SCB3由来の余分な書き込みなし。証跡は`scb-skip-smoke-v044.json`。
+
+判定: 両確認ともPASS、設計(SKIP採用・常時非SKIPパレットヘッダ)は実装を進めてよい。ROM SHA-256は`23958e87e89b212d30cc5cda8a5abe92b13b661593273a6f81cf8496a6449aac`で不変(この時点のsrc/main.c未変更)。
+
+## v044 tick→CPUサイクル換算則の訂正記（2026-08-18）
+
+v042(`aps053-v042-disassembly-findings.md`)は`scripts/verify-phase-3r-gate-a-breakdown-gearlynx.py`のdocstring文言（`get_6502_status().total_ticks`を「CPU-cycle-exact」と記載）をそのまま信じ、「1 tick = 1 CPUサイクル」を前提に9,423 tickを9,423サイクルとして扱った。これを机上見積り（`movable_append`本体+直接ラッパー、1,143〜2,121 cy）と突合し、4.4〜8.2倍のギャップのうち「調査範囲では実測の15〜23%しか説明できず、残り77〜85%は未解明」と結論していた。
+
+Fable5の算術検証（`.briefs/APS-053/v043.md`回答、v044ブリーフ`.briefs/APS-053/v044.md`「重要な訂正」節に転記）により、この前提が誤りと判明した。Lynxのバス仕様上、`total_ticks`が刻む速度はCPU命令サイクルそのものではなく、システムクロック相当（65C02の公称4MHzクロックに対し、マスタークロック分周比+Suzy稼働時のバス調停・DMA待ちオーバーヘッドを合わせて）約**4.4〜5.0倍速い**。根拠は次の2点の突き合わせ:
+
+- `tick-calibration-v024.json`の`calibration.cpu_ticks_per_vblank_median`（`184668`、CV=`0.00074`、2 batch×18 hit全て安定）— 実測されたVBlank当たりのtotal_tick数
+- 65C02の物理制約（公称4MHz動作。Lynx CPUクロックはマスタークロックの分周で駆動され、Suzy稼働中はバス調停によりCPU実効サイクルが追加で伸びる）
+
+この換算則をv042の残差へ当てはめると: `9,423 tick ÷ 4.4〜5.0 ≈ 1,885〜2,141 CPUサイクル`。これはv042の机上見積り範囲（continuing path 1,143〜1,703 cy、sprite系group-head 2,121 cy）とほぼ一致し、「77〜85%が未解明」というv042の結論は誤りだったと確認できる。残差は本訂正で解消済み、追加のディスアセンブル調査は不要と判断する。
+
+**影響範囲**: この訂正はCPUサイクル単位への換算のみに影響する。v038/v040/v041で報告済みのVBlank単位の値（gate(a)=33 VBlank、(i)純Suzy=0.093 VBlank、(ii)SCB構築=1.98 VBlank等）は、`total_ticks`の差分を同一tick単位のままVBlank較正値（`184668 tick/VBlank`）で除算して得ており、tick自体の絶対クロック速度に依存しないため無効化されない。
+
+**修正した文書**: `evidence/APS-053/aps053-v042-disassembly-findings.md`「2. tick→サイクル換算則」節の「1 tick = 1 CPUサイクル」記載、および`scripts/verify-phase-3r-gate-a-breakdown-gearlynx.py`docstring中の「CPU-cycle-exact」表現（2箇所）を、tick単位であることを明示する表現へ修正した。計測ロジック・breakpoint位置・JSON出力フィールド名は変更していない（後方互換のため`total_ticks`フィールド名はそのまま維持、意味の記載のみ訂正）。
+
 ## v027 実機Suzy文字化け診断ROM（2026-08-13）
 
 v025のSHA-256 `40346dd9a9280b0d55ad25ba9bea4aaa296c3cd3ee386fb69bb702865904a15a`を実機へ再転送してもTITLE/version文字化けが再現したため、旧ROMだけを原因とする説明はv025について除外した。v027は通常ROMの`GAME_VERSION_STRING`を`0.53.6`へ更新し、TITLEへ固定literal assetの`L/R BIT TEST`（x=58,y=28）と、動的`static_layer_text()`の`A V 0 5 6`（x=62,y=34）を追加した。両方とも左右端bit・非対称glyphを含み、左右反転、1pixel欠落、行崩れ、全面欠落を実機LCDで分類できる。

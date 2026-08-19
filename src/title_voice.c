@@ -12,7 +12,7 @@
 #define TITLE_VOICE_CHUNK_SAMPLES 256u
 #define TITLE_VOICE_ADPCM_CHUNK_SIZE 128u
 
-static unsigned char adpcm_buffers[5][TITLE_VOICE_ADPCM_CHUNK_SIZE];
+unsigned char title_voice_scratch_buffer[5][TITLE_VOICE_ADPCM_CHUNK_SIZE];
 static unsigned staged_length;
 static unsigned char staged_buffer;
 static unsigned remaining_samples;
@@ -51,7 +51,7 @@ static void queue_staged_buffer(void)
         title_voice_stream_can_queue() == 0u) {
         return;
     }
-    title_voice_stream_set_queue_source(adpcm_buffers[staged_buffer]);
+    title_voice_stream_set_queue_source(title_voice_scratch_buffer[staged_buffer]);
     if (title_voice_stream_queue(staged_length) != 0u) {
         staged_length = 0u;
     } else {
@@ -84,33 +84,35 @@ static unsigned char voice_start(const char* file_name,
         return 0u;
     }
     remaining_samples = sample_count;
-    first_length = fill_buffer(adpcm_buffers[0]);
+    first_length = fill_buffer(title_voice_scratch_buffer[0]);
     if (first_length == 0u) {
         return 0u;
     }
-    title_voice_stream_set_source(adpcm_buffers[0]);
+    title_voice_stream_set_source(title_voice_scratch_buffer[0]);
 
-    second_length = fill_buffer(adpcm_buffers[1]);
+    second_length = fill_buffer(title_voice_scratch_buffer[1]);
     if (second_length != 0u) {
-        title_voice_stream_set_queue_source(adpcm_buffers[1]);
+        title_voice_stream_set_queue_source(title_voice_scratch_buffer[1]);
         if (title_voice_stream_queue(second_length) == 0u) {
             title_voice_stop();
             return 0u;
         }
         for (staged_buffer = 2u; staged_buffer < 4u; ++staged_buffer) {
-            staged_length = fill_buffer(adpcm_buffers[staged_buffer]);
+            staged_length = fill_buffer(
+                title_voice_scratch_buffer[staged_buffer]);
             if (staged_length == 0u) {
                 break;
             }
             title_voice_stream_set_queue_source(
-                adpcm_buffers[staged_buffer]);
+                title_voice_scratch_buffer[staged_buffer]);
             if (title_voice_stream_queue(staged_length) == 0u) {
                 title_voice_stop();
                 return 0u;
             }
         }
         staged_buffer = 4u;
-        staged_length = fill_buffer(adpcm_buffers[staged_buffer]);
+        staged_length = fill_buffer(
+            title_voice_scratch_buffer[staged_buffer]);
         next_buffer = 0u;
     } else {
         next_buffer = 2u;
@@ -139,7 +141,8 @@ void title_voice_pump(void)
     queue_staged_buffer();
     if (remaining_samples != 0u && staged_length == 0u) {
         staged_buffer = next_buffer;
-        staged_length = fill_buffer(adpcm_buffers[staged_buffer]);
+        staged_length = fill_buffer(
+            title_voice_scratch_buffer[staged_buffer]);
         ++next_buffer;
         if (next_buffer >= 5u) {
             next_buffer = 0u;

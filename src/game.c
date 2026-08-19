@@ -1476,8 +1476,8 @@ unsigned char game_logic_updates_for_draw_frame(unsigned int elapsed_vblanks,
 {
 #ifdef __CC65__
     /* The Lynx production scheduler has denominator 1, so its remainder is
-     * permanently zero. Keep the signed remainder API for host boundary
-     * tests, while using the smaller target path to preserve ROM/RAM headroom. */
+     * permanently zero. A bounded fixed-step loop deliberately discards
+     * excess credit instead of carrying it into a later outer loop. */
     (void)remainder;
     if (elapsed_vblanks >= GAME_LOGIC_UPDATES_MAX /
         GAME_LOGIC_UPDATES_NUMERATOR) {

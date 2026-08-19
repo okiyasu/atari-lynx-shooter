@@ -2895,8 +2895,24 @@ static void test_combatant_capacity_and_activity_contract(void)
 static void test_draw_frame_logic_scheduler(void)
 {
     GameState game;
+    static const unsigned int elapsed_values[] = {
+        0u, 1u, 3u, 4u, 31u, 153u, 65535u
+    };
+    static const unsigned char expected_logic[] = {
+        0u, 4u, 12u, 12u, 12u, 12u, 12u
+    };
+    static const unsigned int expected_sound[] = {
+        0u, 1u, 3u, 4u, 4u, 4u, 4u
+    };
+    static const unsigned long expected_logic_discard[] = {
+        0ul, 0ul, 0ul, 4ul, 112ul, 600ul, 262128ul
+    };
+    static const unsigned long expected_sound_discard[] = {
+        0ul, 0ul, 0ul, 0ul, 27ul, 149ul, 65531ul
+    };
     signed char remainder;
     unsigned char frame;
+    unsigned char sample;
     unsigned char update;
     unsigned char updates;
     unsigned int total_updates;
@@ -2911,12 +2927,12 @@ static void test_draw_frame_logic_scheduler(void)
     expect(game_logic_updates_for_draw_frame(1u, remainder) == 2u,
         "negative remainder is subtracted deterministically from one VBlank");
     remainder = 0;
-    expect(game_logic_updates_for_draw_frame(31u, remainder) == 124u &&
-        game_logic_updates_for_draw_frame(32u, remainder) == 128u &&
-        game_logic_updates_for_draw_frame(33u, remainder) == 128u,
-        "128-update clip has exact 31/32/33 VBlank boundary behavior");
+    expect(game_logic_updates_for_draw_frame(2u, remainder) == 8u &&
+        game_logic_updates_for_draw_frame(3u, remainder) == 12u &&
+        game_logic_updates_for_draw_frame(4u, remainder) == 12u,
+        "bounded logic cap has exact 2/3/4 VBlank boundary behavior");
     remainder = 7;
-    expect(game_logic_updates_for_draw_frame(65535u, remainder) == 128u,
+    expect(game_logic_updates_for_draw_frame(65535u, remainder) == 12u,
         "large elapsed VBlank values clip without unsigned wrap");
     expect(game_sound_ticks_for_draw_frame(0u) == 0u &&
         game_sound_ticks_for_draw_frame(1u) == 1u &&
@@ -2925,7 +2941,21 @@ static void test_draw_frame_logic_scheduler(void)
         game_sound_ticks_for_draw_frame(GAME_SOUND_TICKS_MAX + 1u) ==
             GAME_SOUND_TICKS_MAX &&
         game_sound_ticks_for_draw_frame(65535u) == GAME_SOUND_TICKS_MAX,
-        "sound ticks follow elapsed VBlanks with an explicit 2048-tick safety clip");
+        "sound ticks follow elapsed VBlanks with an explicit four-tick safety clip");
+
+    for (sample = 0u;
+        sample < (unsigned char)(sizeof(elapsed_values) /
+            sizeof(elapsed_values[0])); ++sample) {
+        expect(game_logic_updates_for_draw_frame(elapsed_values[sample], 0) ==
+                expected_logic[sample] &&
+            game_sound_ticks_for_draw_frame(elapsed_values[sample]) ==
+                expected_sound[sample] &&
+            GAME_LOGIC_DISCARD_FOR_ELAPSED(elapsed_values[sample]) ==
+                expected_logic_discard[sample] &&
+            GAME_SOUND_DISCARD_FOR_ELAPSED(elapsed_values[sample]) ==
+                expected_sound_discard[sample],
+            "bounded logic/sound credit, execution, and discard table matches");
+    }
 
     remainder = 0u;
     total_updates = 0u;
@@ -2958,6 +2988,16 @@ static void test_draw_frame_logic_scheduler(void)
         game.sound.bass_remaining == 105u &&
         game.sound.output_bgm.active != 0u,
         "75 draw frames run 300 logic updates, 75 sound ticks, and 300 BGM duration advances");
+
+    game_start(&game);
+    game.phase = GAME_PHASE_NORMAL;
+    disable_enemies_except(&game, GAME_MAX_ENEMIES);
+    for (update = 0u; update < game_logic_updates_for_draw_frame(1u, 0);
+        ++update) {
+        game_update_logic(&game, GAME_INPUT_FIRE);
+    }
+    expect(count_player_bullets(&game) == 1u,
+        "one outer-loop FIRE sample does not multiply-fire within bounded catch-up");
 }
 
 static void test_sound_initial_phase_and_fire_integration(void)

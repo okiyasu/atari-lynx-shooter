@@ -27,7 +27,8 @@ ROM_OBJECTS := build/cart_directory.o build/main.o build/static_layer.o \
 	$(COMMON_ROM_OBJECTS)
 CADENCE_OBJECTS := build/cart_directory.o build/main-cadence.o $(COMMON_ROM_OBJECTS) \
 	build/static_layer-cadence.o \
-	build/cadence_probe.o
+	build/cadence_probe.o \
+	build/scb_split_probe.o
 CADENCE_VARIANT_COMMON_OBJECTS := $(filter-out build/main-cadence.o,$(CADENCE_OBJECTS))
 MUSIC_DATA := $(GEN_DIR)/music_data.c
 STAGE_INPUT := assets/stages/stages.json
@@ -60,7 +61,7 @@ PERF_PAIR_COUNT := 7
 	phase-2r-display-profile-no-reinject-gearlynx \
 	phase-2r-catchup-causality-gearlynx \
 	phase-2r-bounded-catchup-gearlynx aps053-diagnostic-rom-gearlynx \
-	phase-3r-tick-calibration-gearlynx
+	phase-3r-tick-calibration-gearlynx phase-3r-gate-a-gearlynx
 
 all: verify
 
@@ -102,7 +103,7 @@ build/main.o: src/main.c include/game.h include/sound.h include/title_voice.h \
 build/main-cadence.o: src/main.c include/game.h include/sound.h \
 		include/title_voice.h include/version.h include/game_timing.h \
 		include/static_layer.h include/static_layer_data.h \
-		include/cadence_probe.h \
+		include/cadence_probe.h include/scb_split_probe.h \
 		$(GEN_DIR)/stage_data.h $(GEN_DIR)/sprite_data.h | toolchain
 	mkdir -p build
 	$(CL65) $(COMPACT_ROM_CFLAGS) -DCADENCE_PROBE -c -o $@ src/main.c
@@ -110,6 +111,10 @@ build/main-cadence.o: src/main.c include/game.h include/sound.h \
 build/cadence_probe.o: src/cadence_probe.s | toolchain
 	mkdir -p build
 	$(CL65) -t lynx -c -o $@ src/cadence_probe.s
+
+build/scb_split_probe.o: src/scb_split_probe.s | toolchain
+	mkdir -p build
+	$(CL65) -t lynx -c -o $@ src/scb_split_probe.s
 
 build/game_timing.o: src/game_timing.s include/game_timing.h | toolchain
 	mkdir -p build
@@ -273,6 +278,15 @@ frame-cadence-gearlynx: $(ROM) $(CADENCE_ROM)
 		--normal-symbols build/asteroid-patrol.lbl \
 		--normal-map build/asteroid-patrol.map \
 		--output evidence/APS-052/logic-catchup-gearlynx.json
+
+phase-3r-gate-a-gearlynx: $(ROM) $(CADENCE_ROM)
+	./scripts/verify-phase-3r-gate-a-full-fixture-gearlynx.py \
+		--rom $(CADENCE_ROM) \
+		--symbols build/asteroid-patrol-cadence.lbl \
+		--cadence-map build/asteroid-patrol-cadence.map \
+		--release-map build/asteroid-patrol.map \
+		--release-rom $(ROM) \
+		--output evidence/APS-053/phase-3r-gate-a-full-fixture.json
 
 $(CADENCE_VARIANT_A_ROM): build/main-cadence-v-a.o $(CADENCE_VARIANT_COMMON_OBJECTS) | toolchain
 	mkdir -p dist build
