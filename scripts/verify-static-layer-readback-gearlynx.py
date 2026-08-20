@@ -48,8 +48,12 @@ SCRATCH_SCBS = MAX_SCBS * SCB_SIZE
 # Worst case build_text_line() output: 7 rows * (1 header + 15 pixel bytes)
 # + 1 terminator, matching TEXT_DATA_SIZE in src/static_layer.c (APS-053 T1
 # unified the HUD onto the 5x7 build_text_line() path).
-HUD_DATA_MAX_SIZE = 113
-HUD_WIDTH = 20 * (5 + 1)
+# v049 (Path B, .briefs/APS-053/v048.md/v049.md Fable5 design): HUD cells
+# are 8px wide (1 byte/cell, no byte-boundary straddling), not
+# build_text_line()'s 6px pitch -- HUD_DATA is now 7*(1+20)+1 = 148 bytes
+# (was 7*(1+15)+1 = 113), width 20*8 = 160px (was 120px).
+HUD_DATA_MAX_SIZE = 148
+HUD_WIDTH = 20 * 8
 HUD_HEIGHT = 7
 SCB_SPRCTL0 = 0
 SCB_SPRCTL1 = 1

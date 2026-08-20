@@ -14,7 +14,7 @@
   "phase": "2R-2",
   "rom": {
     "path": "dist/asteroid-patrol.lnx",
-    "sha256": "4062b1c982e0994b27b5dcafb75fc406f60a7de88495bc3829fe5de18f96fcfa"
+    "sha256": "0c0fc469ab84d46cf8529a16d99f10f354ba2b45aa853cabb207f9a896a73630"
   },
   "stages": [
     {
@@ -24,7 +24,7 @@
         "dispadr": {
           "cpu_address": "0xE018",
           "png": "stage1-dispadr.png",
-          "png_sha256": "59d0dd6c192015903744fb53be092328e7f6c4c93dc7d06060b6201e0af6a3d5"
+          "png_sha256": "c33ab9e964a8d8a06419ee6c29ecd7cc255cfd6de75041a5e0f8466663eb31b7"
         },
         "dispadr_rgba_histogram": {
           "(0, 0, 0, 255)": 15368,
@@ -38,12 +38,12 @@
         "page_size": 8160,
         "screenshot": {
           "png": "stage1-screen.png",
-          "png_sha256": "59d0dd6c192015903744fb53be092328e7f6c4c93dc7d06060b6201e0af6a3d5"
+          "png_sha256": "c33ab9e964a8d8a06419ee6c29ecd7cc255cfd6de75041a5e0f8466663eb31b7"
         },
         "vidbas": {
           "cpu_address": "0xC038",
           "png": "stage1-vidbas.png",
-          "png_sha256": "59d0dd6c192015903744fb53be092328e7f6c4c93dc7d06060b6201e0af6a3d5"
+          "png_sha256": "c33ab9e964a8d8a06419ee6c29ecd7cc255cfd6de75041a5e0f8466663eb31b7"
         },
         "vidbas_rgba_histogram": {
           "(0, 0, 0, 255)": 15368,
@@ -53,7 +53,7 @@
           "(51, 17, 17, 255)": 598
         }
       },
-      "expected_index_sha256": "7a1216b0c3e01379e86c9316886c647c2d6bf9221b52e0cbb49617957e6718c2",
+      "expected_index_sha256": "c93e84a0ecf74da64fcce8fb37828b0ccfd08c23277845d6b17cd2b1606ae7e9",
       "palette_rgba_map": {
         "0": [
           0,
@@ -155,11 +155,11 @@
       "passed": true,
       "scb_chain": [
         {
-          "address": 42193,
-          "data": 40299,
+          "address": 44778,
+          "data": 42223,
           "hpos": 0,
           "hsize": 40960,
-          "next": 42216,
+          "next": 44801,
           "penpal": [
             0,
             0,
@@ -177,11 +177,11 @@
           "vsize": 26112
         },
         {
-          "address": 42216,
-          "data": 42844,
+          "address": 44801,
+          "data": 45429,
           "hpos": 120,
           "hsize": 256,
-          "next": 42239,
+          "next": 44824,
           "penpal": [
             1,
             48,
@@ -199,11 +199,11 @@
           "vsize": 256
         },
         {
-          "address": 42239,
-          "data": 42941,
+          "address": 44824,
+          "data": 45526,
           "hpos": 4,
           "hsize": 256,
-          "next": 42262,
+          "next": 44847,
           "penpal": [
             3,
             48,
@@ -221,11 +221,11 @@
           "vsize": 256
         },
         {
-          "address": 42262,
-          "data": 42941,
+          "address": 44847,
+          "data": 45526,
           "hpos": 19,
           "hsize": 256,
-          "next": 42285,
+          "next": 44870,
           "penpal": [
             3,
             48,
@@ -243,11 +243,11 @@
           "vsize": 256
         },
         {
-          "address": 42285,
-          "data": 42941,
+          "address": 44870,
+          "data": 45526,
           "hpos": 37,
           "hsize": 256,
-          "next": 42308,
+          "next": 44893,
           "penpal": [
             3,
             48,
@@ -265,11 +265,11 @@
           "vsize": 256
         },
         {
-          "address": 42308,
-          "data": 42941,
+          "address": 44893,
+          "data": 45526,
           "hpos": 55,
           "hsize": 256,
-          "next": 42331,
+          "next": 44916,
           "penpal": [
             3,
             48,
@@ -287,11 +287,11 @@
           "vsize": 256
         },
         {
-          "address": 42331,
-          "data": 42941,
+          "address": 44916,
+          "data": 45526,
           "hpos": 74,
           "hsize": 256,
-          "next": 42354,
+          "next": 44939,
           "penpal": [
             3,
             48,
@@ -309,11 +309,11 @@
           "vsize": 256
         },
         {
-          "address": 42354,
-          "data": 42941,
+          "address": 44939,
+          "data": 45526,
           "hpos": 91,
           "hsize": 256,
-          "next": 42377,
+          "next": 44962,
           "penpal": [
             3,
             48,
@@ -331,11 +331,11 @@
           "vsize": 256
         },
         {
-          "address": 42377,
-          "data": 42941,
+          "address": 44962,
+          "data": 45526,
           "hpos": 108,
           "hsize": 256,
-          "next": 42400,
+          "next": 44985,
           "penpal": [
             3,
             48,
@@ -353,11 +353,11 @@
           "vsize": 256
         },
         {
-          "address": 42400,
-          "data": 42941,
+          "address": 44985,
+          "data": 45526,
           "hpos": 127,
           "hsize": 256,
-          "next": 42423,
+          "next": 45008,
           "penpal": [
             3,
             48,
@@ -375,11 +375,11 @@
           "vsize": 256
         },
         {
-          "address": 42423,
-          "data": 42941,
+          "address": 45008,
+          "data": 45526,
           "hpos": 143,
           "hsize": 256,
-          "next": 42446,
+          "next": 45031,
           "penpal": [
             3,
             48,
@@ -397,11 +397,11 @@
           "vsize": 256
         },
         {
-          "address": 42446,
-          "data": 42941,
+          "address": 45031,
+          "data": 45526,
           "hpos": 155,
           "hsize": 256,
-          "next": 42469,
+          "next": 45054,
           "penpal": [
             3,
             48,
@@ -419,11 +419,11 @@
           "vsize": 256
         },
         {
-          "address": 42469,
-          "data": 42945,
+          "address": 45054,
+          "data": 45530,
           "hpos": 11,
           "hsize": 256,
-          "next": 42492,
+          "next": 45077,
           "penpal": [
             4,
             64,
@@ -441,11 +441,11 @@
           "vsize": 256
         },
         {
-          "address": 42492,
-          "data": 42945,
+          "address": 45077,
+          "data": 45530,
           "hpos": 33,
           "hsize": 256,
-          "next": 42515,
+          "next": 45100,
           "penpal": [
             4,
             64,
@@ -463,11 +463,11 @@
           "vsize": 256
         },
         {
-          "address": 42515,
-          "data": 42945,
+          "address": 45100,
+          "data": 45530,
           "hpos": 58,
           "hsize": 256,
-          "next": 42538,
+          "next": 45123,
           "penpal": [
             4,
             64,
@@ -485,11 +485,11 @@
           "vsize": 256
         },
         {
-          "address": 42538,
-          "data": 42945,
+          "address": 45123,
+          "data": 45530,
           "hpos": 82,
           "hsize": 256,
-          "next": 42561,
+          "next": 45146,
           "penpal": [
             4,
             64,
@@ -507,11 +507,11 @@
           "vsize": 256
         },
         {
-          "address": 42561,
-          "data": 42945,
+          "address": 45146,
+          "data": 45530,
           "hpos": 106,
           "hsize": 256,
-          "next": 42584,
+          "next": 45169,
           "penpal": [
             4,
             64,
@@ -529,11 +529,11 @@
           "vsize": 256
         },
         {
-          "address": 42584,
-          "data": 42945,
+          "address": 45169,
+          "data": 45530,
           "hpos": 132,
           "hsize": 256,
-          "next": 42607,
+          "next": 45192,
           "penpal": [
             4,
             64,
@@ -551,11 +551,11 @@
           "vsize": 256
         },
         {
-          "address": 42607,
-          "data": 42945,
+          "address": 45192,
+          "data": 45530,
           "hpos": 151,
           "hsize": 256,
-          "next": 42630,
+          "next": 45215,
           "penpal": [
             4,
             64,
@@ -573,11 +573,11 @@
           "vsize": 256
         },
         {
-          "address": 42630,
-          "data": 42676,
-          "hpos": 2,
+          "address": 45215,
+          "data": 45261,
+          "hpos": 0,
           "hsize": 256,
-          "next": 42653,
+          "next": 45238,
           "penpal": [
             15,
             240,
@@ -595,8 +595,8 @@
           "vsize": 256
         },
         {
-          "address": 42653,
-          "data": 40299,
+          "address": 45238,
+          "data": 42223,
           "hpos": 0,
           "hsize": 256,
           "next": 0,
@@ -627,7 +627,7 @@
         "dispadr": {
           "cpu_address": "0xE018",
           "png": "stage2-dispadr.png",
-          "png_sha256": "e0697c4dc778a89523381f1397b766a48028374987d355965eb8ced2f8f50a4b"
+          "png_sha256": "b25e7385e9951e85369cffe91a2e33c49018081a7148aea3331dabc7186a309d"
         },
         "dispadr_rgba_histogram": {
           "(102, 34, 68, 255)": 1574,
@@ -641,12 +641,12 @@
         "page_size": 8160,
         "screenshot": {
           "png": "stage2-screen.png",
-          "png_sha256": "e0697c4dc778a89523381f1397b766a48028374987d355965eb8ced2f8f50a4b"
+          "png_sha256": "b25e7385e9951e85369cffe91a2e33c49018081a7148aea3331dabc7186a309d"
         },
         "vidbas": {
           "cpu_address": "0xC038",
           "png": "stage2-vidbas.png",
-          "png_sha256": "e0697c4dc778a89523381f1397b766a48028374987d355965eb8ced2f8f50a4b"
+          "png_sha256": "b25e7385e9951e85369cffe91a2e33c49018081a7148aea3331dabc7186a309d"
         },
         "vidbas_rgba_histogram": {
           "(102, 34, 68, 255)": 1574,
@@ -656,7 +656,7 @@
           "(34, 17, 0, 255)": 13582
         }
       },
-      "expected_index_sha256": "7402abad55d0d4e150946feaf7625888cc2ac699c8ef8dd0c2830f7dd1656484",
+      "expected_index_sha256": "abe6ea3b51a193ce97227d0a5b3b043564f796a2da2f24918bf8ba8af7809dd7",
       "palette_rgba_map": {
         "0": [
           34,
@@ -758,11 +758,11 @@
       "passed": true,
       "scb_chain": [
         {
-          "address": 42193,
-          "data": 40299,
+          "address": 44778,
+          "data": 42223,
           "hpos": 0,
           "hsize": 40960,
-          "next": 42216,
+          "next": 44801,
           "penpal": [
             0,
             0,
@@ -780,11 +780,11 @@
           "vsize": 26112
         },
         {
-          "address": 42216,
-          "data": 42844,
+          "address": 44801,
+          "data": 45429,
           "hpos": 0,
           "hsize": 256,
-          "next": 42239,
+          "next": 44824,
           "penpal": [
             1,
             16,
@@ -802,11 +802,11 @@
           "vsize": 256
         },
         {
-          "address": 42239,
-          "data": 42844,
+          "address": 44824,
+          "data": 45429,
           "hpos": 192,
           "hsize": 256,
-          "next": 42262,
+          "next": 44847,
           "penpal": [
             1,
             16,
@@ -824,11 +824,11 @@
           "vsize": 256
         },
         {
-          "address": 42262,
-          "data": 43033,
+          "address": 44847,
+          "data": 45618,
           "hpos": 0,
           "hsize": 256,
-          "next": 42285,
+          "next": 44870,
           "penpal": [
             3,
             48,
@@ -846,11 +846,11 @@
           "vsize": 256
         },
         {
-          "address": 42285,
-          "data": 43033,
+          "address": 44870,
+          "data": 45618,
           "hpos": 160,
           "hsize": 256,
-          "next": 42308,
+          "next": 44893,
           "penpal": [
             3,
             48,
@@ -868,11 +868,11 @@
           "vsize": 256
         },
         {
-          "address": 42308,
-          "data": 43303,
+          "address": 44893,
+          "data": 45888,
           "hpos": 0,
           "hsize": 256,
-          "next": 42331,
+          "next": 44916,
           "penpal": [
             4,
             64,
@@ -890,11 +890,11 @@
           "vsize": 256
         },
         {
-          "address": 42331,
-          "data": 43303,
+          "address": 44916,
+          "data": 45888,
           "hpos": 160,
           "hsize": 256,
-          "next": 42354,
+          "next": 44939,
           "penpal": [
             4,
             64,
@@ -912,11 +912,11 @@
           "vsize": 256
         },
         {
-          "address": 42354,
-          "data": 42676,
-          "hpos": 2,
+          "address": 44939,
+          "data": 45261,
+          "hpos": 0,
           "hsize": 256,
-          "next": 42377,
+          "next": 44962,
           "penpal": [
             15,
             240,
@@ -934,8 +934,8 @@
           "vsize": 256
         },
         {
-          "address": 42377,
-          "data": 40299,
+          "address": 44962,
+          "data": 42223,
           "hpos": 0,
           "hsize": 256,
           "next": 0,
@@ -966,7 +966,7 @@
         "dispadr": {
           "cpu_address": "0xE018",
           "png": "stage3-dispadr.png",
-          "png_sha256": "42f24d96d1bff4d10cc80a661b34b70137e82e0f4ae1920c7f60b9baecaea245"
+          "png_sha256": "18647588b4215b4c8578fca109f711f08d2740f756e9ed063fb80f36f6abab69"
         },
         "dispadr_rgba_histogram": {
           "(102, 68, 85, 255)": 1383,
@@ -980,12 +980,12 @@
         "page_size": 8160,
         "screenshot": {
           "png": "stage3-screen.png",
-          "png_sha256": "42f24d96d1bff4d10cc80a661b34b70137e82e0f4ae1920c7f60b9baecaea245"
+          "png_sha256": "18647588b4215b4c8578fca109f711f08d2740f756e9ed063fb80f36f6abab69"
         },
         "vidbas": {
           "cpu_address": "0xC038",
           "png": "stage3-vidbas.png",
-          "png_sha256": "42f24d96d1bff4d10cc80a661b34b70137e82e0f4ae1920c7f60b9baecaea245"
+          "png_sha256": "18647588b4215b4c8578fca109f711f08d2740f756e9ed063fb80f36f6abab69"
         },
         "vidbas_rgba_histogram": {
           "(102, 68, 85, 255)": 1383,
@@ -995,7 +995,7 @@
           "(51, 34, 34, 255)": 128
         }
       },
-      "expected_index_sha256": "0d064d4d982d77e4771f37e08e1bf1277d7b8578bd6227de1c475c36f19986f8",
+      "expected_index_sha256": "9933586e59f352e96d58ec4cf2982973e04f1e046365193de5da1cc7130db24b",
       "palette_rgba_map": {
         "0": [
           17,
@@ -1097,11 +1097,11 @@
       "passed": true,
       "scb_chain": [
         {
-          "address": 42193,
-          "data": 40299,
+          "address": 44778,
+          "data": 42223,
           "hpos": 0,
           "hsize": 40960,
-          "next": 42216,
+          "next": 44801,
           "penpal": [
             0,
             0,
@@ -1119,11 +1119,11 @@
           "vsize": 26112
         },
         {
-          "address": 42216,
-          "data": 42844,
+          "address": 44801,
+          "data": 45429,
           "hpos": 0,
           "hsize": 256,
-          "next": 42239,
+          "next": 44824,
           "penpal": [
             1,
             16,
@@ -1141,11 +1141,11 @@
           "vsize": 256
         },
         {
-          "address": 42239,
-          "data": 42844,
+          "address": 44824,
+          "data": 45429,
           "hpos": 192,
           "hsize": 256,
-          "next": 42262,
+          "next": 44847,
           "penpal": [
             1,
             16,
@@ -1163,11 +1163,11 @@
           "vsize": 256
         },
         {
-          "address": 42262,
-          "data": 43108,
+          "address": 44847,
+          "data": 45693,
           "hpos": 0,
           "hsize": 256,
-          "next": 42285,
+          "next": 44870,
           "penpal": [
             3,
             48,
@@ -1185,11 +1185,11 @@
           "vsize": 256
         },
         {
-          "address": 42285,
-          "data": 43108,
+          "address": 44870,
+          "data": 45693,
           "hpos": 160,
           "hsize": 256,
-          "next": 42308,
+          "next": 44893,
           "penpal": [
             3,
             48,
@@ -1207,11 +1207,11 @@
           "vsize": 256
         },
         {
-          "address": 42308,
-          "data": 43448,
+          "address": 44893,
+          "data": 46033,
           "hpos": 0,
           "hsize": 256,
-          "next": 42331,
+          "next": 44916,
           "penpal": [
             4,
             64,
@@ -1229,11 +1229,11 @@
           "vsize": 256
         },
         {
-          "address": 42331,
-          "data": 43448,
+          "address": 44916,
+          "data": 46033,
           "hpos": 160,
           "hsize": 256,
-          "next": 42354,
+          "next": 44939,
           "penpal": [
             4,
             64,
@@ -1251,11 +1251,11 @@
           "vsize": 256
         },
         {
-          "address": 42354,
-          "data": 42676,
-          "hpos": 2,
+          "address": 44939,
+          "data": 45261,
+          "hpos": 0,
           "hsize": 256,
-          "next": 42377,
+          "next": 44962,
           "penpal": [
             15,
             240,
@@ -1273,8 +1273,8 @@
           "vsize": 256
         },
         {
-          "address": 42377,
-          "data": 40299,
+          "address": 44962,
+          "data": 42223,
           "hpos": 0,
           "hsize": 256,
           "next": 0,
@@ -1299,5 +1299,5 @@
       "stage": 3
     }
   ],
-  "version": "0.53.11"
+  "version": "0.53.15"
 }

@@ -1,6 +1,29 @@
 # ISSUES
 
-最終更新: 2026-08-19(APS-053 v047: gate(a)全体セクション別内訳を分解・計測。SCB外残り約9VBlankの正体は**static_layer_draw内のSCB構築処理(E1)が全体の77%(7.8VBlank)** と判明。Phase 3R2はここで完了、Phase 2R側SCB構築最適化を次の課題として起票、着手は別途指示待ち。)
+最終更新: 2026-08-20(APS-053 v047〜v049: Phase 2R側 append_hud(HUD再構築)最適化 完了。E1c 7.28VBlank(フレーム全体の72%)→0.383VBlank達成。gate(a)全体 10.1VBlank→3.13VBlank。gate(d) release余剰673B/cadence余剰537B達成。HUD表示は8pxピッチへ視覚変更(ユーザー承認済み)。)
+
+### APS-053 v047〜v049: append_hud(HUD再構築)差分更新化 — E1c 7.28VB→0.38VB達成（2026-08-20）
+
+- 状態: **実装完了**。v047でgate(a)全体のセクション別内訳を計測した結果、SCB外の残り約9VBlankのうち`append_hud`(HUDのスコア/タイマー/ステージ等テキスト再構築)が単独で7.28VBlank(フレーム全体の72%)を占めることが判明。旧実装は毎フレーム`build_text_line`で20文字×7行×5列=700回のビット演算ループを無条件フル再構築していた。
+- **Fable5設計判断(v047)**: 生成アセンブリの命令単位解析で、内側ピクセルループ(ランタイム可変シフト+`staspidx`経由のRMW)が支配的コスト(55〜70%)と特定。対策として「グリフセル単位の差分更新」(前フレームのテキストと比較し、変化したセルだけ再ブリット)を設計。
+- **1回目の実装(6pxピッチ)**: build_text_lineと同じ6px/セルの窓でセル差分更新を実装し、E1cを7.276VB→0.536VBまで削減。正確性検証用に新規ハーネス`scripts/verify-hud-diff-gearlynx.py`(独立実装したbuild_text_line相当のPythonデコーダとの突き合わせ)を追加し、複数フレームにわたる差分更新の正確性を確認。実装過程で既存設計の潜在バグ(`static_layer_text`のオーバーレイテキストがHUD_DATA領域を直接上書きする既存仕様と、新しい差分更新方式の非互換)を発見・修正(`static_layer_text`がHUD_DATAを使うたびに強制全再構築フラグを立てる)。
+- **gate(d)未達とFable5再設計(v048/v049)**: 6pxピッチ実装は`static_layer.o`のCODEを+776B肥大化させ、gate(d)(release/cadence双方≥512B)を大きく下回った(release余剰182B、cadence余剰46B)。原因はセルが6pxピッチでバイト境界をまたぐため4パターンのread-modify-writeが必要だったこと。Fable5の設計判断により「HUDを8pxピッチ化(1セル=1バイト完全所有、RMW排除)」するPath Bを採用(視覚変更を伴うためユーザー承認取得: 字間1px→3px、HUD幅120px→160px全幅)。あわせてgate(d)基準をユーザー承認のうえ改定(cadenceは診断専用の非出荷ビルドのため≥512B→≥128Bへ緩和、releaseの≥512Bは維持)。
+- 8pxピッチ実装後もgate(d)にわずかに届かず(release余剰484B)、Fable5がさらに行別バイト集計で「フェーズ文字の5段三項演算子チェーン(96B)」「`text`のstatic化余地」を特定。フェーズ文字を7要素の定数テーブル(`GAME_PHASE_*`は0〜6の連続値)に置き換え、`text`をstatic変数化(初期化子で定数セルを永続的に保持、可変セルのみ書き換え、スコア不変時の復元コピーも不要に)して最終的にrelease余剰**673B**、cadence余剰**537B**を達成。
+- **自己判断で試して逆効果だった3件**(生成アセンブリを見ずにC言語レベルで「軽くなるはず」と判断したもの、教訓として記録): (1) `index*7`の乗算をループ外に汲み出しポインタ歩行化→+43B(ポインタがソフトスタック局所変数になり`++ptr`のたびに約20B展開されるため)、(2) 5バイトの`memcpy`を手動ループに戻す→+19B(固定長小コピーは`memcpy`呼び出しの方が小さい)、(3) 全再構築ループと差分ループを`0xFF`埋めで統合→+62B(消える分岐本体より新設コードの方が大きかった)。cc65のコード生成は「削った抽象の代わりに現れるコードがソフトスタック上で展開される」という共通パターンで太る。
+- **計測結果**:
+  - gate(a) breakdown(cadence版、full fixture): E1c(`append_hud`) **7.276VB→0.383VB**。フレーム全体**10.108VB→3.127VB**。
+  - gate(b): 13スプライト×2フレーム=26パターン全PASS。
+  - gate(d): release余剰**673B**(≥512B達成)、cadence余剰**537B**(緩和後基準≥128B達成)。
+  - `verify-hud-diff-gearlynx.py`: 初回フレーム・変化なしフレーム・タイマー下1桁変化・スコア桁上がり・文字セル変化の全8シナリオPASS。
+  - `verify-static-layer-readback-gearlynx.py`: 全stage(1-3)PASS(HUD表示の視覚変更によりSHA256は変化、想定通り)。
+  - `make clean && ./scripts/verify.sh`: 全PASS。
+- artifact: `include/version.h`の`GAME_VERSION_STRING`を`0.53.15`→`0.53.16`へ更新。
+- 検証コマンド: `make clean && ./scripts/verify.sh`、`make dist/asteroid-patrol.lnx`、`make dist/asteroid-patrol-cadence.lnx`、`python3 scripts/verify-phase-3r-frame-breakdown-gearlynx.py`、`python3 scripts/verify-hud-diff-gearlynx.py`、`make static-layer-readback-gearlynx`、`python3 scripts/verify-movable-sprite-gate-b-gearlynx.py`。
+- 設計判断の経緯は`.briefs/APS-053/v047.md`〜`v049.md`(Fable5回答3件を含む)。
+- 触っていない範囲: 既存WIP(`include/cadence_probe.h`、`src/game.c`のcatch-up制限マクロ差分、`src/title_voice.c`、`scripts/calibrate-cadence-ticks-gearlynx.py`等)、movable SCBチェーン(Phase 3R2、完了済みのためスコープ外)、`build_text_line`関数自体(`static_layer_text`からも呼ばれる汎用関数、変更なし)。
+- **次のアクション**: gate(a)全体(2VBlank以下)の最終合否は、残りのセクション(E1b背景レイヤー、B/Cロジック・サウンド処理等)への対応が必要なため未確定。次の調査課題として別途扱う。
+
+### APS-053 v047: gate(a)全体セクション別内訳の分解・計測 — Phase 2R側SCB構築(E1=7.8VBlank)がボトルネックと判明（2026-08-19、次の課題・未着手）
 
 ### APS-053 v047: gate(a)全体セクション別内訳の分解・計測 — Phase 2R側SCB構築(E1=7.8VBlank)がボトルネックと判明（2026-08-19、次の課題・未着手）
 

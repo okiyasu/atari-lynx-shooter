@@ -291,39 +291,150 @@ static void build_text_line(const char* text)
 }
 #undef TEXT_OUTPUT
 
+/* v048 (see .briefs/APS-053/v047.md, Fable5 design review): append_hud's
+ * text is always a fixed 20-character line, so build_text_line's full
+ * 700-iteration (7 rows x 20 chars x 5 columns) rebuild -- gate(a)'s
+ * largest single measured cost at 7.28VBlank/72% of the frame -- redrew
+ * every glyph every frame regardless of whether it changed. This block
+ * replaces that path (for HUD only) with per-cell diffing against the
+ * previous frame's text: only glyphs that actually changed are
+ * re-blitted (typically 0-2 cells/frame, e.g. the countdown timer's last
+ * digit). build_text_line itself is untouched and still used by
+ * static_layer_text() (WARNING/GAME OVER/etc., variable-length, not a
+ * per-frame hot path).
+ *
+ * Cell layout, Path B (see .briefs/APS-053/v048.md, Fable5 design
+ * review): a first cut at 6px/cell (build_text_line's own pitch) put 2
+ * of every 4 cells straddling a byte boundary, needing a 4-way switch of
+ * read-modify-write bit ops per cell -- +776B of CODE, mostly that
+ * switch (measured, not the diffing approach itself). Re-laid the HUD
+ * out at 8px/cell instead: 20 cells x 8px = 160px = the full screen
+ * width, so every cell owns one whole byte -- no straddling, no RMW, no
+ * per-cell offset table. Each cell's glyph occupies the byte's upper 5
+ * bits (bit7..bit3, matching build_text_line's column0..column4
+ * MSB-first order) with the lower 3 bits as a wider spacer. Row stride
+ * is HUD_ROW_BYTES = 1 header + 20 pixel bytes = 21; the full buffer is
+ * 7*21+1 = 148 bytes (was 113 at 6px/cell), still inside
+ * title_voice_scratch_buffer's HUD_DATA span (scratch+483..631 of 640
+ * available -- see HUD_DATA's definition above).
+ *
+ * Visual change (user-approved, .briefs/APS-053/v048.md): character
+ * spacing widens from 1px to 3px and the HUD line now spans the full
+ * screen width (append_hud's append_scb call below moved from x=2 to
+ * x=0 accordingly) instead of 120px starting at x=2. */
+#define HUD_TEXT_LENGTH 20u
+#define HUD_ROW_BYTES 21u  /* 1 header byte + 20 pixel bytes (8px/cell) */
+
+/* v049 (Fable5 design review): static instead of a stack-local `char
+ * text[21]` inside append_hud, for three compounding reasons verified by
+ * function-size measurement: (1) the 7 constant cells baked in below
+ * ('S'/' '/'L'/'W'/etc.) never need rewriting every frame -- 8 removed
+ * assignments; (2) every hud_text[i] access compiles to absolute
+ * addressing instead of stack-relative, shrinking each digit-loop store
+ * and the function's stack frame; (3) the unscored-frame restore-copy
+ * that used to pull hud_prev_text[9..13] back into a fresh local buffer
+ * is gone entirely -- hud_text already still holds last frame's score
+ * digits because nothing local resets it. The initializer's layout must
+ * match append_hud's field assignments exactly (see that function). */
+static char hud_text[HUD_TEXT_LENGTH + 1u] = "S0 N0000 00000 L0 W0";
+static char hud_prev_text[HUD_TEXT_LENGTH + 1u];
+/* 0 forces a full rebuild on the next append_hud call: startup, and any
+ * frame where static_layer_draw's voice-idle guard skipped drawing (the
+ * shared scratch buffer HUD_DATA aliases may have been reused for voice
+ * playback in the meantime -- see static_layer_draw). */
+static unsigned char hud_prev_valid;
+static unsigned long hud_prev_score;
+
+static void hud_rebuild_skeleton(void)
+{
+    unsigned char row;
+    unsigned char* p = HUD_DATA;
+
+    memset(p, 0, (unsigned int)HUD_ROW_BYTES * STATIC_LAYER_FONT_HEIGHT +
+        1u);
+    for (row = 0u; row < STATIC_LAYER_FONT_HEIGHT; ++row) {
+        *p = (unsigned char)HUD_ROW_BYTES;
+        p += HUD_ROW_BYTES;
+    }
+}
+
+static void write_hud_cell(unsigned char cell, char glyph)
+{
+    unsigned char row;
+    unsigned char index;
+    unsigned char* dst;
+
+    index = text_font_index(glyph);
+    dst = HUD_DATA + 1u + cell;
+    for (row = 0u; row < STATIC_LAYER_FONT_HEIGHT; ++row) {
+        *dst = index < STATIC_LAYER_FONT_COUNT ?
+            (unsigned char)(static_layer_font_bits[index *
+                STATIC_LAYER_FONT_HEIGHT + row] << 3) : 0u;
+        dst += HUD_ROW_BYTES;
+    }
+}
+
+/* v049 (see .briefs/APS-053/v049.md, Fable5 design review): indexed by
+ * GAME_PHASE_* (0..6, contiguous), replacing a 5-branch ternary chain
+ * that reloaded and compared game->phase at every step (~96B measured)
+ * with a single load + table lookup + store (~15B) at the one call site
+ * that needs it. GAME_PHASE_TITLE (6) never reaches append_hud (draw_game
+ * returns before calling static_layer_draw(game, ...) when
+ * game->phase == GAME_PHASE_TITLE), but the table still covers all 7
+ * values so an out-of-range read is structurally impossible rather than
+ * relying on that invariant. */
+static const char hud_phase_char[7] = { 'I', 'N', 'W', 'B', 'C', 'A', 'A' };
+
 static void append_hud(const GameState* game)
 {
-    char text[21];
     unsigned char i;
-    unsigned long score_value;
     unsigned int timer_value;
 
-    score_value = game->score;
-    for (i = 5u; i != 0u; --i) {
-        text[8u + i] = (char)('0' + score_value % 10ul);
-        score_value /= 10ul;
+    /* Score's decimal digits require an unsigned long (32-bit) division/
+     * modulo chain (5 iterations); v047 Fable5 review measured this at
+     * ~4-5% of append_hud's pre-optimization cost -- worth skipping when
+     * the score hasn't changed since last frame (it changes on kills/
+     * pickups, not every frame). hud_text being static (see its
+     * declaration) means the digits from the last time the score did
+     * change are simply still sitting there; no restore-copy needed. */
+    if (game->score != hud_prev_score) {
+        unsigned long score_value = game->score;
+
+        for (i = 5u; i != 0u; --i) {
+            hud_text[8u + i] = (char)('0' + score_value % 10ul);
+            score_value /= 10ul;
+        }
+        hud_prev_score = game->score;
     }
     timer_value = game->phase_timer;
     for (i = 4u; i != 0u; --i) {
-        text[3u + i] = (char)('0' + timer_value % 10u);
+        hud_text[3u + i] = (char)('0' + timer_value % 10u);
         timer_value /= 10u;
     }
-    text[0] = 'S'; text[1] = (char)('0' + game->stage); text[2] = ' ';
-    text[3] = game->phase == GAME_PHASE_NORMAL ? 'N' :
-        game->phase == GAME_PHASE_BOSS ? 'B' :
-        game->phase == GAME_PHASE_STAGE_INTRO ? 'I' :
-        game->phase == GAME_PHASE_WARNING ? 'W' :
-        game->phase == GAME_PHASE_STAGE_CLEAR ? 'C' : 'A';
-    text[8] = ' ';
-    text[14] = ' '; text[15] = 'L';
-    text[16] = (char)('0' + game->lives); text[17] = ' '; text[18] = 'W';
-    text[19] = (char)('0' + game->weapon_level); text[20] = '\0';
-#ifndef CADENCE_PROBE
-    build_text_line(HUD_DATA, text);
-#else
-    build_text_line(text);
-#endif
-    append_scb(HUD_DATA, 2, 2, WHITE);
+    /* hud_text[0]='S', [2]=' ', [8]=' ', [14]=' ', [15]='L', [17]=' ',
+     * [18]='W' are baked into hud_text's static initializer below and
+     * never need rewriting -- they can't change. */
+    hud_text[1] = (char)('0' + game->stage);
+    hud_text[3] = hud_phase_char[game->phase];
+    hud_text[16] = (char)('0' + game->lives);
+    hud_text[19] = (char)('0' + game->weapon_level);
+
+    if (hud_prev_valid == 0u) {
+        hud_rebuild_skeleton();
+        for (i = 0u; i < HUD_TEXT_LENGTH; ++i) {
+            write_hud_cell(i, hud_text[i]);
+        }
+        hud_prev_valid = 1u;
+    } else {
+        for (i = 0u; i < HUD_TEXT_LENGTH; ++i) {
+            if (hud_text[i] != hud_prev_text[i]) {
+                write_hud_cell(i, hud_text[i]);
+            }
+        }
+    }
+    memcpy(hud_prev_text, hud_text, HUD_TEXT_LENGTH + 1u);
+
+    append_scb(HUD_DATA, 0, 2, WHITE);
     SCBS[scb_count - 1u].sprctl1 = (unsigned char)(LITERAL | REHV);
     append_scb(static_layer_clear_data, 0, GAME_HUD_HEIGHT - 1u, NEAR_STAR);
 }
@@ -373,9 +484,22 @@ void static_layer_text(int x, int y, const char* text, unsigned char color)
     if (title_voice_is_playing() != 0u) return;
 #ifndef CADENCE_PROBE
     if (title_text_queue != 0u && text_layer_buffer_index >= 2u) return;
+    /* v048: static_layer_text() reuses HUD_DATA itself whenever this is
+     * the first queued string this layer (text_layer_buffer_index==0,
+     * always true for in-game overlays like WARNING/STAGE CLEAR since
+     * title_text_queue==0 there, see draw_phase_overlay in main.c) --
+     * that overwrites whatever append_hud last wrote there. Force the
+     * next append_hud call to rebuild every cell instead of diffing
+     * against hud_prev_text, which would otherwise believe (correctly,
+     * from its own point of view) that nothing changed and leave this
+     * overlay's leftover bytes on screen. See append_hud. */
+    if (text_layer_buffer_index == 0u) hud_prev_valid = 0u;
     build_text_line(text_layer_buffer_index == 0u ? HUD_DATA :
         HUD_DATA_SECOND, text);
 #else
+    /* CADENCE_PROBE always reuses HUD_DATA here (no second buffer, see
+     * the HUD_DATA_SECOND comment above) -- same reasoning as above. */
+    hud_prev_valid = 0u;
     build_text_line(text);
 #endif
     if (title_text_queue == 0u) {
@@ -409,7 +533,14 @@ void static_layer_draw(const GameState* game, unsigned char theme_id)
 {
     /* See static_layer.h: voice playback owns the shared scratch buffer. */
     STATIC_LAYER_REQUIRE_VOICE_IDLE();
-    if (title_voice_is_playing() != 0u) return;
+    if (title_voice_is_playing() != 0u) {
+        /* HUD_DATA (part of the shared scratch buffer) may have been
+         * reused for voice playback while drawing was skipped; force
+         * append_hud's next call to rebuild every cell instead of
+         * diffing against stale hud_prev_text (v048, see append_hud). */
+        hud_prev_valid = 0u;
+        return;
+    }
     title_text_queue = game == 0 ? 1u : 0u;
     text_layer_started = 0u;
     if (game == 0) {
@@ -426,6 +557,9 @@ void static_layer_draw(const GameState* game, unsigned char theme_id)
     SCBS[0].sprctl0 = (unsigned char)(BPP_1 | TYPE_BACKNONCOLL);
     SCBS[0].hsize = (unsigned int)(GAME_SCREEN_WIDTH << 8);
     SCBS[0].vsize = (unsigned int)(GAME_SCREEN_HEIGHT << 8);
+#ifdef CADENCE_PROBE
+    static_layer_split_marker_after_overlay_and_clear();
+#endif
     if (game == 0) {
         /* TITLE text is appended to the clear SCB and submitted once at the
          * display boundary, keeping the calibration path to one Suzy list. */
@@ -435,6 +569,9 @@ void static_layer_draw(const GameState* game, unsigned char theme_id)
     if (theme_id == SKY) append_scroll_layers(game, sky_layers);
     else if (theme_id == CAVE) append_scroll_layers(game, cave_layers);
     else append_space(game);
+#ifdef CADENCE_PROBE
+    static_layer_split_marker_after_background();
+#endif
     append_hud(game);
     finish_layer();
 }

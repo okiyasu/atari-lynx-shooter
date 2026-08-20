@@ -93,7 +93,9 @@ SECTION_KEYS = (
     "b_logic_loop",
     "c_sound_loop_and_wait",
     "d_sync_to_static_layer",
-    "e1_static_layer_scb_build",
+    "e1a_overlay_and_clear",
+    "e1b_background_layer",
+    "e1c_hud",
     "e2_static_layer_suzy_and_overlay",
     "f_movable_scb_and_suzy",
     "g_finish_to_display_request",
@@ -141,6 +143,10 @@ def resolve_addresses(g, symbols):
         "display_sync_complete": g.symbol_address(
             symbols, "_game_display_sync_complete"),
         "static_layer_draw": g.symbol_address(symbols, "_static_layer_draw"),
+        "static_layer_after_overlay_clear": g.symbol_address(
+            symbols, "_static_layer_split_marker_after_overlay_and_clear"),
+        "static_layer_after_background": g.symbol_address(
+            symbols, "_static_layer_split_marker_after_background"),
         "static_layer_pre_finish": g.symbol_address(
             symbols, "_static_layer_split_marker_pre_finish"),
         "scb_begin": g.symbol_address(symbols, "_scb_split_marker_begin"),
@@ -288,6 +294,16 @@ def run_batch(g, rom, symbols, port, fixture_kind, batch_index):
                 desc + " static_layer")
             request_id, t_static = read_total_ticks(g, request_id)
             request_id = one_breakpoint(
+                g, addresses["static_layer_after_overlay_clear"],
+                request_id, desc + " static_layer_after_overlay_clear")
+            request_id, t_static_after_overlay = read_total_ticks(
+                g, request_id)
+            request_id = one_breakpoint(
+                g, addresses["static_layer_after_background"], request_id,
+                desc + " static_layer_after_background")
+            request_id, t_static_after_bg = read_total_ticks(
+                g, request_id)
+            request_id = one_breakpoint(
                 g, addresses["static_layer_pre_finish"], request_id,
                 desc + " static_layer_pre_finish")
             request_id, t_static_pre_finish = read_total_ticks(
@@ -313,7 +329,10 @@ def run_batch(g, rom, symbols, port, fixture_kind, batch_index):
                 "b_logic_loop": t_sound - t_logic,
                 "c_sound_loop_and_wait": t_sync - t_sound,
                 "d_sync_to_static_layer": t_static - t_sync,
-                "e1_static_layer_scb_build": t_static_pre_finish - t_static,
+                "e1a_overlay_and_clear": t_static_after_overlay - t_static,
+                "e1b_background_layer":
+                    t_static_after_bg - t_static_after_overlay,
+                "e1c_hud": t_static_pre_finish - t_static_after_bg,
                 "e2_static_layer_suzy_and_overlay":
                     t_scb_begin - t_static_pre_finish,
                 "f_movable_scb_and_suzy": t_scb_exit - t_scb_begin,
@@ -324,6 +343,8 @@ def run_batch(g, rom, symbols, port, fixture_kind, batch_index):
                 "total_ticks": {
                     "prev_display_request": d_prev, "logic": t_logic,
                     "sound": t_sound, "sync": t_sync, "static": t_static,
+                    "static_after_overlay": t_static_after_overlay,
+                    "static_after_background": t_static_after_bg,
                     "static_pre_finish": t_static_pre_finish,
                     "scb_begin": t_scb_begin, "scb_exit": t_scb_exit,
                     "display_request": d_this,
@@ -379,8 +400,8 @@ def main():
             "sections": [
                 "a_input_timing_to_logic", "b_logic_loop",
                 "c_sound_loop_and_wait", "d_sync_to_static_layer",
-                "e1_static_layer_scb_build",
-                "e2_static_layer_suzy_and_overlay",
+                "e1a_overlay_and_clear", "e1b_background_layer",
+                "e1c_hud", "e2_static_layer_suzy_and_overlay",
                 "f_movable_scb_and_suzy",
                 "g_finish_to_display_request",
             ],
@@ -391,9 +412,18 @@ def main():
                 "b_end/c_start": "_game_sound_tick entry (first hit this "
                     "frame only)",
                 "c_end/d_start": "_game_display_sync_complete entry",
-                "d_end/e1_start": "_static_layer_draw entry",
-                "e1_end/e2_start": "_static_layer_split_marker_pre_finish "
-                    "(new v047 diagnostic marker, static_layer.c "
+                "d_end/e1a_start": "_static_layer_draw entry",
+                "e1a_end/e1b_start":
+                    "_static_layer_split_marker_after_overlay_and_clear "
+                    "(v048 diagnostic marker, static_layer.c "
+                    "static_layer_draw(), right after ensure_overlay()+"
+                    "begin_layer()+the full-screen clear append_scb())",
+                "e1b_end/e1c_start":
+                    "_static_layer_split_marker_after_background (v048 "
+                    "diagnostic marker, right after append_space()/"
+                    "append_scroll_layers() returns)",
+                "e1c_end/e2_start": "_static_layer_split_marker_pre_finish "
+                    "(v047 diagnostic marker, static_layer.c "
                     "finish_layer(), right before tgi_sprite(SCBS))",
                 "e2_end/f_start": "_scb_split_marker_begin (movable SCB "
                     "chain begin, unchanged from v040/v046)",
