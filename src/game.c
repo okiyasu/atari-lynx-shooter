@@ -1,7 +1,6 @@
 #include "game.h"
 
 #define PLAYER_SPEED 2u /* pixels per 75Hz draw frame */
-#define PLAYER_MOTION_CREDIT_THRESHOLD 4
 #define BULLET_SPEED 4u
 #define FIRE_COOLDOWN_FRAMES 8u
 #define ENEMY_MIN_Y (GAME_HUD_HEIGHT + 3u)
@@ -369,53 +368,29 @@ static void update_scrolling(GameState* game)
     }
 }
 
-static signed char player_axis_direction(unsigned char input,
-    unsigned char negative, unsigned char positive)
+static void move_player_axis(unsigned char* coordinate,
+    signed char* credit,
+    unsigned char input, unsigned char negative, unsigned char positive,
+    unsigned char minimum, unsigned char maximum)
 {
-    unsigned char negative_pressed;
-    unsigned char positive_pressed;
-
-    negative_pressed = (unsigned char)(input & negative);
-    positive_pressed = (unsigned char)(input & positive);
-    if (negative_pressed != 0u && positive_pressed == 0u) {
-        return (signed char)-1;
-    }
-    if (positive_pressed != 0u && negative_pressed == 0u) {
-        return (signed char)1;
-    }
-    return (signed char)0;
-}
-
-static void move_player_axis(unsigned char* coordinate, signed char* credit,
-    signed char direction, unsigned char minimum, unsigned char maximum)
-{
-    if (direction == 0) {
-        *credit = 0;
-        return;
-    }
-
-    if ((direction < 0 && *coordinate == minimum) ||
-        (direction > 0 && *coordinate == maximum)) {
-        *credit = 0;
-        return;
-    }
-
-    *credit = (signed char)(*credit +
-        direction * (signed char)PLAYER_SPEED);
-    if (*credit >= PLAYER_MOTION_CREDIT_THRESHOLD) {
-        if (*coordinate < maximum) {
-            ++*coordinate;
-            *credit = (signed char)(*credit -
-                PLAYER_MOTION_CREDIT_THRESHOLD);
-        } else {
+    if ((input & negative) != 0u) {
+        if ((input & positive) != 0u || *coordinate == minimum) {
+            *credit = 0;
+            return;
+        }
+        *credit = (signed char)(*credit - (signed char)PLAYER_SPEED);
+        if (*credit == (signed char)-4) {
+            --*coordinate;
             *credit = 0;
         }
-    } else if (*credit <= -PLAYER_MOTION_CREDIT_THRESHOLD) {
-        if (*coordinate > minimum) {
-            --*coordinate;
-            *credit = (signed char)(*credit +
-                PLAYER_MOTION_CREDIT_THRESHOLD);
-        } else {
+        return;
+    }
+    if ((input & positive) == 0u || *coordinate == maximum) {
+        *credit = 0;
+    } else {
+        *credit = (signed char)(*credit + (signed char)PLAYER_SPEED);
+        if (*credit == (signed char)4) {
+            ++*coordinate;
             *credit = 0;
         }
     }
@@ -424,10 +399,10 @@ static void move_player_axis(unsigned char* coordinate, signed char* credit,
 static void move_player(GameState* game, unsigned char input)
 {
     move_player_axis(&game->player.x, &game->player_x_credit,
-        player_axis_direction(input, GAME_INPUT_LEFT, GAME_INPUT_RIGHT),
+        input, GAME_INPUT_LEFT, GAME_INPUT_RIGHT,
         0u, GAME_SCREEN_WIDTH - GAME_PLAYER_WIDTH);
     move_player_axis(&game->player.y, &game->player_y_credit,
-        player_axis_direction(input, GAME_INPUT_UP, GAME_INPUT_DOWN),
+        input, GAME_INPUT_UP, GAME_INPUT_DOWN,
         GAME_HUD_HEIGHT, GAME_SCREEN_HEIGHT - GAME_PLAYER_HEIGHT);
 }
 
@@ -874,7 +849,6 @@ void game_init(GameState* game)
     clear_game_state(game);
     game->player.x = 10u;
     game->player.y = 48u;
-    reset_player_motion_credit(game);
     game->player.width = GAME_PLAYER_WIDTH;
     game->player.height = GAME_PLAYER_HEIGHT;
     game->score = 0ul;

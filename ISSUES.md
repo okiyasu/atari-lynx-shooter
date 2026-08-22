@@ -2,6 +2,15 @@
 
 最終更新: 2026-08-23(APS-054実装・host/strict ROM検証完了、実機確認待ち。)
 
+### APS-054 v003 gate(d)余剰回復（2026-08-23）
+
+- 状態: **実装・クリーン検証完了、実機確認待ち**。開始HEAD=`c1ab60e29d2eaae894118bd1d01c769c35c76292`。APS-054 v002の機能意味を維持したまま、release MAIN余剰を`353B→534B`、cadence MAIN余剰を`217B→398B`へ回復。終了HEADは実装commit後の値を記録する。
+- 実装: `src/game.c`の自機軸更新を、入力方向判定・境界判定・credit加算・±4到達時の1px反映を一体化した縮小実装へ変更。内部不変条件（creditは`-2/0/+2`、1 logic updateの加算は±2）を維持し、neutral、同時押し、方向転換、X/Y境界、phase/death/respawn reset、300Hz logic・75Hz draw基準の150px/sを維持。`game_init()`のcredit reset呼出しは`clear_game_state()`の全フィールドゼロ化と重複するため除去。公開API、append_hud、scheduler、BULLET_SPEED、敵/背景/phase/sound挙動は変更なし。
+- 変更ファイル: `src/game.c`、`ISSUES.md`、`.briefs/APS-054/v003.md`。`include/game.h`、`include/version.h`、README、design documentは変更なし。終了HEADはcommit後に追記。
+- ROM/map: release LNX=`61,013` bytes、SHA-256=`bdcfafa309c5b6ace0a0681b91bd165a2dcfd03f8822718747b47943047d10ce`、Segment STARTUP/LOWCODE/ONCE/CODE/RODATA/DATA/BSS=`109/16/27/35970/6963/944/2213`、使用`46,242B`、MAIN余剰`534B`。cadence LNX=`61,392` bytes、SHA-256=`6ebc42ab1548c00729b7a0775d1a732ac20a67d481b387c6e79eaed1b90e02b2`、Segment=`109/16/27/36345/6965/946/2306`、使用`46,714B`、MAIN余剰`398B`。両方`magic=LYNX version=1`。`GAME_VERSION_STRING=0.53.18`は維持。
+- 検証: `make clean && ./scripts/verify.sh`（終了コード0、stage155/game651/sound351/IMA14949/sprite197、strict cc65、shell lint、LNX、voice/cart全PASS）、`make test smoke-host`（終了コード0、game651/sound351/IMA14949/sprite197/stage155、smoke19）、`make perf-host`（終了コード0、7比較、optimized median=`2538243us`、legacy median=`2576248us`、paired delta median=`10059us`）、ASan/UBSan付きgame/smoke（651/19、終了コード0）、`make debug-contract`、release/cadence `inspect-lnx.sh`、`git diff --check`（全PASS）。
+- 設計差分/リスク: v003はv002の汎用軸更新をcc65向けに縮約したもの。credit値が内部契約外へ外部から直接書き換えられた場合は±4閾値の一般形ではなく、到達可能な`-2/0/+2`状態を前提に判定する。既存の全書込み経路と回帰テストではこの契約を確認済み。Atari Lynx実機へのROM投入、画面表示、方向入力、実機150px/s体感、低FPS時の表示ジャンプ量は未確認。
+
 ### APS-054 v002 自機移動の75Hz時間正規化（2026-08-23）
 
 - 状態: **ローカル実装・自動検証完了、実機確認待ち**。開始HEAD=`cf30e75acb581abd4d5cbc8c3876cda9ab618a85`。既知変更（`.gitignore`の`scripts/__pycache__/`追加、`.briefs/APS-054/`）を保全し、ソース未確認変更なしの状態から着手。
