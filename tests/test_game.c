@@ -24,6 +24,23 @@ static void advance_frames(GameState* game, unsigned int frames)
     }
 }
 
+static void advance_logic_updates(GameState* game, unsigned char input,
+    unsigned int updates)
+{
+    unsigned int i;
+
+    for (i = 0u; i < updates; ++i) {
+        game_update_logic(game, input);
+    }
+}
+
+static void advance_draw_logic(GameState* game, unsigned char input,
+    unsigned int elapsed_vblanks)
+{
+    advance_logic_updates(game, input,
+        game_logic_updates_for_draw_frame(elapsed_vblanks, 0));
+}
+
 static void finish_player_explosion(GameState* game)
 {
     unsigned int remaining;
@@ -586,8 +603,13 @@ static void test_boot_initialization_and_intro_input(void)
     expect(first.phase == GAME_PHASE_NORMAL && first.phase_timer == 0u,
         "stage one intro advances to normal after exactly ninety updates");
     game_update(&first, GAME_INPUT_RIGHT | GAME_INPUT_FIRE);
-    expect(first.player.x == 12u && count_player_bullets(&first) == 1u,
-        "normal phase accepts movement and A B fire input");
+    expect(first.player.x == 10u && count_player_bullets(&first) == 1u,
+        "normal phase accepts A B fire input and accumulates movement credit");
+    game_update(&first, GAME_INPUT_RIGHT | GAME_INPUT_FIRE);
+    game_update(&first, GAME_INPUT_RIGHT | GAME_INPUT_FIRE);
+    game_update(&first, GAME_INPUT_RIGHT | GAME_INPUT_FIRE);
+    expect(first.player.x == 12u,
+        "normal phase applies movement after four logic updates");
 }
 
 static void test_background_animation_and_player(void)
@@ -657,21 +679,169 @@ static void test_background_animation_and_player(void)
     init_normal(&game);
     disable_enemies_except(&game, 3u);
     game_update(&game, GAME_INPUT_RIGHT | GAME_INPUT_DOWN);
+    expect(game.player.x == 10u && game.player.y == 48u &&
+        game.player_x_credit == 2 && game.player_y_credit == 2,
+        "one 300Hz update accumulates fractional diagonal movement");
+    game_update(&game, GAME_INPUT_RIGHT | GAME_INPUT_DOWN);
+    game_update(&game, GAME_INPUT_RIGHT | GAME_INPUT_DOWN);
+    game_update(&game, GAME_INPUT_RIGHT | GAME_INPUT_DOWN);
     expect(game.player.x == 12u && game.player.y == 50u,
-        "diagonal input moves the player");
-    for (i = 0u; i < 80u; ++i) {
+        "four 300Hz updates apply the 75Hz diagonal movement");
+    for (i = 0u; i < 304u; ++i) {
         game.enemies[3].rect.x = 230u;
         game_update(&game, GAME_INPUT_LEFT | GAME_INPUT_UP);
     }
     expect(game.player.x == 0u && game.player.y == GAME_HUD_HEIGHT,
         "left and HUD boundaries clamp the player");
-    for (i = 0u; i < 80u; ++i) {
+    for (i = 0u; i < 304u; ++i) {
         game.enemies[3].rect.x = 230u;
         game_update(&game, GAME_INPUT_RIGHT | GAME_INPUT_DOWN);
     }
     expect(game.player.x == GAME_SCREEN_WIDTH - GAME_PLAYER_WIDTH &&
         game.player.y == GAME_SCREEN_HEIGHT - GAME_PLAYER_HEIGHT,
         "right and bottom boundaries clamp the player");
+}
+
+static void test_player_time_normalized_motion(void)
+{
+    GameState game;
+    unsigned int i;
+
+    init_normal(&game);
+    disable_enemies_except(&game, GAME_MAX_ENEMIES);
+    game.player.x = 40u;
+    game.player.y = 40u;
+    advance_logic_updates(&game, GAME_INPUT_RIGHT, 1u);
+    expect(game.player.x == 40u && game.player_x_credit == 2,
+        "one logic tick stores half-pixel player credit");
+    advance_logic_updates(&game, GAME_INPUT_RIGHT, 1u);
+    expect(game.player.x == 41u && game.player_x_credit == 0,
+        "two logic ticks apply one pixel");
+    advance_logic_updates(&game, GAME_INPUT_RIGHT, 2u);
+    expect(game.player.x == 42u && game.player_x_credit == 0,
+        "four logic ticks apply two pixels");
+
+    game.player.x = 40u;
+    game.player_x_credit = 0;
+    advance_draw_logic(&game, GAME_INPUT_RIGHT, 1u);
+    expect(game.player.x == 42u,
+        "elapsed one draw frame applies two pixels");
+    game.player.x = 40u;
+    game.player_x_credit = 0;
+    advance_draw_logic(&game, GAME_INPUT_RIGHT, 2u);
+    expect(game.player.x == 44u,
+        "elapsed two draw frames apply four pixels");
+    game.player.x = 40u;
+    game.player_x_credit = 0;
+    advance_draw_logic(&game, GAME_INPUT_RIGHT, 3u);
+    expect(game.player.x == 46u,
+        "elapsed three draw frames apply six pixels");
+    game.player.x = 40u;
+    game.player_x_credit = 0;
+    advance_draw_logic(&game, GAME_INPUT_RIGHT, 4u);
+    expect(game.player.x == 46u,
+        "scheduler-capped elapsed draw frame keeps six-pixel movement");
+
+    game.player.x = 40u;
+    game.player.y = 40u;
+    game.player_x_credit = 0;
+    game.player_y_credit = 0;
+    advance_logic_updates(&game, GAME_INPUT_RIGHT | GAME_INPUT_DOWN, 4u);
+    expect(game.player.x == 42u && game.player.y == 42u,
+        "diagonal axes distribute movement independently");
+    advance_logic_updates(&game, 0u, 1u);
+    expect(game.player_x_credit == 0 && game.player_y_credit == 0,
+        "neutral input clears both fractional credits");
+
+    game.player.x = 40u;
+    game.player_x_credit = 0;
+    advance_logic_updates(&game, GAME_INPUT_RIGHT, 1u);
+    advance_logic_updates(&game, GAME_INPUT_LEFT, 1u);
+    expect(game.player.x == 40u && game.player_x_credit == 0,
+        "direction reversal cancels residual credit without a jump");
+    advance_logic_updates(&game, GAME_INPUT_LEFT | GAME_INPUT_RIGHT, 1u);
+    expect(game.player.x == 40u && game.player_x_credit == 0,
+        "simultaneous horizontal input cancels");
+
+    game.player.x = 0u;
+    game.player_x_credit = 2;
+    advance_logic_updates(&game, GAME_INPUT_LEFT, 1u);
+    expect(game.player.x == 0u && game.player_x_credit == 0,
+        "left boundary rejects outward credit");
+    game.player.x = GAME_SCREEN_WIDTH - GAME_PLAYER_WIDTH;
+    game.player_x_credit = -2;
+    advance_logic_updates(&game, GAME_INPUT_RIGHT, 1u);
+    expect(game.player.x == GAME_SCREEN_WIDTH - GAME_PLAYER_WIDTH &&
+        game.player_x_credit == 0,
+        "right boundary rejects outward credit");
+    game.player.y = GAME_HUD_HEIGHT;
+    game.player_y_credit = 2;
+    advance_logic_updates(&game, GAME_INPUT_UP, 1u);
+    expect(game.player.y == GAME_HUD_HEIGHT && game.player_y_credit == 0,
+        "HUD boundary rejects outward credit");
+    game.player.y = GAME_SCREEN_HEIGHT - GAME_PLAYER_HEIGHT;
+    game.player_y_credit = -2;
+    advance_logic_updates(&game, GAME_INPUT_DOWN, 1u);
+    expect(game.player.y == GAME_SCREEN_HEIGHT - GAME_PLAYER_HEIGHT &&
+        game.player_y_credit == 0,
+        "bottom boundary rejects outward credit");
+
+    game_start(&game);
+    expect(game.player_x_credit == 0 && game.player_y_credit == 0,
+        "game start resets player fractional credits");
+    game.phase = GAME_PHASE_NORMAL;
+    game.phase_timer = 0u;
+    disable_enemies_except(&game, GAME_MAX_ENEMIES);
+    advance_logic_updates(&game, GAME_INPUT_RIGHT, 1u);
+    game.phase_timer = GAME_NORMAL_FRAMES - 1u;
+    advance_logic_updates(&game, 0u, 1u);
+    expect(game.phase == GAME_PHASE_WARNING && game.player_x_credit == 0 &&
+        game.player_y_credit == 0,
+        "warning transition resets player fractional credits");
+    game.player.x = 40u;
+    advance_logic_updates(&game, GAME_INPUT_RIGHT, 4u);
+    expect(game.player.x == 42u,
+        "WARNING phase applies normalized movement after four logic updates");
+
+    game_start(&game);
+    game.phase = GAME_PHASE_STAGE_CLEAR;
+    game.phase_timer = GAME_STAGE_CLEAR_FRAMES - 1u;
+    game.player_x_credit = 2;
+    game.player_y_credit = -2;
+    advance_logic_updates(&game, 0u, 1u);
+    expect(game.phase == GAME_PHASE_STAGE_INTRO &&
+        game.player_x_credit == 0 && game.player_y_credit == 0,
+        "stage intro transition resets player fractional credits");
+
+    init_normal(&game);
+    disable_enemies_except(&game, 0u);
+    game.player_x_credit = 2;
+    game.player_y_credit = -2;
+    game.enemies[0].rect.x = game.player.x;
+    game.enemies[0].rect.y = game.player.y;
+    advance_logic_updates(&game, 0u, 1u);
+    expect(game.dying != 0u && game.player_x_credit == 0 &&
+        game.player_y_credit == 0,
+        "death start resets player fractional credits");
+    finish_player_explosion(&game);
+    expect(game.player_x_credit == 0 && game.player_y_credit == 0,
+        "respawn completion keeps player fractional credits reset");
+
+    disable_enemies_except(&game, GAME_MAX_ENEMIES);
+    game.player.x = 0u;
+    game.player_x_credit = 0;
+    for (i = 0u; i < 75u; ++i) {
+        advance_logic_updates(&game, GAME_INPUT_RIGHT, 4u);
+    }
+    expect(game.player.x == 150u && game.player_x_credit == 0,
+        "75 draw frames and 300 logic updates equal 150 pixels per second");
+
+    enter_boss(&game, 1u);
+    game.player.x = 40u;
+    game.player_x_credit = 0;
+    advance_logic_updates(&game, GAME_INPUT_RIGHT, 4u);
+    expect(game.phase == GAME_PHASE_BOSS && game.player.x == 42u,
+        "BOSS phase keeps the normalized player speed");
 }
 
 static void test_enemy_entry_and_patterns(void)
@@ -1283,6 +1453,8 @@ static int frozen_state_matches(const GameState* game,
 
     if (game->player.x != frozen->player.x ||
         game->player.y != frozen->player.y ||
+        game->player_x_credit != frozen->player_x_credit ||
+        game->player_y_credit != frozen->player_y_credit ||
         game->score != frozen->score ||
         game->fire_cooldown != frozen->fire_cooldown ||
         game->respawn_sequence != frozen->respawn_sequence ||
@@ -1758,8 +1930,8 @@ static void test_stage_phase_machine(void)
     game_update(&game, GAME_INPUT_RIGHT | GAME_INPUT_FIRE);
     expect(game.phase == GAME_PHASE_WARNING &&
         game.phase_timer == GAME_WARNING_FRAMES - 1u &&
-        game.player.x == 12u && count_player_bullets(&game) == 0u,
-        "warning update 119 permits movement but suppresses firing");
+        game.player.x == 10u && count_player_bullets(&game) == 0u,
+        "warning update 119 accumulates movement but suppresses firing");
     game_update(&game, GAME_INPUT_FIRE);
     expect(game.phase == GAME_PHASE_BOSS && game.phase_timer == 0u &&
         game.boss.active != 0u && count_player_bullets(&game) == 0u,
@@ -2500,11 +2672,13 @@ static void test_stage_two_wind(void)
 
     game.player.y = 24u;
     game_update(&game, GAME_INPUT_DOWN);
-    expect(game.player.y == 26u && game.wind.push_counter == 1u,
-        "first active wind update waits while normal input moves first");
+    expect(game.player.y == 24u && game.wind.push_counter == 1u &&
+        game.player_y_credit == 2,
+        "first active wind update accumulates input before wind cadence");
     game_update(&game, GAME_INPUT_DOWN);
-    expect(game.player.y == 27u && game.wind.push_counter == 0u,
-        "second active update applies one-pixel wind after two-pixel input");
+    expect(game.player.y == 24u && game.wind.push_counter == 0u &&
+        game.player_y_credit == 0,
+        "second active update applies normalized input and wind cadence");
     game.player.y = 80u;
     game_update(&game, 0u);
     game_update(&game, 0u);
@@ -3391,6 +3565,7 @@ int main(void)
     test_initial_state();
     test_boot_initialization_and_intro_input();
     test_background_animation_and_player();
+    test_player_time_normalized_motion();
     test_stage_two_background_scroll();
     test_stage_three_background_scroll();
     test_enemy_entry_and_patterns();

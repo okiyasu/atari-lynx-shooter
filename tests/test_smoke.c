@@ -114,9 +114,11 @@ int main(void)
         "Stage 1 reaches NORMAL after exactly 90 updates without GAME OVER");
 
     start_x = game.player.x;
-    game_update(&game, GAME_INPUT_RIGHT);
+    for (frame = 0u; frame < 4u; ++frame) {
+        advance_draw_frame(&game, GAME_INPUT_RIGHT);
+    }
     expect(game.player.x > start_x && game.game_over == 0u,
-        "right input moves the player without GAME OVER");
+        "right input moves the player after four 75Hz draw frames");
 
     game_update(&game, GAME_INPUT_FIRE);
     bullet = 0u;

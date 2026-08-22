@@ -1,6 +1,7 @@
 #include "game.h"
 
-#define PLAYER_SPEED 2u
+#define PLAYER_SPEED 2u /* pixels per 75Hz draw frame */
+#define PLAYER_MOTION_CREDIT_THRESHOLD 4
 #define BULLET_SPEED 4u
 #define FIRE_COOLDOWN_FRAMES 8u
 #define ENEMY_MIN_Y (GAME_HUD_HEIGHT + 3u)
@@ -204,6 +205,12 @@ static void clear_combat_objects(GameState* game)
     game->fire_cooldown = 0u;
 }
 
+static void reset_player_motion_credit(GameState* game)
+{
+    game->player_x_credit = 0;
+    game->player_y_credit = 0;
+}
+
 /* Fire interval per enemy type (APS-021): replaces a nine-branch if
  * chain with a table indexed by the contiguous GAME_ENEMY_TYPE_* ids.
  * Out-of-range types keep the previous fall-through value. */
@@ -362,36 +369,66 @@ static void update_scrolling(GameState* game)
     }
 }
 
+static signed char player_axis_direction(unsigned char input,
+    unsigned char negative, unsigned char positive)
+{
+    unsigned char negative_pressed;
+    unsigned char positive_pressed;
+
+    negative_pressed = (unsigned char)(input & negative);
+    positive_pressed = (unsigned char)(input & positive);
+    if (negative_pressed != 0u && positive_pressed == 0u) {
+        return (signed char)-1;
+    }
+    if (positive_pressed != 0u && negative_pressed == 0u) {
+        return (signed char)1;
+    }
+    return (signed char)0;
+}
+
+static void move_player_axis(unsigned char* coordinate, signed char* credit,
+    signed char direction, unsigned char minimum, unsigned char maximum)
+{
+    if (direction == 0) {
+        *credit = 0;
+        return;
+    }
+
+    if ((direction < 0 && *coordinate == minimum) ||
+        (direction > 0 && *coordinate == maximum)) {
+        *credit = 0;
+        return;
+    }
+
+    *credit = (signed char)(*credit +
+        direction * (signed char)PLAYER_SPEED);
+    if (*credit >= PLAYER_MOTION_CREDIT_THRESHOLD) {
+        if (*coordinate < maximum) {
+            ++*coordinate;
+            *credit = (signed char)(*credit -
+                PLAYER_MOTION_CREDIT_THRESHOLD);
+        } else {
+            *credit = 0;
+        }
+    } else if (*credit <= -PLAYER_MOTION_CREDIT_THRESHOLD) {
+        if (*coordinate > minimum) {
+            --*coordinate;
+            *credit = (signed char)(*credit +
+                PLAYER_MOTION_CREDIT_THRESHOLD);
+        } else {
+            *credit = 0;
+        }
+    }
+}
+
 static void move_player(GameState* game, unsigned char input)
 {
-    if ((input & GAME_INPUT_LEFT) != 0u) {
-        if (game->player.x >= PLAYER_SPEED) {
-            game->player.x = (unsigned char)(game->player.x - PLAYER_SPEED);
-        } else {
-            game->player.x = 0u;
-        }
-    }
-    if ((input & GAME_INPUT_RIGHT) != 0u &&
-        game->player.x < GAME_SCREEN_WIDTH - GAME_PLAYER_WIDTH) {
-        game->player.x = (unsigned char)(game->player.x + PLAYER_SPEED);
-        if (game->player.x > GAME_SCREEN_WIDTH - GAME_PLAYER_WIDTH) {
-            game->player.x = GAME_SCREEN_WIDTH - GAME_PLAYER_WIDTH;
-        }
-    }
-    if ((input & GAME_INPUT_UP) != 0u) {
-        if (game->player.y >= GAME_HUD_HEIGHT + PLAYER_SPEED) {
-            game->player.y = (unsigned char)(game->player.y - PLAYER_SPEED);
-        } else {
-            game->player.y = GAME_HUD_HEIGHT;
-        }
-    }
-    if ((input & GAME_INPUT_DOWN) != 0u &&
-        game->player.y < GAME_SCREEN_HEIGHT - GAME_PLAYER_HEIGHT) {
-        game->player.y = (unsigned char)(game->player.y + PLAYER_SPEED);
-        if (game->player.y > GAME_SCREEN_HEIGHT - GAME_PLAYER_HEIGHT) {
-            game->player.y = GAME_SCREEN_HEIGHT - GAME_PLAYER_HEIGHT;
-        }
-    }
+    move_player_axis(&game->player.x, &game->player_x_credit,
+        player_axis_direction(input, GAME_INPUT_LEFT, GAME_INPUT_RIGHT),
+        0u, GAME_SCREEN_WIDTH - GAME_PLAYER_WIDTH);
+    move_player_axis(&game->player.y, &game->player_y_credit,
+        player_axis_direction(input, GAME_INPUT_UP, GAME_INPUT_DOWN),
+        GAME_HUD_HEIGHT, GAME_SCREEN_HEIGHT - GAME_PLAYER_HEIGHT);
 }
 
 static void update_enemy_movement(GameEnemy* enemy)
@@ -751,6 +788,7 @@ static void begin_player_death(GameState* game)
         --game->lives;
     }
     clear_player_bullets(game);
+    reset_player_motion_credit(game);
     game->dying = 1u;
     game->explosion_timer = 0u;
     game->invincibility_timer = 0u;
@@ -782,6 +820,7 @@ static void update_player_death(GameState* game)
 
     game->player.x = 10u;
     game->player.y = 48u;
+    reset_player_motion_credit(game);
     clear_player_bullets(game);
     clear_enemy_bullets(game);
     clear_power_item(game);
@@ -805,6 +844,12 @@ static void enter_phase(GameState* game, unsigned char phase)
 {
     game->phase = phase;
     game->phase_timer = 0u;
+    if (phase == GAME_PHASE_STAGE_INTRO ||
+        phase == GAME_PHASE_STAGE_CLEAR ||
+        phase == GAME_PHASE_ALL_CLEAR ||
+        phase == GAME_PHASE_TITLE) {
+        reset_player_motion_credit(game);
+    }
     clear_combat_objects(game);
     clear_boss(game);
     reset_environment(game);
@@ -829,6 +874,7 @@ void game_init(GameState* game)
     clear_game_state(game);
     game->player.x = 10u;
     game->player.y = 48u;
+    reset_player_motion_credit(game);
     game->player.width = GAME_PLAYER_WIDTH;
     game->player.height = GAME_PLAYER_HEIGHT;
     game->score = 0ul;

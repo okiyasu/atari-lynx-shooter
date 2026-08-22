@@ -288,6 +288,8 @@ typedef struct GameState {
     GameEnemy* enemies;
 #endif
     GameRect player;
+    signed char player_x_credit;
+    signed char player_y_credit;
 #ifndef __CC65__
     GameEnemy enemies[GAME_STAGE_ACTIVE_ENEMIES];
 #endif

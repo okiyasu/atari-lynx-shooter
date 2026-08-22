@@ -1,6 +1,16 @@
 # ISSUES
 
-最終更新: 2026-08-23(実機確認用ROM v0.53.17生成・APS-054自機移動量過大の原因切り分け完了。`make clean && ./scripts/verify.sh`全PASS、LNXヘッダ検査PASS。)
+最終更新: 2026-08-23(APS-054実装・host/strict ROM検証完了、実機確認待ち。)
+
+### APS-054 v002 自機移動の75Hz時間正規化（2026-08-23）
+
+- 状態: **ローカル実装・自動検証完了、実機確認待ち**。開始HEAD=`cf30e75acb581abd4d5cbc8c3876cda9ab618a85`。既知変更（`.gitignore`の`scripts/__pycache__/`追加、`.briefs/APS-054/`）を保全し、ソース未確認変更なしの状態から着手。
+- 実装: `include/game.h`の`GameState`へ`signed char player_x_credit/player_y_credit`を追加。`src/game.c`で各logic updateの軸方向を`-1/0/+1`へ正規化し、`PLAYER_SPEED=2`（75Hz描画基準2px）をcreditへ加算、±4ごとに1px反映。通常4 logic updates=2px、elapsed=1/2/3=2/4/6px、上限12 updates=6px。左右/上下同時入力の相殺、neutral/方向転換、X/Y境界、STAGE_INTRO/STAGE_CLEAR/ALL_CLEAR/TITLE遷移、死亡開始/再出撃、game初期化でcreditをリセット。
+- 保全: 300Hz logic、75Hz sound、catch-up scheduler、弾/敵/ボス/背景scroll/phase timer/sound/append_hudは変更なし。`BULLET_SPEED`等他オブジェクト速度の変更なし。`tests/test_smoke.c`はnormalized movementに合わせて4 draw frames観測へ修正。
+- 文書: `README.md`と`docs/plan/design.md`へ150px/s仮定、300Hz時間基準、設計差分、実機未確認を追記。`include/version.h`を`0.53.17`→`0.53.18`へ更新。
+- 検証: `make test`（0; stage155/game651/sound351/IMA14949/sprite197）、`make smoke-host`（0; 19）、`make perf-host`（0; 75 draw/300 logic/75 sound、7比較完走、optimized median 2,546,910us）、ASan/UBSan host game（651）/smoke（19）、`make clean && ./scripts/verify.sh`（0; cc65 strict、shell lint、LNX、voice cart、全PASS）、`make dist/asteroid-patrol-cadence.lnx`（0）、`./scripts/inspect-lnx.sh dist/asteroid-patrol-cadence.lnx`（0）、`git diff --check`（0）。
+- ROM/map: release `dist/asteroid-patrol.lnx`=`61,194` bytes、SHA-256=`4455ca5ebad2c2f5f19957e45e419628b6eb493f1a57fcc5777e3dd36110738f`、Segment STARTUP/LOWCODE/ONCE/CODE/RODATA/DATA/BSS=`109/16/27/36151/6963/944/2213`、MAIN余剰=`353B`; cadence `dist/asteroid-patrol-cadence.lnx`=`61,573` bytes、SHA-256=`6673ab7f8cfb0ba1048c5060bd7abd9ade18505f589f442ea65b67c16e68fe9c`、Segment=`109/16/27/36526/6965/946/2306`、MAIN余剰=`217B`。LNX headerは両方`magic=LYNX version=1`。
+- 未確認/差分: Atari Lynx実機へのROM投入、画面表示、方向入力、実機display request間隔、150px/sの体感、低FPS catch-up時の表示ジャンプ量は未確認。Gearlynx/BIOS/外部ROM/本番権限操作なし。commit/pushはこの記録後に実施。
 
 ### 実機確認用ROM v0.53.17（2026-08-23）
 

@@ -656,6 +656,14 @@ Lynx側は8個の`GameEnemy` backingを静的BSSへ分離し、`GameState`はpoi
 
 各製品frameは入力1回、`4/1`ロジック、sound tick/MIKEY反映、draw/voice処理の後、`GAME_FRAME_END_WAIT(tgi_busy())`でhardware frame完了を待つ。`tgi_setframerate(75u)`だけをtiming sourceとし、敵数が少ないときの余剰をframe終端waitへ吸収する。8体時に処理が超過してもwaitが短縮または即完了するだけでlogic/input/soundをskipしない。75 Hzの理論間隔は13,333.333 us、12,000〜15,000 us wall-clockはadvisoryであり、hardware completionを合否基準とする。Gearlynx verifierは終端wait直後のmarkerを0/4/8体で各75回停止し、Timer 0/2状態、活動数readback、9体拒否をJSONへ保存する。
 
+## APS-054 自機移動の75Hz時間正規化
+
+300Hz logic、75Hz sound、elapsed VBlankに応じたcatch-up schedulerは維持し、自機の移動単価だけを75Hz描画基準へ正規化する。`PLAYER_SPEED=2`は2px/描画フレーム、すなわち150px/sを仮定する。`GameState`のX/Y別signed fractional creditへ各logic updateの方向（-1/0/+1）×2を加算し、creditが±4に達したときだけ座標を±1する。したがって通常の4 logic updatesは2px、elapsed=1/2/3の外側draw相当は2/4/6px、scheduler上限12 updatesでも6pxとなる。
+
+左右・上下同時入力は各軸で相殺し、neutralではcreditを0へ戻す。方向転換時の残留creditによる反対方向への即時ジャンプを避けるため、反対入力は残留値を相殺してから新方向のcreditを蓄積する。X/Y境界の外向き入力、STAGE_INTRO・STAGE_CLEAR・ALL_CLEAR・TITLEへの遷移、死亡開始・再出撃、完全初期化ではcreditを破棄する。WARNINGとBOSSは従来どおり移動可能とする。弾、敵、ボス、背景scroll、phase timer、sound、scheduler、append_hudは変更しない。
+
+目標150px/sと実機表示間隔・入力サンプル間の許容ジャンプ量は本課題で置いた仮定であり、実機での方向入力・境界・低FPS catch-upの視覚確認は未実施である。
+
 ## APS-047 重み付き容量・75 Hz cadence・runtime sprite実証
 
 APS-046の単純な頭数契約を重み付き容量へ置換する。公開定数はnormal=1、boss=4、limit=8で、通常敵は`active && rect.x < GAME_SCREEN_WIDTH`、bossは`active`だけを数える。player、弾、environment、画面外pre-spawnは非算入。4 normal+boss=8と8 normalを受理し、5 normal+boss=9、8 normal+boss=12、9 normalを拒否する。JSON rootの3定数と各Stageのcoexistence指定をgeneratorが同じ式で検査し、生成headerの値とruntime公開定数はpreprocessorで一致させる。既存Stageは4 normalのままなので難度・spawn・respawn・boss scriptを変えない。

@@ -38,6 +38,7 @@ V0.47.0の固定spriteは、APS-044で承認された自機Aのdelta wingと敵9
 - AまたはB: 弾発射（押し続けると8フレーム間隔で連射）。武器Lv1は中央1発、Lv2は上下2発、Lv3は前方平行3発
 - サウンド: MIKEY channel A/Cのメロディ/ベースBGMとchannel Bの全7 SFXは、論理table/envelopeを保ったままhardware出力だけを`floor(volume*3/4)`（非zero最低1）へ下げる。channel Dはタイトル開始とGAME OVERのIMA ADPCMを共通Timer 3 backup 125（1 us clock、126 us周期、実効7,936.508 Hz）で排他的に再生し、両音声だけへcenter-preserving +25% saturating gainを一度適用する。タイトルは17,408 samples・約2.193秒、GAME OVERは11,691 samples・約1.473秒
 - ステージ進行: 描画・入力・`sound_tick()`は75Hzのまま、描画フレームごとに4ロジック更新（300Hz、基準75Hz比4.00倍）。Stage/phase進行、移動、弾、クールダウン、環境イベント、無敵を同じ比率で進める。BGMカーソルも非死亡時に1 sound tickあたり4回進め、SFXカーソルは1回のまま実時間長を維持する
+- 自機移動: `PLAYER_SPEED=2`は75Hz描画基準の2px/描画フレーム（150px/s）として扱い、300Hzの各logic updateではX/Y別の符号付きfractional creditへ`±2`を加算し、creditが±4に達したときだけ1px反映する。通常の4 logic updatesで2px、低FPS catch-upのelapsed=1/2/3では2/4/6px、上限12 updatesでも6pxとなる。左右・上下同時入力は相殺し、neutral・方向転換・移動禁止phase・境界ではcreditを破棄する
 - frame cadence: `tgi_setframerate(75u)`をhardware presentationの唯一のtiming sourceとする。各frameは前回swap待ちの間に入力1回→Timer 2 elapsedに応じたlogic catch-up→同じelapsed分のsound tick→sound apply 1回を進め、back buffer再利用の直前だけ`while (tgi_busy()!=0u)`で前回display completionを待ち、draw→display requestを各1回行う。製品frame終端の容量補償wait、delay、logic/input/sound skipはない。0/4/8通常敵と4通常敵+bossで同じevent回数・移動量を維持し、MCP wall-clockでなくhardware eventを正しさの基準とする
 - HUD: 画面最上部の黒い帯に小型一行で`S<stage> <phase><progress> <score> L<lives> W<weapon>`を表示し、下端線から下だけをプレイ領域として使う。Stage 1導入の進行もこの行に集約する
 - 非戦闘フェーズ: 導入・クリア中は背景とアニメーションのみ進行。`WARNING`中は移動だけ可能で射撃不可
