@@ -1,6 +1,13 @@
 # ISSUES
 
-最終更新: 2026-08-20(APS-053 v047〜v049: Phase 2R側 append_hud(HUD再構築)最適化 完了。E1c 7.28VBlank(フレーム全体の72%)→0.383VBlank達成。gate(a)全体 10.1VBlank→3.13VBlank。gate(d) release余剰673B/cadence余剰537B達成。HUD表示は8pxピッチへ視覚変更(ユーザー承認済み)。)
+最終更新: 2026-08-23(実機確認用ROM v0.53.17生成・APS-054自機移動量過大の原因切り分け完了。`make clean && ./scripts/verify.sh`全PASS、LNXヘッダ検査PASS。)
+
+### 実機確認用ROM v0.53.17（2026-08-23）
+
+- `include/version.h`の`GAME_VERSION_STRING`を`0.53.16`→`0.53.17`へ更新。
+- ROM: `/Users/mammycloud-m4/Documents/develop-m4/atari-lynx-shooter/dist/asteroid-patrol.lnx`、60,876 bytes、SHA-256 `1423b40397f9589bf4f85536c6d19fe3f5059c89f4cad9700731eb5826e8534d`。
+- 検証: `make clean && ./scripts/verify.sh`（stage155/game625/sound351/IMA14949/sprite197、cc65 strict、shell lint、LNXヘッダ、voice cart全PASS）、`./scripts/inspect-lnx.sh dist/asteroid-patrol.lnx`（magic=LYNX version=1）。
+- 実機投入・画面表示・実機入力は未確認。コミット・pushなし。
 
 ### APS-053 v047〜v049: append_hud(HUD再構築)差分更新化 — E1c 7.28VB→0.38VB達成（2026-08-20）
 
@@ -22,6 +29,16 @@
 - 設計判断の経緯は`.briefs/APS-053/v047.md`〜`v049.md`(Fable5回答3件を含む)。
 - 触っていない範囲: 既存WIP(`include/cadence_probe.h`、`src/game.c`のcatch-up制限マクロ差分、`src/title_voice.c`、`scripts/calibrate-cadence-ticks-gearlynx.py`等)、movable SCBチェーン(Phase 3R2、完了済みのためスコープ外)、`build_text_line`関数自体(`static_layer_text`からも呼ばれる汎用関数、変更なし)。
 - **次のアクション**: gate(a)全体(2VBlank以下)の最終合否は、残りのセクション(E1b背景レイヤー、B/Cロジック・サウンド処理等)への対応が必要なため未確定。次の調査課題として別途扱う。
+
+### APS-054: 実機報告「自機移動量過大」— 300Hz logicと移動単価の時間基準不整合（2026-08-23、調査完了・対策未着手）
+
+- 状態: **append_hud回帰ではないことを切り分け、別課題として起票**。実機確認ROM v0.53.17でHUD表示は正常だが、方向入力中の自機移動が飛びすぎるとの報告。
+- 直接影響の否定: append_hud変更コミット`38424ef`の動作コード差分は`src/static_layer.c`のみで、`src/game.c`、`include/game.h`、`src/main.c`、入力処理、`GameState.player`更新は変更なし。`append_hud(const GameState*)`はGameStateを書き換えず、HUD scratch buffer・SCB・内部HUDキャッシュだけを更新。
+- 既存要因: `src/game.c:3`の`PLAYER_SPEED=2u`は初期実装`c805544`から不変。一方、実時間catch-up導入`95a77a9`で、main loopは入力を1回だけ取得して同じ入力を`game_logic_updates_for_draw_frame()`の戻り回数だけ反復し、productionは`elapsed_vblanks * 4` logic updates（上限12）を実行する設計へ変更された。したがって方向入力1回の外側draw処理で、通常は`2px × 4 updates = 8px`、elapsed 3〜4 VBlankで上限到達時は`2px × 12 updates = 24px`進む。
+- append_hudとの因果関係: HUD最適化前のfull fixtureは約`10.108 VBlank/frame`、最適化後は約`3.127 VBlank/frame`。上限12 updatesのため、最適化前は約`12/10.108=1.19 logic/VBlank`、最適化後は約`12/3.127=3.84 logic/VBlank`となり、append_hud高速化が実時間catch-upを復帰させた**間接的な顕在化要因**。自機移動コードへの直接回帰・メモリ破壊・HUD buffer aliasは確認できない。
+- 補助検証: `make perf-host`は`75 draw/300 logic/75 sound`、`game_speed_x=1.00`で、schedulerが意図した300Hz logicを実行することを確認。`make smoke-host`は19 checks PASS。既存host testは4/1 schedulerと同一input反復を検査するが、実機75Hzにおける自機の目標px/s、300Hz移行後の移動単価、入力サンプル間の表示ジャンプ量は未定義。
+- 結論: append_hudを巻き戻す対策は不適切。別課題として「300Hz logicを維持したまま、自機・弾・敵等の移動単価を実時間基準へ再定義し、固定小数/サブステップまたは速度定数再設計を選択する」必要がある。対象範囲と目標移動量の決定後に実装ブリーフ化する。
+- 未確認: append_hud変更前後の同一入力・同一実機区間でのpixel移動量、実機display request間隔、ユーザーが許容する自機px/s。対策実装・コミット・pushなし。
 
 ### APS-053 v047: gate(a)全体セクション別内訳の分解・計測 — Phase 2R側SCB構築(E1=7.8VBlank)がボトルネックと判明（2026-08-19、次の課題・未着手）
 
