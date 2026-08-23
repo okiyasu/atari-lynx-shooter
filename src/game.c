@@ -1645,6 +1645,10 @@ static void update_normal(GameState* game, unsigned char input,
             continue;
         }
         update_enemy_movement(enemy);
+        if (enemy->rect.x == 0u) {
+            enemy->active = 0u;
+            continue;
+        }
         interval = game_enemy_fire_interval(enemy->type);
         ++enemy->fire_counter;
         if (enemy->fire_counter == interval) {

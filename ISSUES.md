@@ -2,6 +2,16 @@
 
 最終更新: 2026-08-23(APS-056 v016 GAME_VERSION_STRING=0.53.20、release/diagnostic ROM再生成、GUI/headless PASS、commit/push済み。)
 
+### APS-056 v019 左端到達敵despawn・版表示0.53.21（2026-08-23）
+
+- 状態: **実装・host/strict・release ROM・diagnostic ROM・Gearlynx GUI/headless PASS、commit/push済み**。開始HEAD=`d7cece29fe66341caedf7a35cf37de0f27e4fe2a`（origin/main同値）。commit=`af128dc`（push前）。v018/v019ブリーフは既知の意図的未追跡差分として保全。検証時終了HEAD=`af128dc`。
+- 実装: `src/game.c`の通常敵更新で`update_enemy_movement()`後に`enemy->rect.x == 0u`なら`active=0u`としてtick終了。x=1→0到達とx=0開始を対象化し、同tickのfire counter更新・敵弾発射・敵本体collision・描画対象から除外。右側entry、player bullet再出現、ボス、公開SCB/APIは変更なし。
+- テスト: `tests/test_aps056_diagnostic.c`へx=1→0、x=0開始のactive=0、非発射、非ダメージ、描画停止相当を追加。x=0接触の旧期待値を新仕様へ更新。APS-056 diagnostic=`39 checks`。
+- 版表示: `include/version.h`の`GAME_VERSION_STRING`を`0.53.20`から`0.53.21`へ更新。重複版情報源の追加なし。
+- artifacts: release `dist/asteroid-patrol.lnx`=`61194 bytes`、SHA-256=`e02e3ace8d1c5c31e9051debbc1af21049a8a0688855c5b76da839b618150361`、`V0.53.21`、MAIN使用=`46424B`/余剰=`352B`。diagnostic `dist/asteroid-patrol-aps056-diagnostic.lnx`=`60209 bytes`、SHA-256=`a3e0644c0a91073a58082eb6c4bd744c0a3055e27291af1483a057ecfdab4488`、`V0.53.21`、MAIN使用=`45719B`/余剰=`1393B`。両LNX=`magic=LYNX version=1 bank0_page=1024 bank1_page=0`。
+- 検証: `make test smoke-host lint`（0、stage155/game652/sound351/IMA14949/sprite197/APS-055 14/APS-056 39/smoke19、strict cc65、voice、shell lint）、`make clean && ./scripts/verify.sh`（0、release LNX/voice/cart全PASS）、`make aps056-diagnostic-gearlynx`（0、LNX PASS、headless PASS、GUI PASS）、`python3 -m py_compile scripts/verify-aps056-diagnostic-gearlynx.py`（0）、`git diff --check`（0）。証跡`evidence/APS-056/scb-trace-v011.json`更新。
+- 設計差分: なし。未確認: 実機Suzy/LCD/OPT入力、実機実プレイ視認性。
+
 ### APS-056 v016 版表示0.53.20への更新（2026-08-23）
 
 - 状態: **実装・host/strict・release ROM・diagnostic ROM・Gearlynx GUI/headless PASS、commit/push済み**。開始HEAD=`81324d3dca4be30345627284f06cf0a77ed8b2ff`（origin/main同値）。検証時終了HEAD=`534aeb2591b331af00bcd3174ba2f76a3f3c81de`（origin/mainへpush済み、作業ツリーclean、HEAD=origin/main）。productionのAPS-056修正ロジックは変更なし。

@@ -52,6 +52,20 @@ static void init_normal(GameState* game)
     game->player.y = 70u;
 }
 
+static unsigned char count_active_enemy_bullets(const GameState* game)
+{
+    unsigned char i;
+    unsigned char count;
+
+    count = 0u;
+    for (i = 0u; i < GAME_MAX_ENEMY_BULLETS; ++i) {
+        if (game->enemy_bullets[i].active != 0u) {
+            ++count;
+        }
+    }
+    return count;
+}
+
 /* Host projection of the exact production enemy-bullet branch in
  * movable_scb_update(). CADENCE captures the real SCB values from main.c;
  * this projection keeps the host checks independent of Gearlynx timing. */
@@ -200,8 +214,8 @@ static void test_collision_boundaries_and_hidden_bullets(void)
     game_enemy_at(&game, 0u)->base_y = game.player.y;
     game_enemy_at(&game, 0u)->pattern = GAME_ENEMY_PATTERN_STRAIGHT;
     game_update_logic(&game, 0u);
-    expect(game.dying != 0u,
-        "contacting enemy body at x=0 retains damage");
+    expect(game_enemy_at(&game, 0u)->active == 0u && game.dying == 0u,
+        "contacting enemy body at x=0 despawns without damage");
 
     init_normal(&game);
     game.enemy_bullets[0].active = 1u;
@@ -224,6 +238,46 @@ static void test_collision_boundaries_and_hidden_bullets(void)
     game_update_logic(&game, 0u);
     expect(game.enemy_bullets[0].active == 0u && game.dying != 0u,
         "enemy bullet at x right overlap boundary retains damage");
+}
+
+static void test_left_edge_enemy_despawn(void)
+{
+    GameState game;
+    GameEnemy* enemy;
+
+    init_normal(&game);
+    enemy = game_enemy_at(&game, 0u);
+    enemy->active = 1u;
+    enemy->rect.x = 1u;
+    enemy->rect.y = 20u;
+    enemy->base_y = 20u;
+    enemy->pattern = GAME_ENEMY_PATTERN_STRAIGHT;
+    enemy->type = GAME_ENEMY_TYPE_SCOUT;
+    enemy->fire_counter = (unsigned char)(
+        game_enemy_fire_interval(enemy->type) - 1u);
+    game.player.x = 100u;
+    game.player.y = 70u;
+    game_update_logic(&game, 0u);
+    expect(enemy->rect.x == 0u && enemy->active == 0u,
+        "enemy reaching x=0 from x=1 despawns immediately");
+    expect(count_active_enemy_bullets(&game) == 0u && game.dying == 0u,
+        "x=1 to x=0 enemy neither fires nor damages that tick");
+
+    init_normal(&game);
+    enemy = game_enemy_at(&game, 0u);
+    enemy->active = 1u;
+    enemy->rect.x = 0u;
+    enemy->rect.y = game.player.y;
+    enemy->base_y = game.player.y;
+    enemy->pattern = GAME_ENEMY_PATTERN_STRAIGHT;
+    enemy->type = GAME_ENEMY_TYPE_SCOUT;
+    enemy->fire_counter = (unsigned char)(
+        game_enemy_fire_interval(enemy->type) - 1u);
+    game_update_logic(&game, 0u);
+    expect(enemy->active == 0u,
+        "enemy starting at x=0 despawns before draw and collision");
+    expect(count_active_enemy_bullets(&game) == 0u && game.dying == 0u,
+        "x=0 enemy neither fires nor damages that tick");
 }
 
 #ifdef APS056_DIAGNOSTIC
@@ -462,6 +516,7 @@ int main(void)
     test_collision_slot_is_skipped_after_consumption();
     test_hud_boundary_and_catchup();
     test_collision_boundaries_and_hidden_bullets();
+    test_left_edge_enemy_despawn();
 #ifdef APS056_DIAGNOSTIC
     test_controls_active_count_and_damage_sources();
     test_one_shot_scb_trace();
