@@ -2800,7 +2800,7 @@
   },
   "rom": {
     "path": "dist/asteroid-patrol-aps056-diagnostic.lnx",
-    "sha256": "cecc517d963c61221ca34ad13be1d1d0e598ee6c7f617ac387c455e1f6bfc908",
+    "sha256": "275ba2c797ecbfbc5dea2127f41261f3b391e3946750a5f1913fe65590a69f1e",
     "size_bytes": 60176
   },
   "status": "PASS",
