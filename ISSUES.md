@@ -1,6 +1,6 @@
 # ISSUES
 
-最終更新: 2026-08-23(APS-056 v016 GAME_VERSION_STRING=0.53.20、release/diagnostic ROM再生成、GUI/headless PASS、commit/push済み。)
+最終更新: 2026-08-23(APS-056 v019 GAME_VERSION_STRING=0.53.21、release/diagnostic ROM再生成、GUI/headless PASS、commit/push済み。)
 
 ### APS-056 v019 左端到達敵despawn・版表示0.53.21（2026-08-23）
 
