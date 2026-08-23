@@ -1,6 +1,26 @@
 # ISSUES
 
-最終更新: 2026-08-23(APS-054実装・host/strict ROM検証完了、実機確認待ち。)
+最終更新: 2026-08-23(APS-055 v002実装・host/strict ROM検証完了、実機確認待ち。)
+
+### APS-055 v002 敵弾移動速度の75Hz正規化（2026-08-23）
+
+- 状態: **実装・host/strict ROM検証完了、実機確認待ち**。開始HEAD=`12096120d2a4f822f314e16fd076eb93ba21cbe2`。APS-055 v001の既知未コミット診断差分（`ISSUES.md`、`Makefile`、`include/game.h`、`src/game.c`、`tests/test_aps055_diagnostic.c`、`.briefs/APS-055/`）を保全したまま実装。終了HEADは実装commit確定後に更新。
+- 原因/対策: `velocity_x=-2`等を300Hz logic毎に適用していたため、通常4 logic updates/drawで敵弾が8px/draw（600px/s）移動。`GameState`へ共有1Bの`enemy_bullet_move_phase`を追加し、4 logic updatesに1回だけ全敵弾へ既存velocityを適用。4更新で`(-2,+1)`、12更新で`(-6,+3)`を確認。敵弾ごとの状態追加なし。
+- 保全: `update_enemy_bullets()`の既存順序、collisionのlogic毎判定、被弾時のactive消費、`src/main.c`のSCB描画条件、発射間隔・boss cadence・当たり判定・APS-054自機移動は変更なし。combat object clear時に共有phaseを0へリセット。生成logic更新では弾を移動せず、次のphaseに従う既存発射順序を維持。
+- 変更ファイル: `src/game.c`、`include/game.h`、`include/version.h`（`GAME_VERSION_STRING=0.53.19`）、`tests/test_game.c`（75Hz移動期待値）、`tests/test_aps055_diagnostic.c`（4/12 logic更新速度診断）、`Makefile`（診断ターゲットはv001から保全）、本記録。
+- ROM/map: release LNX=`61,124` bytes、SHA-256=`1d70db9c91eda9c14a92cc475382e9bc02dd7f37c2c22299f93d7e078dadd9bc`、Segment STARTUP/LOWCODE/ONCE/CODE/RODATA/DATA/BSS=`109/16/27/36081/6963/944/2214`、使用=`46,354B`、MAIN余剰=`422B`。cadence LNX=`61,503` bytes、SHA-256=`a7f5817a9ba05640eb383d477fb143195e5f9c33d291c55654316930e65f45bc`、Segment=`109/16/27/36456/6965/946/2307`、使用=`46,826B`、MAIN余剰=`286B`。APS-054 v003比で両構成とも使用量`+112B`（CODE`+111B`、BSS`+1B`）、余剰はrelease`534→422B`／cadence`398→286B`。両方`magic=LYNX version=1`。
+- 検証: `make aps055-diagnostic-host`（終了コード0、14 checks）、`make test`（終了コード0、stage155/game652/sound351/IMA14949/sprite197/APS-055 14）、`make smoke-host lint`（終了コード0、smoke19、cc65 strict compile、shell lint）、`make clean && ./scripts/verify.sh`（終了コード0、host回帰、strict cc65、LNX、voice/cart検査PASS）、`make dist/asteroid-patrol-cadence.lnx && ./scripts/inspect-lnx.sh dist/asteroid-patrol-cadence.lnx`（終了コード0、LNX PASS）、`git diff --check`（終了コード0）。
+- 設計差分/リスク: 4 logic更新周期は共有phaseで管理するため、弾ごとの16B以上の状態増加を回避。phaseはcombat clearでリセットし、collisionは移動tick以外も毎logic判定するため、不可視被弾のactive消費順序は変わらない。実機LCDでの敵弾速度、入力タイミング、実機Suzy最終画素は未確認。commit/push前。
+
+### APS-055 v001 敵弾不可視被弾の診断（2026-08-23）
+
+- 状態: **診断コード追加・原因特定・host検証完了、対策未着手**。開始HEAD=`12096120d2a4f822f314e16fd076eb93ba21cbe2`、終了HEAD=`12096120d2a4f822f314e16fd076eb93ba21cbe2`（commit/pushなし）。開始時のソース変更なし。未追跡`.briefs/APS-055/v001.md`は指定ブリーフとして保全。
+- 変更ファイル: `include/game.h`（`GAME_APS055_DIAGNOSTIC`時だけ有効な16スロットのlogic trace型/API）、`src/game.c`（host診断時だけ、各logic updateの敵弾更新後・collision後・damage source・最終状態を記録）、`tests/test_aps055_diagnostic.c`（再現・SCB可視判定・catch-up・APS-054境界の診断12 checks）、`Makefile`（`aps055-diagnostic-host`追加、`make test`へ診断を組込み）、本記録。
+- 直接原因: 既存の更新順序。`src/game.c:update_normal()`/`update_boss()`は敵弾を`update_enemy_bullets()`で移動後、同一logic update内で自機AABBと衝突すると`enemy_bullets[i].active=0`へ変更し、`apply_damage()`で死亡開始。その後の同一outer draw frameの`draw_game()`→`movable_scb_update()`では、`src/main.c:1098-1107`の敵弾SCB条件（`active != 0 && rect.y >= GAME_HUD_HEIGHT`）を満たさずSKIP。画面に弾が表示されないまま被弾したように見える挙動は、描画不整合ではなく**描画前にcollisionが敵弾を消費する既存仕様**。
+- 再現証跡（host診断）: 初期`active/x/y=1/42/40`（SCB可視）、logic更新後の移動=`1/40/40`、collision後=`0/40/40`、damage source=`enemy_bullet`のみ（enemy body/asteroid/rock=0）、最終`active=0`・`dying=1`・残機=`2`。`elapsed_vblanks=1`ではproduction schedulerが4 logic updatesを要求するが、最初のlogic updateでcollision→消費→死亡開始し、draw boundaryではSCB SKIP。敵弾がactiveのまま`y=8`ならHUD上端条件でSKIP、activeかつ`x/y=98/40`ならSCB可視となり、activeなのに座標不整合で消える経路は再現せず。
+- APS-054前後比較: `cf30e75acb581abd4d5cbc8c3876cda9ab618a85..c1ab60e29d2eaae894118bd1d01c769c35c76292`の変更は`include/game.h`・`src/game.c`・host testsの自機移動credit正規化のみ。`update_enemy_bullets()`、敵弾collision、`src/main.c`の敵弾SCB更新は変更なし。従って不可視化の直接因果はなし。ただしAPS-054により同じ入力を複数logic updateへ反復した際の自機座標が従来のlogic単価から変わるため、移動中はcollision成立タイミング/位置への**間接影響**はあり得る。診断のneutral入力再現ではAPS-054 creditは関与せず、既存の更新順序だけで現象が成立。
+- 未確認: Atari Lynx実機のLCDでのフレーム表示、実機入力タイミング、実機での同一弾道の発生フレーム、実機Suzyの最終画素。対策（collision前の表示、被弾演出、弾消費タイミング等の設計選択）は別版ブリーフ・裁定後に実装する。
+- 検証: `make aps055-diagnostic-host`（終了コード0、APS-055診断12 checks）、`make test smoke-host lint`（終了コード0、stage155/game651/sound351/IMA14949/sprite197/smoke19、C89 warning-as-error・shell lint PASS）、`make clean && ./scripts/verify.sh`（終了コード0、clean release ROM=`dist/asteroid-patrol.lnx` 61,013 bytes、LNX `magic=LYNX version=1`、voice/cart検査PASS）、`git diff --check`（終了コード0）。実機検証なし。
 
 ### APS-054 v003 gate(d)余剰回復（2026-08-23）
 

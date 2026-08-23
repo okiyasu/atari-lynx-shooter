@@ -52,6 +52,7 @@ PERF_WORKLOAD_FRAMES := 5000000
 PERF_PAIR_COUNT := 7
 
 .PHONY: all toolchain rom debug-contract clean test stage-check smoke-host smoke-gearlynx \
+	aps055-diagnostic-host \
 	perf-host frame-cadence-gearlynx lint verify inspect voice-generate \
 	voice-generate-game-over voice-check static-layer-readback-gearlynx \
 	title-game-over-readback-gearlynx \
@@ -220,11 +221,12 @@ $(STAGE_STAMP): $(STAGE_INPUT) $(STAGE_GENERATOR) $(STAGE_GOLDEN) $(SPRITE_GOLDE
 $(STAGE_DATA): $(STAGE_STAMP)
 
 test: stage-check build/test-game build/test-sound build/test-ima-adpcm \
-		build/test-sprite-data
+		build/test-sprite-data build/test-aps055-diagnostic
 	./build/test-game
 	./build/test-sound
 	./build/test-ima-adpcm
 	./build/test-sprite-data
+	./build/test-aps055-diagnostic
 
 stage-check:
 	./tests/test_stage_data.py
@@ -244,6 +246,9 @@ voice-check:
 
 smoke-host: build/test-smoke
 	./build/test-smoke
+
+aps055-diagnostic-host: build/test-aps055-diagnostic
+	./build/test-aps055-diagnostic
 
 perf-host: build/perf-bench build/perf-bench-legacy build/test-game-legacy
 	./build/test-game-legacy
@@ -542,6 +547,14 @@ build/test-smoke: tests/test_smoke.c src/game.c src/sound.c $(MUSIC_DATA) \
 		$(GEN_DIR)/stage_data.c $(GEN_DIR)/stage_data.h include/game.h include/sound.h
 	mkdir -p build
 	$(HOST_CC) $(HOST_CFLAGS) -o $@ tests/test_smoke.c src/game.c src/sound.c \
+		$(GEN_DIR)/stage_data.c $(MUSIC_DATA)
+
+build/test-aps055-diagnostic: tests/test_aps055_diagnostic.c src/game.c \
+		src/sound.c $(MUSIC_DATA) $(GEN_DIR)/stage_data.c \
+		$(GEN_DIR)/stage_data.h include/game.h include/sound.h
+	mkdir -p build
+	$(HOST_CC) $(HOST_CFLAGS) -DGAME_APS055_DIAGNOSTIC -o $@ \
+		tests/test_aps055_diagnostic.c src/game.c src/sound.c \
 		$(GEN_DIR)/stage_data.c $(MUSIC_DATA)
 
 build/perf-bench: tests/perf_bench.c src/game.c src/sound.c $(MUSIC_DATA) \

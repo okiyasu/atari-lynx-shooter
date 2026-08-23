@@ -41,6 +41,137 @@ static GamePerfCounters game_perf_counters;
 #define GAME_PERF_COUNT(field) ((void)0)
 #endif
 
+#ifdef GAME_APS055_DIAGNOSTIC
+static GameAps055Trace aps055_trace;
+static unsigned char aps055_current_event;
+
+static void aps055_copy_bullets(unsigned char* active, unsigned char* x,
+    unsigned char* y, const GameState* game)
+{
+    unsigned char i;
+
+    for (i = 0u; i < GAME_MAX_ENEMY_BULLETS; ++i) {
+        active[i] = game->enemy_bullets[i].active;
+        x[i] = game->enemy_bullets[i].rect.x;
+        y[i] = game->enemy_bullets[i].rect.y;
+    }
+}
+
+void game_aps055_trace_reset(void)
+{
+    unsigned char* bytes;
+    unsigned int i;
+
+    bytes = (unsigned char*)&aps055_trace;
+    for (i = 0u; i < sizeof(aps055_trace); ++i) {
+        bytes[i] = 0u;
+    }
+    aps055_current_event = 0u;
+}
+
+const GameAps055Trace* game_aps055_trace_get(void)
+{
+    return &aps055_trace;
+}
+
+static void aps055_begin(const GameState* game)
+{
+    GameAps055TraceEvent* event;
+
+    if (aps055_trace.event_count >= GAME_APS055_TRACE_MAX_UPDATES) {
+        return;
+    }
+    aps055_current_event = aps055_trace.event_count;
+    ++aps055_trace.event_count;
+    event = &aps055_trace.events[aps055_current_event];
+    event->player_x_before = game->player.x;
+    event->player_y_before = game->player.y;
+    aps055_copy_bullets(event->before_active, event->before_x,
+        event->before_y, game);
+}
+
+static GameAps055TraceEvent* aps055_event(void)
+{
+    if (aps055_current_event >= aps055_trace.event_count) {
+        return (GameAps055TraceEvent*)0;
+    }
+    return &aps055_trace.events[aps055_current_event];
+}
+
+static void aps055_after_move(const GameState* game)
+{
+    GameAps055TraceEvent* event;
+
+    event = aps055_event();
+    if (event != (GameAps055TraceEvent*)0) {
+        aps055_copy_bullets(event->after_move_active, event->after_move_x,
+            event->after_move_y, game);
+    }
+}
+
+static void aps055_after_collision(const GameState* game)
+{
+    GameAps055TraceEvent* event;
+
+    event = aps055_event();
+    if (event != (GameAps055TraceEvent*)0) {
+        aps055_copy_bullets(event->after_collision_active,
+            event->after_collision_x, event->after_collision_y, game);
+    }
+}
+
+static void aps055_finish(const GameState* game)
+{
+    GameAps055TraceEvent* event;
+
+    event = aps055_event();
+    if (event != (GameAps055TraceEvent*)0) {
+        aps055_copy_bullets(event->final_active, event->final_x,
+            event->final_y, game);
+        event->player_x_after = game->player.x;
+        event->player_y_after = game->player.y;
+        event->dying_after = game->dying;
+        event->lives_after = game->lives;
+    }
+}
+
+static void aps055_mark_body(void)
+{
+    GameAps055TraceEvent* event;
+    event = aps055_event();
+    if (event != (GameAps055TraceEvent*)0) {
+        event->enemy_body_damage = 1u;
+    }
+}
+
+static void aps055_mark_enemy_bullet(void)
+{
+    GameAps055TraceEvent* event;
+    event = aps055_event();
+    if (event != (GameAps055TraceEvent*)0) {
+        event->enemy_bullet_damage = 1u;
+    }
+}
+
+static void aps055_mark_asteroid(void)
+{
+    GameAps055TraceEvent* event;
+    event = aps055_event();
+    if (event != (GameAps055TraceEvent*)0) {
+        event->asteroid_damage = 1u;
+    }
+}
+
+static void aps055_mark_rock(void)
+{
+    GameAps055TraceEvent* event;
+    event = aps055_event();
+    if (event != (GameAps055TraceEvent*)0) {
+        event->rock_damage = 1u;
+    }
+}
+#endif
+
 typedef struct EnemyMovementConfig {
     unsigned char horizontal_speed;
     unsigned char vertical_interval;
@@ -146,6 +277,7 @@ static void clear_enemy_bullets(GameState* game)
 {
     unsigned char i;
 
+    game->enemy_bullet_move_phase = 0u;
     for (i = 0u; i < GAME_MAX_ENEMY_BULLETS; ++i) {
         game->enemy_bullets[i].active = 0u;
     }
@@ -592,6 +724,15 @@ static void update_enemy_bullets(GameState* game)
 {
     unsigned char i;
 
+    if (game->enemy_bullet_move_phase != 0u) {
+        if (game->enemy_bullet_move_phase == 3u) {
+            game->enemy_bullet_move_phase = 0u;
+        } else {
+            ++game->enemy_bullet_move_phase;
+        }
+        return;
+    }
+    game->enemy_bullet_move_phase = 1u;
     for (i = 0u; i < GAME_MAX_ENEMY_BULLETS; ++i) {
         int x;
         int y;
@@ -1306,9 +1447,15 @@ static void update_normal(GameState* game, unsigned char input,
     unsigned char new_environment_slot;
     unsigned char enemy_destroyed;
     unsigned char power_item_collected;
+#ifdef GAME_APS055_DIAGNOSTIC
+    unsigned char damage_before_environment;
+#endif
     const GameStageConfig* stage_config;
 
     GAME_PERF_COUNT(normal_updates);
+#ifdef GAME_APS055_DIAGNOSTIC
+    aps055_begin(game);
+#endif
     move_player(game, input);
     stage_config = &game_stage_configs[game->stage - 1u];
     new_environment_slot = start_environment_event(game);
@@ -1356,6 +1503,9 @@ static void update_normal(GameState* game, unsigned char input,
         sound_request_sfx(&game->sound, SOUND_SFX_ENEMY_DEFEAT);
     }
     update_enemy_bullets(game);
+#ifdef GAME_APS055_DIAGNOSTIC
+    aps055_after_move(game);
+#endif
 
     for (i = 0u; i < GAME_MAX_ENEMIES; ++i) {
         GameEnemy* enemy;
@@ -1395,6 +1545,9 @@ static void update_normal(GameState* game, unsigned char input,
             game_aabb_intersects(&game->player,
                 &enemy->rect) != 0u)) {
             damage = 1u;
+#ifdef GAME_APS055_DIAGNOSTIC
+            aps055_mark_body();
+#endif
         }
     }
     for (i = 0u; i < GAME_MAX_ENEMY_BULLETS; ++i) {
@@ -1406,14 +1559,39 @@ static void update_normal(GameState* game, unsigned char input,
                 GAME_ENEMY_BULLET_HEIGHT) != 0u) {
             game->enemy_bullets[i].active = 0u;
             damage = 1u;
+#ifdef GAME_APS055_DIAGNOSTIC
+            aps055_mark_enemy_bullet();
+#endif
         }
     }
     if (stage_config->environment_id == GAME_ENVIRONMENT_ASTEROIDS) {
+#ifdef GAME_APS055_DIAGNOSTIC
+        damage_before_environment = damage;
+#endif
         update_asteroids(game, new_environment_slot, &damage);
+#ifdef GAME_APS055_DIAGNOSTIC
+        if (damage_before_environment == 0u && damage != 0u) {
+            aps055_mark_asteroid();
+        }
+#endif
     } else if (stage_config->environment_id == GAME_ENVIRONMENT_ROCKFALL) {
+#ifdef GAME_APS055_DIAGNOSTIC
+        damage_before_environment = damage;
+#endif
         update_falling_rocks(game, new_environment_slot, &damage);
+#ifdef GAME_APS055_DIAGNOSTIC
+        if (damage_before_environment == 0u && damage != 0u) {
+            aps055_mark_rock();
+        }
+#endif
     }
+#ifdef GAME_APS055_DIAGNOSTIC
+    aps055_after_collision(game);
+#endif
     apply_damage(game, damage, was_invincible);
+#ifdef GAME_APS055_DIAGNOSTIC
+    aps055_finish(game);
+#endif
     ++game->phase_timer;
     if (game->dying == 0u && game->phase_timer == GAME_NORMAL_FRAMES) {
         enter_phase(game, GAME_PHASE_WARNING);
@@ -1459,6 +1637,9 @@ static void update_boss(GameState* game, unsigned char input,
     unsigned char i;
     unsigned char damage;
 
+#ifdef GAME_APS055_DIAGNOSTIC
+    aps055_begin(game);
+#endif
     move_player(game, input);
     if (game->fire_cooldown != 0u) {
         --game->fire_cooldown;
@@ -1473,10 +1654,18 @@ static void update_boss(GameState* game, unsigned char input,
         return;
     }
     update_enemy_bullets(game);
+#ifdef GAME_APS055_DIAGNOSTIC
+    aps055_after_move(game);
+#endif
     update_boss_attack(game);
 
     damage = (unsigned char)(game->boss.active != 0u &&
         game_aabb_intersects(&game->player, &game->boss.rect) != 0u);
+#ifdef GAME_APS055_DIAGNOSTIC
+    if (damage != 0u) {
+        aps055_mark_body();
+    }
+#endif
     for (i = 0u; i < GAME_MAX_ENEMY_BULLETS; ++i) {
         if (game->enemy_bullets[i].active != 0u &&
             rect_intersects_position(&game->player,
@@ -1485,9 +1674,18 @@ static void update_boss(GameState* game, unsigned char input,
                 GAME_ENEMY_BULLET_HEIGHT) != 0u) {
             game->enemy_bullets[i].active = 0u;
             damage = 1u;
+#ifdef GAME_APS055_DIAGNOSTIC
+            aps055_mark_enemy_bullet();
+#endif
         }
     }
+#ifdef GAME_APS055_DIAGNOSTIC
+    aps055_after_collision(game);
+#endif
     apply_damage(game, damage, was_invincible);
+#ifdef GAME_APS055_DIAGNOSTIC
+    aps055_finish(game);
+#endif
     ++game->phase_timer;
 }
 

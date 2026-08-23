@@ -1108,6 +1108,7 @@ static void test_enemy_fire(void)
 {
     GameState game;
     unsigned char i;
+    unsigned char fired_x;
 
     init_normal(&game);
     disable_enemies_except(&game, 0u);
@@ -1123,10 +1124,13 @@ static void test_enemy_fire(void)
         "Scout fires exactly on update 90");
     expect(game.enemy_bullets[0].rect.x == game.enemies[0].rect.x,
         "new enemy bullet does not move on generation update");
+    fired_x = game.enemy_bullets[0].rect.x;
     game_update(&game, 0u);
-    expect(game.enemy_bullets[0].rect.x ==
-        (unsigned char)(game.enemies[0].rect.x - 1u),
-        "existing enemy bullet moves two while enemy moves one");
+    expect(game.enemy_bullets[0].rect.x == fired_x,
+        "existing enemy bullet keeps its generated position before the 75Hz move");
+    advance_logic_updates(&game, 0u, 4u);
+    expect(game.enemy_bullets[0].rect.x == (unsigned char)(fired_x - 2u),
+        "existing enemy bullet moves by velocity once per four logic updates");
 
     init_normal(&game);
     disable_enemies_except(&game, 1u);
@@ -1197,11 +1201,11 @@ static void test_enemy_fire(void)
     expect(game.enemy_bullets[0].rect.x == 2u &&
         game.enemy_bullets[0].active != 0u,
         "enemy bullet reaches x two while active");
-    game_update(&game, 0u);
+    advance_logic_updates(&game, 0u, 4u);
     expect(game.enemy_bullets[0].rect.x == 0u &&
         game.enemy_bullets[0].active != 0u,
         "enemy bullet reaches x zero without underflow");
-    game_update(&game, 0u);
+    advance_logic_updates(&game, 0u, 4u);
     expect(game.enemy_bullets[0].active == 0u,
         "enemy bullet disappears before moving left of zero");
 
@@ -2364,7 +2368,7 @@ static void test_enemy_bullet_capacity_and_signed_motion(void)
     game.enemy_bullets[3].rect.y = 101u;
     game.enemy_bullets[3].velocity_x = 0;
     game.enemy_bullets[3].velocity_y = 1;
-    game_update(&game, 0u);
+    advance_logic_updates(&game, 0u, 4u);
     expect(game.enemy_bullets[0].active == 0u &&
         game.enemy_bullets[1].active == 0u &&
         game.enemy_bullets[2].active == 0u &&

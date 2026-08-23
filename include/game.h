@@ -290,6 +290,7 @@ typedef struct GameState {
     GameRect player;
     signed char player_x_credit;
     signed char player_y_credit;
+    unsigned char enemy_bullet_move_phase;
 #ifndef __CC65__
     GameEnemy enemies[GAME_STAGE_ACTIVE_ENEMIES];
 #endif
@@ -354,6 +355,43 @@ typedef struct GamePerfCounters {
 
 void game_perf_reset(void);
 const GamePerfCounters* game_perf_get(void);
+#endif
+
+#ifdef GAME_APS055_DIAGNOSTIC
+#define GAME_APS055_TRACE_MAX_UPDATES 16u
+
+typedef struct GameAps055TraceEvent {
+    unsigned char player_x_before;
+    unsigned char player_y_before;
+    unsigned char before_active[GAME_MAX_ENEMY_BULLETS];
+    unsigned char before_x[GAME_MAX_ENEMY_BULLETS];
+    unsigned char before_y[GAME_MAX_ENEMY_BULLETS];
+    unsigned char after_move_active[GAME_MAX_ENEMY_BULLETS];
+    unsigned char after_move_x[GAME_MAX_ENEMY_BULLETS];
+    unsigned char after_move_y[GAME_MAX_ENEMY_BULLETS];
+    unsigned char after_collision_active[GAME_MAX_ENEMY_BULLETS];
+    unsigned char after_collision_x[GAME_MAX_ENEMY_BULLETS];
+    unsigned char after_collision_y[GAME_MAX_ENEMY_BULLETS];
+    unsigned char final_active[GAME_MAX_ENEMY_BULLETS];
+    unsigned char final_x[GAME_MAX_ENEMY_BULLETS];
+    unsigned char final_y[GAME_MAX_ENEMY_BULLETS];
+    unsigned char player_x_after;
+    unsigned char player_y_after;
+    unsigned char dying_after;
+    unsigned char lives_after;
+    unsigned char enemy_body_damage;
+    unsigned char enemy_bullet_damage;
+    unsigned char asteroid_damage;
+    unsigned char rock_damage;
+} GameAps055TraceEvent;
+
+typedef struct GameAps055Trace {
+    unsigned char event_count;
+    GameAps055TraceEvent events[GAME_APS055_TRACE_MAX_UPDATES];
+} GameAps055Trace;
+
+void game_aps055_trace_reset(void);
+const GameAps055Trace* game_aps055_trace_get(void);
 #endif
 
 void game_init(GameState* game);
