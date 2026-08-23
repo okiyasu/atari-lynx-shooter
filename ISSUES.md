@@ -2,6 +2,15 @@
 
 最終更新: 2026-08-23(APS-057 v002 GAME_VERSION_STRING=0.53.22、release/diagnostic ROM再生成、Gearlynx GUI/headless PASS、commit/push済み。)
 
+### APS-053〜APS-057 全体総括（2026-08-23）
+
+- **実装・自動検証フェーズ完了**。APS-053はPhase 3R2 movable SCB静的チェーン化、HUD差分更新、RAMおよびgate(b)/(d)を達成。gate(a)全体2VBlankの最終達成は未確認・未達で、別の性能課題として継続。
+- APS-054は300Hz logic/75Hz draw基準の自機移動量正規化を完了、実機確認待ち。APS-055は敵弾不可視被弾の原因切り分けと75Hz移動正規化を完了、実機確認待ち。
+- APS-056は敵弾・敵本体の境界修正、SCB座標書込修正、左端敵despawn、`GAME_VERSION_STRING=0.53.21`を完了。APS-057はStage2 WIND/Stage3 ROCKFALL後のSuzy `SPRHSIZ`/`SPRVSIZ`残留を修正し、`GAME_VERSION_STRING=0.53.22`、Gearlynx GUI/headless 8/8を完了。
+- 共通検証（host/strict/lint/release・diagnostic ROM/Gearlynx自動検証）は完了。現在HEAD=`1239ae9d20e6847d8e6e0f09ba5e35e42bb21e52`。実機Suzy/LCD/OPT入力は未確認。
+- Stage2をクリアできない報告は今回の描画バグ修正対象外であり、ゲームバランス/難易度課題として保留。
+- **未完了範囲**は実機検証、APS-053全体性能gate(a)、Stage2難易度。上記を除き、APS-053〜APS-057の実装・自動検証作業を完了とする。
+
 ### APS-057 v002 Stage2/Stage3 TGI後のSPRVSIZ残留修正・版表示0.53.22（2026-08-23）
 
 - 状態: **実装・host/strict・lint・release/diagnostic ROM・Gearlynx GUI/headless直接readback・commit/push PASS**。開始HEAD=`16f4348d59b037324b9b975c479e5b47092128f4`。開始時の既知差分は`ISSUES.md`のAPS-057 v001追記、`.briefs/APS-057/v001.md`、依頼ブリーフ`.briefs/APS-057/v002.md`のみ。実装commit=`61f08275814870231a000da50e7205500279c8c6`、`origin/main`へpush済み。
