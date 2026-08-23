@@ -1,0 +1,2808 @@
+{
+  "aps": "APS-056",
+  "attempts": [
+    {
+      "checks": {
+        "active_count_2": true,
+        "data_pointers_nonzero_and_shared": true,
+        "direct_chain_data_matches_trace": true,
+        "direct_chain_has_16_enemy_bullet_slots": true,
+        "direct_chain_next_mapping": true,
+        "direct_chain_slot_fields_read": true,
+        "direct_slot0_expected_hpos": true,
+        "direct_slot0_expected_sprctl0": true,
+        "direct_slot0_expected_sprctl1": true,
+        "direct_slot0_expected_vpos": true,
+        "direct_slot0_matches_expected_fixture": true,
+        "direct_slot3_expected_hpos": true,
+        "direct_slot3_expected_sprctl0": true,
+        "direct_slot3_expected_sprctl1": true,
+        "direct_slot3_expected_vpos": true,
+        "direct_slot3_matches_expected_hud_skip": true,
+        "header_penpal_danger": true,
+        "latched": true,
+        "next_pointers_bounded": true,
+        "slot0_fields_captured": true,
+        "slot0_render_fields_recorded": true,
+        "slot3_render_fields_recorded": true,
+        "slot_count_16": true,
+        "slot_indices_0_to_15": true,
+        "source_active_slots_0_and_3": true,
+        "sprctl0_follower_slots_1bpp_noncoll": true,
+        "submit_after_marker": true,
+        "submit_before_marker": true,
+        "submit_count_1": true,
+        "visible_count_1": true
+      },
+      "direct_scb_slots": [
+        {
+          "address": 42733,
+          "data": 36092,
+          "hpos": 100,
+          "next": 42744,
+          "penpal": [
+            5,
+            12,
+            32,
+            3,
+            167,
+            252,
+            140,
+            0
+          ],
+          "raw": [
+            5,
+            8,
+            32,
+            248,
+            166,
+            252,
+            140,
+            100,
+            0,
+            40,
+            0,
+            5,
+            12,
+            32,
+            3,
+            167,
+            252,
+            140,
+            0
+          ],
+          "sprctl0": 5,
+          "sprctl1": 8,
+          "vpos": 40
+        },
+        {
+          "address": 42744,
+          "data": 36092,
+          "hpos": 0,
+          "next": 42755,
+          "penpal": [
+            5,
+            12,
+            32,
+            14,
+            167,
+            252,
+            140,
+            0
+          ],
+          "raw": [
+            5,
+            12,
+            32,
+            3,
+            167,
+            252,
+            140,
+            0,
+            0,
+            0,
+            0,
+            5,
+            12,
+            32,
+            14,
+            167,
+            252,
+            140,
+            0
+          ],
+          "sprctl0": 5,
+          "sprctl1": 12,
+          "vpos": 0
+        },
+        {
+          "address": 42755,
+          "data": 36092,
+          "hpos": 0,
+          "next": 42766,
+          "penpal": [
+            5,
+            12,
+            32,
+            25,
+            167,
+            252,
+            140,
+            80
+          ],
+          "raw": [
+            5,
+            12,
+            32,
+            14,
+            167,
+            252,
+            140,
+            0,
+            0,
+            0,
+            0,
+            5,
+            12,
+            32,
+            25,
+            167,
+            252,
+            140,
+            80
+          ],
+          "sprctl0": 5,
+          "sprctl1": 12,
+          "vpos": 0
+        },
+        {
+          "address": 42766,
+          "data": 36092,
+          "hpos": 80,
+          "next": 42777,
+          "penpal": [
+            5,
+            12,
+            32,
+            36,
+            167,
+            252,
+            140,
+            0
+          ],
+          "raw": [
+            5,
+            12,
+            32,
+            25,
+            167,
+            252,
+            140,
+            80,
+            0,
+            9,
+            0,
+            5,
+            12,
+            32,
+            36,
+            167,
+            252,
+            140,
+            0
+          ],
+          "sprctl0": 5,
+          "sprctl1": 12,
+          "vpos": 9
+        },
+        {
+          "address": 42777,
+          "data": 36092,
+          "hpos": 0,
+          "next": 42788,
+          "penpal": [
+            5,
+            12,
+            32,
+            47,
+            167,
+            252,
+            140,
+            0
+          ],
+          "raw": [
+            5,
+            12,
+            32,
+            36,
+            167,
+            252,
+            140,
+            0,
+            0,
+            0,
+            0,
+            5,
+            12,
+            32,
+            47,
+            167,
+            252,
+            140,
+            0
+          ],
+          "sprctl0": 5,
+          "sprctl1": 12,
+          "vpos": 0
+        },
+        {
+          "address": 42788,
+          "data": 36092,
+          "hpos": 0,
+          "next": 42799,
+          "penpal": [
+            5,
+            12,
+            32,
+            58,
+            167,
+            252,
+            140,
+            0
+          ],
+          "raw": [
+            5,
+            12,
+            32,
+            47,
+            167,
+            252,
+            140,
+            0,
+            0,
+            0,
+            0,
+            5,
+            12,
+            32,
+            58,
+            167,
+            252,
+            140,
+            0
+          ],
+          "sprctl0": 5,
+          "sprctl1": 12,
+          "vpos": 0
+        },
+        {
+          "address": 42799,
+          "data": 36092,
+          "hpos": 0,
+          "next": 42810,
+          "penpal": [
+            5,
+            12,
+            32,
+            69,
+            167,
+            252,
+            140,
+            0
+          ],
+          "raw": [
+            5,
+            12,
+            32,
+            58,
+            167,
+            252,
+            140,
+            0,
+            0,
+            0,
+            0,
+            5,
+            12,
+            32,
+            69,
+            167,
+            252,
+            140,
+            0
+          ],
+          "sprctl0": 5,
+          "sprctl1": 12,
+          "vpos": 0
+        },
+        {
+          "address": 42810,
+          "data": 36092,
+          "hpos": 0,
+          "next": 42821,
+          "penpal": [
+            5,
+            12,
+            32,
+            80,
+            167,
+            252,
+            140,
+            0
+          ],
+          "raw": [
+            5,
+            12,
+            32,
+            69,
+            167,
+            252,
+            140,
+            0,
+            0,
+            0,
+            0,
+            5,
+            12,
+            32,
+            80,
+            167,
+            252,
+            140,
+            0
+          ],
+          "sprctl0": 5,
+          "sprctl1": 12,
+          "vpos": 0
+        },
+        {
+          "address": 42821,
+          "data": 36092,
+          "hpos": 0,
+          "next": 42832,
+          "penpal": [
+            5,
+            12,
+            32,
+            91,
+            167,
+            252,
+            140,
+            0
+          ],
+          "raw": [
+            5,
+            12,
+            32,
+            80,
+            167,
+            252,
+            140,
+            0,
+            0,
+            0,
+            0,
+            5,
+            12,
+            32,
+            91,
+            167,
+            252,
+            140,
+            0
+          ],
+          "sprctl0": 5,
+          "sprctl1": 12,
+          "vpos": 0
+        },
+        {
+          "address": 42832,
+          "data": 36092,
+          "hpos": 0,
+          "next": 42843,
+          "penpal": [
+            5,
+            12,
+            32,
+            102,
+            167,
+            252,
+            140,
+            0
+          ],
+          "raw": [
+            5,
+            12,
+            32,
+            91,
+            167,
+            252,
+            140,
+            0,
+            0,
+            0,
+            0,
+            5,
+            12,
+            32,
+            102,
+            167,
+            252,
+            140,
+            0
+          ],
+          "sprctl0": 5,
+          "sprctl1": 12,
+          "vpos": 0
+        },
+        {
+          "address": 42843,
+          "data": 36092,
+          "hpos": 0,
+          "next": 42854,
+          "penpal": [
+            5,
+            12,
+            32,
+            113,
+            167,
+            252,
+            140,
+            0
+          ],
+          "raw": [
+            5,
+            12,
+            32,
+            102,
+            167,
+            252,
+            140,
+            0,
+            0,
+            0,
+            0,
+            5,
+            12,
+            32,
+            113,
+            167,
+            252,
+            140,
+            0
+          ],
+          "sprctl0": 5,
+          "sprctl1": 12,
+          "vpos": 0
+        },
+        {
+          "address": 42854,
+          "data": 36092,
+          "hpos": 0,
+          "next": 42865,
+          "penpal": [
+            5,
+            12,
+            32,
+            124,
+            167,
+            252,
+            140,
+            0
+          ],
+          "raw": [
+            5,
+            12,
+            32,
+            113,
+            167,
+            252,
+            140,
+            0,
+            0,
+            0,
+            0,
+            5,
+            12,
+            32,
+            124,
+            167,
+            252,
+            140,
+            0
+          ],
+          "sprctl0": 5,
+          "sprctl1": 12,
+          "vpos": 0
+        },
+        {
+          "address": 42865,
+          "data": 36092,
+          "hpos": 0,
+          "next": 42876,
+          "penpal": [
+            5,
+            12,
+            32,
+            135,
+            167,
+            252,
+            140,
+            0
+          ],
+          "raw": [
+            5,
+            12,
+            32,
+            124,
+            167,
+            252,
+            140,
+            0,
+            0,
+            0,
+            0,
+            5,
+            12,
+            32,
+            135,
+            167,
+            252,
+            140,
+            0
+          ],
+          "sprctl0": 5,
+          "sprctl1": 12,
+          "vpos": 0
+        },
+        {
+          "address": 42876,
+          "data": 36092,
+          "hpos": 0,
+          "next": 42887,
+          "penpal": [
+            5,
+            12,
+            32,
+            146,
+            167,
+            252,
+            140,
+            0
+          ],
+          "raw": [
+            5,
+            12,
+            32,
+            135,
+            167,
+            252,
+            140,
+            0,
+            0,
+            0,
+            0,
+            5,
+            12,
+            32,
+            146,
+            167,
+            252,
+            140,
+            0
+          ],
+          "sprctl0": 5,
+          "sprctl1": 12,
+          "vpos": 0
+        },
+        {
+          "address": 42887,
+          "data": 36092,
+          "hpos": 0,
+          "next": 42898,
+          "penpal": [
+            5,
+            12,
+            32,
+            0,
+            0,
+            252,
+            140,
+            0
+          ],
+          "raw": [
+            5,
+            12,
+            32,
+            146,
+            167,
+            252,
+            140,
+            0,
+            0,
+            0,
+            0,
+            5,
+            12,
+            32,
+            0,
+            0,
+            252,
+            140,
+            0
+          ],
+          "sprctl0": 5,
+          "sprctl1": 12,
+          "vpos": 0
+        },
+        {
+          "address": 42898,
+          "data": 36092,
+          "hpos": 0,
+          "next": 0,
+          "penpal": [
+            5,
+            0,
+            32,
+            237,
+            166,
+            3,
+            141,
+            0
+          ],
+          "raw": [
+            5,
+            12,
+            32,
+            0,
+            0,
+            252,
+            140,
+            0,
+            0,
+            0,
+            0,
+            5,
+            0,
+            32,
+            237,
+            166,
+            3,
+            141,
+            0
+          ],
+          "sprctl0": 5,
+          "sprctl1": 12,
+          "vpos": 0
+        }
+      ],
+      "fixture": {
+        "bullets": {
+          "0": [
+            100,
+            40,
+            1,
+            0,
+            0
+          ],
+          "3": [
+            80,
+            9,
+            1,
+            0,
+            0
+          ]
+        },
+        "player": [
+          20,
+          70
+        ]
+      },
+      "frame": {
+        "bullet_color_index": 6,
+        "bullet_color_rgba": [
+          204,
+          255,
+          34,
+          255
+        ],
+        "dispadr_png": "evidence/APS-056/scb-trace-v011-headless-dispadr.png",
+        "dispadr_sha256": "38a72c76c5e1f861a7b02a971e01da3f2ff3baba8d39bccd750d5f3ce290eccf",
+        "pages_equal": true,
+        "pixel_probe": {
+          "dispadr": {
+            "color_match": true,
+            "pixels": [
+              [
+                204,
+                255,
+                34,
+                255
+              ],
+              [
+                204,
+                255,
+                34,
+                255
+              ],
+              [
+                0,
+                0,
+                0,
+                255
+              ],
+              [
+                204,
+                255,
+                34,
+                255
+              ]
+            ]
+          },
+          "screenshot": {
+            "color_match": true,
+            "pixels": [
+              [
+                204,
+                255,
+                34,
+                255
+              ],
+              [
+                204,
+                255,
+                34,
+                255
+              ],
+              [
+                0,
+                0,
+                0,
+                255
+              ],
+              [
+                204,
+                255,
+                34,
+                255
+              ]
+            ]
+          },
+          "vidbas": {
+            "color_match": true,
+            "pixels": [
+              [
+                204,
+                255,
+                34,
+                255
+              ],
+              [
+                204,
+                255,
+                34,
+                255
+              ],
+              [
+                0,
+                0,
+                0,
+                255
+              ],
+              [
+                204,
+                255,
+                34,
+                255
+              ]
+            ]
+          }
+        },
+        "screen_png": "evidence/APS-056/scb-trace-v011-headless-screen.png",
+        "screen_sha256": "38a72c76c5e1f861a7b02a971e01da3f2ff3baba8d39bccd750d5f3ce290eccf",
+        "vidbas_png": "evidence/APS-056/scb-trace-v011-headless-vidbas.png",
+        "vidbas_sha256": "38a72c76c5e1f861a7b02a971e01da3f2ff3baba8d39bccd750d5f3ce290eccf"
+      },
+      "initial_debug_status": {
+        "at_breakpoint": false,
+        "paused": true,
+        "pc": "FF80"
+      },
+      "interpretation": {
+        "direct_scb_slot0": {
+          "address": 42733,
+          "data": 36092,
+          "hpos": 100,
+          "next": 42744,
+          "penpal": [
+            5,
+            12,
+            32,
+            3,
+            167,
+            252,
+            140,
+            0
+          ],
+          "raw": [
+            5,
+            8,
+            32,
+            248,
+            166,
+            252,
+            140,
+            100,
+            0,
+            40,
+            0,
+            5,
+            12,
+            32,
+            3,
+            167,
+            252,
+            140,
+            0
+          ],
+          "sprctl0": 5,
+          "sprctl1": 8,
+          "vpos": 40
+        },
+        "direct_scb_slot3": {
+          "address": 42766,
+          "data": 36092,
+          "hpos": 80,
+          "next": 42777,
+          "penpal": [
+            5,
+            12,
+            32,
+            36,
+            167,
+            252,
+            140,
+            0
+          ],
+          "raw": [
+            5,
+            12,
+            32,
+            25,
+            167,
+            252,
+            140,
+            80,
+            0,
+            9,
+            0,
+            5,
+            12,
+            32,
+            36,
+            167,
+            252,
+            140,
+            0
+          ],
+          "sprctl0": 5,
+          "sprctl1": 12,
+          "vpos": 9
+        },
+        "expected_slot0": {
+          "hpos": 100,
+          "sprctl0": 5,
+          "sprctl1": 8,
+          "vpos": 40
+        },
+        "expected_slot3": {
+          "hpos": 80,
+          "sprctl0": 5,
+          "sprctl1": 12,
+          "vpos": 9
+        },
+        "game_state_slot0": [
+          100,
+          40,
+          1,
+          0,
+          0
+        ],
+        "game_state_slot3": [
+          80,
+          9,
+          1,
+          0,
+          0
+        ],
+        "scb_layout": {
+          "data": 5,
+          "hpos": 7,
+          "next": 3,
+          "size": 11,
+          "sprctl0": 0,
+          "sprctl1": 1,
+          "vpos": 9
+        },
+        "trace_slot0": {
+          "data": 36092,
+          "hpos": 100,
+          "index": 0,
+          "next": 42744,
+          "sprctl0": 5,
+          "sprctl1": 8,
+          "vpos": 40
+        },
+        "trace_slot3": {
+          "data": 36092,
+          "hpos": 80,
+          "index": 3,
+          "next": 42777,
+          "sprctl0": 5,
+          "sprctl1": 12,
+          "vpos": 9
+        }
+      },
+      "ioctl_hits": [
+        {
+          "chain_entries": 21,
+          "enemy_bullet_slots": false,
+          "pointer": "0xACB5",
+          "trace_latched": 0
+        },
+        {
+          "chain_entries": 45,
+          "enemy_bullet_slots": true,
+          "pointer": "0xA901",
+          "trace_latched": 1
+        }
+      ],
+      "mode": "headless",
+      "state_enemy_bullets": [
+        [
+          100,
+          40,
+          1,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          80,
+          9,
+          1,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "status": "PASS",
+      "symbols": {
+        "_aps056_scb_trace": 44029,
+        "_game": 43692,
+        "_game_display_sync_complete": 688,
+        "_game_enemies": 43932,
+        "_tgi_ioctl": 34335
+      },
+      "trace": {
+        "active_count": 2,
+        "header_penpal0": 6,
+        "latched": 1,
+        "slot_count": 16,
+        "slots": [
+          {
+            "data": 36092,
+            "hpos": 100,
+            "index": 0,
+            "next": 42744,
+            "sprctl0": 5,
+            "sprctl1": 8,
+            "vpos": 40
+          },
+          {
+            "data": 36092,
+            "hpos": 0,
+            "index": 1,
+            "next": 42755,
+            "sprctl0": 5,
+            "sprctl1": 12,
+            "vpos": 0
+          },
+          {
+            "data": 36092,
+            "hpos": 0,
+            "index": 2,
+            "next": 42766,
+            "sprctl0": 5,
+            "sprctl1": 12,
+            "vpos": 0
+          },
+          {
+            "data": 36092,
+            "hpos": 80,
+            "index": 3,
+            "next": 42777,
+            "sprctl0": 5,
+            "sprctl1": 12,
+            "vpos": 9
+          },
+          {
+            "data": 36092,
+            "hpos": 0,
+            "index": 4,
+            "next": 42788,
+            "sprctl0": 5,
+            "sprctl1": 12,
+            "vpos": 0
+          },
+          {
+            "data": 36092,
+            "hpos": 0,
+            "index": 5,
+            "next": 42799,
+            "sprctl0": 5,
+            "sprctl1": 12,
+            "vpos": 0
+          },
+          {
+            "data": 36092,
+            "hpos": 0,
+            "index": 6,
+            "next": 42810,
+            "sprctl0": 5,
+            "sprctl1": 12,
+            "vpos": 0
+          },
+          {
+            "data": 36092,
+            "hpos": 0,
+            "index": 7,
+            "next": 42821,
+            "sprctl0": 5,
+            "sprctl1": 12,
+            "vpos": 0
+          },
+          {
+            "data": 36092,
+            "hpos": 0,
+            "index": 8,
+            "next": 42832,
+            "sprctl0": 5,
+            "sprctl1": 12,
+            "vpos": 0
+          },
+          {
+            "data": 36092,
+            "hpos": 0,
+            "index": 9,
+            "next": 42843,
+            "sprctl0": 5,
+            "sprctl1": 12,
+            "vpos": 0
+          },
+          {
+            "data": 36092,
+            "hpos": 0,
+            "index": 10,
+            "next": 42854,
+            "sprctl0": 5,
+            "sprctl1": 12,
+            "vpos": 0
+          },
+          {
+            "data": 36092,
+            "hpos": 0,
+            "index": 11,
+            "next": 42865,
+            "sprctl0": 5,
+            "sprctl1": 12,
+            "vpos": 0
+          },
+          {
+            "data": 36092,
+            "hpos": 0,
+            "index": 12,
+            "next": 42876,
+            "sprctl0": 5,
+            "sprctl1": 12,
+            "vpos": 0
+          },
+          {
+            "data": 36092,
+            "hpos": 0,
+            "index": 13,
+            "next": 42887,
+            "sprctl0": 5,
+            "sprctl1": 12,
+            "vpos": 0
+          },
+          {
+            "data": 36092,
+            "hpos": 0,
+            "index": 14,
+            "next": 42898,
+            "sprctl0": 5,
+            "sprctl1": 12,
+            "vpos": 0
+          },
+          {
+            "data": 36092,
+            "hpos": 0,
+            "index": 15,
+            "next": 0,
+            "sprctl0": 5,
+            "sprctl1": 12,
+            "vpos": 0
+          }
+        ],
+        "submit_after": 90,
+        "submit_before": 165,
+        "submit_count": 1,
+        "visible_count": 1
+      },
+      "trace_at_ioctl": {
+        "active_count": 2,
+        "header_penpal0": 6,
+        "latched": 1,
+        "slot_count": 16,
+        "slots": [
+          {
+            "data": 36092,
+            "hpos": 100,
+            "index": 0,
+            "next": 42744,
+            "sprctl0": 5,
+            "sprctl1": 8,
+            "vpos": 40
+          },
+          {
+            "data": 36092,
+            "hpos": 0,
+            "index": 1,
+            "next": 42755,
+            "sprctl0": 5,
+            "sprctl1": 12,
+            "vpos": 0
+          },
+          {
+            "data": 36092,
+            "hpos": 0,
+            "index": 2,
+            "next": 42766,
+            "sprctl0": 5,
+            "sprctl1": 12,
+            "vpos": 0
+          },
+          {
+            "data": 36092,
+            "hpos": 80,
+            "index": 3,
+            "next": 42777,
+            "sprctl0": 5,
+            "sprctl1": 12,
+            "vpos": 9
+          },
+          {
+            "data": 36092,
+            "hpos": 0,
+            "index": 4,
+            "next": 42788,
+            "sprctl0": 5,
+            "sprctl1": 12,
+            "vpos": 0
+          },
+          {
+            "data": 36092,
+            "hpos": 0,
+            "index": 5,
+            "next": 42799,
+            "sprctl0": 5,
+            "sprctl1": 12,
+            "vpos": 0
+          },
+          {
+            "data": 36092,
+            "hpos": 0,
+            "index": 6,
+            "next": 42810,
+            "sprctl0": 5,
+            "sprctl1": 12,
+            "vpos": 0
+          },
+          {
+            "data": 36092,
+            "hpos": 0,
+            "index": 7,
+            "next": 42821,
+            "sprctl0": 5,
+            "sprctl1": 12,
+            "vpos": 0
+          },
+          {
+            "data": 36092,
+            "hpos": 0,
+            "index": 8,
+            "next": 42832,
+            "sprctl0": 5,
+            "sprctl1": 12,
+            "vpos": 0
+          },
+          {
+            "data": 36092,
+            "hpos": 0,
+            "index": 9,
+            "next": 42843,
+            "sprctl0": 5,
+            "sprctl1": 12,
+            "vpos": 0
+          },
+          {
+            "data": 36092,
+            "hpos": 0,
+            "index": 10,
+            "next": 42854,
+            "sprctl0": 5,
+            "sprctl1": 12,
+            "vpos": 0
+          },
+          {
+            "data": 36092,
+            "hpos": 0,
+            "index": 11,
+            "next": 42865,
+            "sprctl0": 5,
+            "sprctl1": 12,
+            "vpos": 0
+          },
+          {
+            "data": 36092,
+            "hpos": 0,
+            "index": 12,
+            "next": 42876,
+            "sprctl0": 5,
+            "sprctl1": 12,
+            "vpos": 0
+          },
+          {
+            "data": 36092,
+            "hpos": 0,
+            "index": 13,
+            "next": 42887,
+            "sprctl0": 5,
+            "sprctl1": 12,
+            "vpos": 0
+          },
+          {
+            "data": 36092,
+            "hpos": 0,
+            "index": 14,
+            "next": 42898,
+            "sprctl0": 5,
+            "sprctl1": 12,
+            "vpos": 0
+          },
+          {
+            "data": 36092,
+            "hpos": 0,
+            "index": 15,
+            "next": 0,
+            "sprctl0": 5,
+            "sprctl1": 12,
+            "vpos": 0
+          }
+        ],
+        "submit_after": 0,
+        "submit_before": 165,
+        "submit_count": 0,
+        "visible_count": 1
+      }
+    },
+    {
+      "checks": {
+        "active_count_2": true,
+        "data_pointers_nonzero_and_shared": true,
+        "direct_chain_data_matches_trace": true,
+        "direct_chain_has_16_enemy_bullet_slots": true,
+        "direct_chain_next_mapping": true,
+        "direct_chain_slot_fields_read": true,
+        "direct_slot0_expected_hpos": true,
+        "direct_slot0_expected_sprctl0": true,
+        "direct_slot0_expected_sprctl1": true,
+        "direct_slot0_expected_vpos": true,
+        "direct_slot0_matches_expected_fixture": true,
+        "direct_slot3_expected_hpos": true,
+        "direct_slot3_expected_sprctl0": true,
+        "direct_slot3_expected_sprctl1": true,
+        "direct_slot3_expected_vpos": true,
+        "direct_slot3_matches_expected_hud_skip": true,
+        "header_penpal_danger": true,
+        "latched": true,
+        "next_pointers_bounded": true,
+        "slot0_fields_captured": true,
+        "slot0_render_fields_recorded": true,
+        "slot3_render_fields_recorded": true,
+        "slot_count_16": true,
+        "slot_indices_0_to_15": true,
+        "source_active_slots_0_and_3": true,
+        "sprctl0_follower_slots_1bpp_noncoll": true,
+        "submit_after_marker": true,
+        "submit_before_marker": true,
+        "submit_count_1": true,
+        "visible_count_1": true
+      },
+      "direct_scb_slots": [
+        {
+          "address": 42733,
+          "data": 36092,
+          "hpos": 100,
+          "next": 42744,
+          "penpal": [
+            5,
+            12,
+            32,
+            3,
+            167,
+            252,
+            140,
+            0
+          ],
+          "raw": [
+            5,
+            8,
+            32,
+            248,
+            166,
+            252,
+            140,
+            100,
+            0,
+            40,
+            0,
+            5,
+            12,
+            32,
+            3,
+            167,
+            252,
+            140,
+            0
+          ],
+          "sprctl0": 5,
+          "sprctl1": 8,
+          "vpos": 40
+        },
+        {
+          "address": 42744,
+          "data": 36092,
+          "hpos": 0,
+          "next": 42755,
+          "penpal": [
+            5,
+            12,
+            32,
+            14,
+            167,
+            252,
+            140,
+            0
+          ],
+          "raw": [
+            5,
+            12,
+            32,
+            3,
+            167,
+            252,
+            140,
+            0,
+            0,
+            0,
+            0,
+            5,
+            12,
+            32,
+            14,
+            167,
+            252,
+            140,
+            0
+          ],
+          "sprctl0": 5,
+          "sprctl1": 12,
+          "vpos": 0
+        },
+        {
+          "address": 42755,
+          "data": 36092,
+          "hpos": 0,
+          "next": 42766,
+          "penpal": [
+            5,
+            12,
+            32,
+            25,
+            167,
+            252,
+            140,
+            80
+          ],
+          "raw": [
+            5,
+            12,
+            32,
+            14,
+            167,
+            252,
+            140,
+            0,
+            0,
+            0,
+            0,
+            5,
+            12,
+            32,
+            25,
+            167,
+            252,
+            140,
+            80
+          ],
+          "sprctl0": 5,
+          "sprctl1": 12,
+          "vpos": 0
+        },
+        {
+          "address": 42766,
+          "data": 36092,
+          "hpos": 80,
+          "next": 42777,
+          "penpal": [
+            5,
+            12,
+            32,
+            36,
+            167,
+            252,
+            140,
+            0
+          ],
+          "raw": [
+            5,
+            12,
+            32,
+            25,
+            167,
+            252,
+            140,
+            80,
+            0,
+            9,
+            0,
+            5,
+            12,
+            32,
+            36,
+            167,
+            252,
+            140,
+            0
+          ],
+          "sprctl0": 5,
+          "sprctl1": 12,
+          "vpos": 9
+        },
+        {
+          "address": 42777,
+          "data": 36092,
+          "hpos": 0,
+          "next": 42788,
+          "penpal": [
+            5,
+            12,
+            32,
+            47,
+            167,
+            252,
+            140,
+            0
+          ],
+          "raw": [
+            5,
+            12,
+            32,
+            36,
+            167,
+            252,
+            140,
+            0,
+            0,
+            0,
+            0,
+            5,
+            12,
+            32,
+            47,
+            167,
+            252,
+            140,
+            0
+          ],
+          "sprctl0": 5,
+          "sprctl1": 12,
+          "vpos": 0
+        },
+        {
+          "address": 42788,
+          "data": 36092,
+          "hpos": 0,
+          "next": 42799,
+          "penpal": [
+            5,
+            12,
+            32,
+            58,
+            167,
+            252,
+            140,
+            0
+          ],
+          "raw": [
+            5,
+            12,
+            32,
+            47,
+            167,
+            252,
+            140,
+            0,
+            0,
+            0,
+            0,
+            5,
+            12,
+            32,
+            58,
+            167,
+            252,
+            140,
+            0
+          ],
+          "sprctl0": 5,
+          "sprctl1": 12,
+          "vpos": 0
+        },
+        {
+          "address": 42799,
+          "data": 36092,
+          "hpos": 0,
+          "next": 42810,
+          "penpal": [
+            5,
+            12,
+            32,
+            69,
+            167,
+            252,
+            140,
+            0
+          ],
+          "raw": [
+            5,
+            12,
+            32,
+            58,
+            167,
+            252,
+            140,
+            0,
+            0,
+            0,
+            0,
+            5,
+            12,
+            32,
+            69,
+            167,
+            252,
+            140,
+            0
+          ],
+          "sprctl0": 5,
+          "sprctl1": 12,
+          "vpos": 0
+        },
+        {
+          "address": 42810,
+          "data": 36092,
+          "hpos": 0,
+          "next": 42821,
+          "penpal": [
+            5,
+            12,
+            32,
+            80,
+            167,
+            252,
+            140,
+            0
+          ],
+          "raw": [
+            5,
+            12,
+            32,
+            69,
+            167,
+            252,
+            140,
+            0,
+            0,
+            0,
+            0,
+            5,
+            12,
+            32,
+            80,
+            167,
+            252,
+            140,
+            0
+          ],
+          "sprctl0": 5,
+          "sprctl1": 12,
+          "vpos": 0
+        },
+        {
+          "address": 42821,
+          "data": 36092,
+          "hpos": 0,
+          "next": 42832,
+          "penpal": [
+            5,
+            12,
+            32,
+            91,
+            167,
+            252,
+            140,
+            0
+          ],
+          "raw": [
+            5,
+            12,
+            32,
+            80,
+            167,
+            252,
+            140,
+            0,
+            0,
+            0,
+            0,
+            5,
+            12,
+            32,
+            91,
+            167,
+            252,
+            140,
+            0
+          ],
+          "sprctl0": 5,
+          "sprctl1": 12,
+          "vpos": 0
+        },
+        {
+          "address": 42832,
+          "data": 36092,
+          "hpos": 0,
+          "next": 42843,
+          "penpal": [
+            5,
+            12,
+            32,
+            102,
+            167,
+            252,
+            140,
+            0
+          ],
+          "raw": [
+            5,
+            12,
+            32,
+            91,
+            167,
+            252,
+            140,
+            0,
+            0,
+            0,
+            0,
+            5,
+            12,
+            32,
+            102,
+            167,
+            252,
+            140,
+            0
+          ],
+          "sprctl0": 5,
+          "sprctl1": 12,
+          "vpos": 0
+        },
+        {
+          "address": 42843,
+          "data": 36092,
+          "hpos": 0,
+          "next": 42854,
+          "penpal": [
+            5,
+            12,
+            32,
+            113,
+            167,
+            252,
+            140,
+            0
+          ],
+          "raw": [
+            5,
+            12,
+            32,
+            102,
+            167,
+            252,
+            140,
+            0,
+            0,
+            0,
+            0,
+            5,
+            12,
+            32,
+            113,
+            167,
+            252,
+            140,
+            0
+          ],
+          "sprctl0": 5,
+          "sprctl1": 12,
+          "vpos": 0
+        },
+        {
+          "address": 42854,
+          "data": 36092,
+          "hpos": 0,
+          "next": 42865,
+          "penpal": [
+            5,
+            12,
+            32,
+            124,
+            167,
+            252,
+            140,
+            0
+          ],
+          "raw": [
+            5,
+            12,
+            32,
+            113,
+            167,
+            252,
+            140,
+            0,
+            0,
+            0,
+            0,
+            5,
+            12,
+            32,
+            124,
+            167,
+            252,
+            140,
+            0
+          ],
+          "sprctl0": 5,
+          "sprctl1": 12,
+          "vpos": 0
+        },
+        {
+          "address": 42865,
+          "data": 36092,
+          "hpos": 0,
+          "next": 42876,
+          "penpal": [
+            5,
+            12,
+            32,
+            135,
+            167,
+            252,
+            140,
+            0
+          ],
+          "raw": [
+            5,
+            12,
+            32,
+            124,
+            167,
+            252,
+            140,
+            0,
+            0,
+            0,
+            0,
+            5,
+            12,
+            32,
+            135,
+            167,
+            252,
+            140,
+            0
+          ],
+          "sprctl0": 5,
+          "sprctl1": 12,
+          "vpos": 0
+        },
+        {
+          "address": 42876,
+          "data": 36092,
+          "hpos": 0,
+          "next": 42887,
+          "penpal": [
+            5,
+            12,
+            32,
+            146,
+            167,
+            252,
+            140,
+            0
+          ],
+          "raw": [
+            5,
+            12,
+            32,
+            135,
+            167,
+            252,
+            140,
+            0,
+            0,
+            0,
+            0,
+            5,
+            12,
+            32,
+            146,
+            167,
+            252,
+            140,
+            0
+          ],
+          "sprctl0": 5,
+          "sprctl1": 12,
+          "vpos": 0
+        },
+        {
+          "address": 42887,
+          "data": 36092,
+          "hpos": 0,
+          "next": 42898,
+          "penpal": [
+            5,
+            12,
+            32,
+            0,
+            0,
+            252,
+            140,
+            0
+          ],
+          "raw": [
+            5,
+            12,
+            32,
+            146,
+            167,
+            252,
+            140,
+            0,
+            0,
+            0,
+            0,
+            5,
+            12,
+            32,
+            0,
+            0,
+            252,
+            140,
+            0
+          ],
+          "sprctl0": 5,
+          "sprctl1": 12,
+          "vpos": 0
+        },
+        {
+          "address": 42898,
+          "data": 36092,
+          "hpos": 0,
+          "next": 0,
+          "penpal": [
+            5,
+            0,
+            32,
+            237,
+            166,
+            3,
+            141,
+            0
+          ],
+          "raw": [
+            5,
+            12,
+            32,
+            0,
+            0,
+            252,
+            140,
+            0,
+            0,
+            0,
+            0,
+            5,
+            0,
+            32,
+            237,
+            166,
+            3,
+            141,
+            0
+          ],
+          "sprctl0": 5,
+          "sprctl1": 12,
+          "vpos": 0
+        }
+      ],
+      "fixture": {
+        "bullets": {
+          "0": [
+            100,
+            40,
+            1,
+            0,
+            0
+          ],
+          "3": [
+            80,
+            9,
+            1,
+            0,
+            0
+          ]
+        },
+        "player": [
+          20,
+          70
+        ]
+      },
+      "frame": {
+        "bullet_color_index": 6,
+        "bullet_color_rgba": [
+          204,
+          255,
+          34,
+          255
+        ],
+        "dispadr_png": "evidence/APS-056/scb-trace-v011-gui-dispadr.png",
+        "dispadr_sha256": "38a72c76c5e1f861a7b02a971e01da3f2ff3baba8d39bccd750d5f3ce290eccf",
+        "pages_equal": true,
+        "pixel_probe": {
+          "dispadr": {
+            "color_match": true,
+            "pixels": [
+              [
+                204,
+                255,
+                34,
+                255
+              ],
+              [
+                204,
+                255,
+                34,
+                255
+              ],
+              [
+                0,
+                0,
+                0,
+                255
+              ],
+              [
+                204,
+                255,
+                34,
+                255
+              ]
+            ]
+          },
+          "screenshot": {
+            "color_match": true,
+            "pixels": [
+              [
+                204,
+                255,
+                34,
+                255
+              ],
+              [
+                204,
+                255,
+                34,
+                255
+              ],
+              [
+                0,
+                0,
+                0,
+                255
+              ],
+              [
+                204,
+                255,
+                34,
+                255
+              ]
+            ]
+          },
+          "vidbas": {
+            "color_match": true,
+            "pixels": [
+              [
+                204,
+                255,
+                34,
+                255
+              ],
+              [
+                204,
+                255,
+                34,
+                255
+              ],
+              [
+                0,
+                0,
+                0,
+                255
+              ],
+              [
+                204,
+                255,
+                34,
+                255
+              ]
+            ]
+          }
+        },
+        "screen_png": "evidence/APS-056/scb-trace-v011-gui-screen.png",
+        "screen_sha256": "38a72c76c5e1f861a7b02a971e01da3f2ff3baba8d39bccd750d5f3ce290eccf",
+        "vidbas_png": "evidence/APS-056/scb-trace-v011-gui-vidbas.png",
+        "vidbas_sha256": "38a72c76c5e1f861a7b02a971e01da3f2ff3baba8d39bccd750d5f3ce290eccf"
+      },
+      "initial_debug_status": {
+        "at_breakpoint": false,
+        "paused": true,
+        "pc": "FF80"
+      },
+      "interpretation": {
+        "direct_scb_slot0": {
+          "address": 42733,
+          "data": 36092,
+          "hpos": 100,
+          "next": 42744,
+          "penpal": [
+            5,
+            12,
+            32,
+            3,
+            167,
+            252,
+            140,
+            0
+          ],
+          "raw": [
+            5,
+            8,
+            32,
+            248,
+            166,
+            252,
+            140,
+            100,
+            0,
+            40,
+            0,
+            5,
+            12,
+            32,
+            3,
+            167,
+            252,
+            140,
+            0
+          ],
+          "sprctl0": 5,
+          "sprctl1": 8,
+          "vpos": 40
+        },
+        "direct_scb_slot3": {
+          "address": 42766,
+          "data": 36092,
+          "hpos": 80,
+          "next": 42777,
+          "penpal": [
+            5,
+            12,
+            32,
+            36,
+            167,
+            252,
+            140,
+            0
+          ],
+          "raw": [
+            5,
+            12,
+            32,
+            25,
+            167,
+            252,
+            140,
+            80,
+            0,
+            9,
+            0,
+            5,
+            12,
+            32,
+            36,
+            167,
+            252,
+            140,
+            0
+          ],
+          "sprctl0": 5,
+          "sprctl1": 12,
+          "vpos": 9
+        },
+        "expected_slot0": {
+          "hpos": 100,
+          "sprctl0": 5,
+          "sprctl1": 8,
+          "vpos": 40
+        },
+        "expected_slot3": {
+          "hpos": 80,
+          "sprctl0": 5,
+          "sprctl1": 12,
+          "vpos": 9
+        },
+        "game_state_slot0": [
+          100,
+          40,
+          1,
+          0,
+          0
+        ],
+        "game_state_slot3": [
+          80,
+          9,
+          1,
+          0,
+          0
+        ],
+        "scb_layout": {
+          "data": 5,
+          "hpos": 7,
+          "next": 3,
+          "size": 11,
+          "sprctl0": 0,
+          "sprctl1": 1,
+          "vpos": 9
+        },
+        "trace_slot0": {
+          "data": 36092,
+          "hpos": 100,
+          "index": 0,
+          "next": 42744,
+          "sprctl0": 5,
+          "sprctl1": 8,
+          "vpos": 40
+        },
+        "trace_slot3": {
+          "data": 36092,
+          "hpos": 80,
+          "index": 3,
+          "next": 42777,
+          "sprctl0": 5,
+          "sprctl1": 12,
+          "vpos": 9
+        }
+      },
+      "ioctl_hits": [
+        {
+          "chain_entries": 21,
+          "enemy_bullet_slots": false,
+          "pointer": "0xACB5",
+          "trace_latched": 0
+        },
+        {
+          "chain_entries": 45,
+          "enemy_bullet_slots": true,
+          "pointer": "0xA901",
+          "trace_latched": 1
+        }
+      ],
+      "mode": "gui",
+      "state_enemy_bullets": [
+        [
+          100,
+          40,
+          1,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          80,
+          9,
+          1,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0
+        ],
+        [
+          0,
+          0,
+          0,
+          0,
+          0
+        ]
+      ],
+      "status": "PASS",
+      "symbols": {
+        "_aps056_scb_trace": 44029,
+        "_game": 43692,
+        "_game_display_sync_complete": 688,
+        "_game_enemies": 43932,
+        "_tgi_ioctl": 34335
+      },
+      "trace": {
+        "active_count": 2,
+        "header_penpal0": 6,
+        "latched": 1,
+        "slot_count": 16,
+        "slots": [
+          {
+            "data": 36092,
+            "hpos": 100,
+            "index": 0,
+            "next": 42744,
+            "sprctl0": 5,
+            "sprctl1": 8,
+            "vpos": 40
+          },
+          {
+            "data": 36092,
+            "hpos": 0,
+            "index": 1,
+            "next": 42755,
+            "sprctl0": 5,
+            "sprctl1": 12,
+            "vpos": 0
+          },
+          {
+            "data": 36092,
+            "hpos": 0,
+            "index": 2,
+            "next": 42766,
+            "sprctl0": 5,
+            "sprctl1": 12,
+            "vpos": 0
+          },
+          {
+            "data": 36092,
+            "hpos": 80,
+            "index": 3,
+            "next": 42777,
+            "sprctl0": 5,
+            "sprctl1": 12,
+            "vpos": 9
+          },
+          {
+            "data": 36092,
+            "hpos": 0,
+            "index": 4,
+            "next": 42788,
+            "sprctl0": 5,
+            "sprctl1": 12,
+            "vpos": 0
+          },
+          {
+            "data": 36092,
+            "hpos": 0,
+            "index": 5,
+            "next": 42799,
+            "sprctl0": 5,
+            "sprctl1": 12,
+            "vpos": 0
+          },
+          {
+            "data": 36092,
+            "hpos": 0,
+            "index": 6,
+            "next": 42810,
+            "sprctl0": 5,
+            "sprctl1": 12,
+            "vpos": 0
+          },
+          {
+            "data": 36092,
+            "hpos": 0,
+            "index": 7,
+            "next": 42821,
+            "sprctl0": 5,
+            "sprctl1": 12,
+            "vpos": 0
+          },
+          {
+            "data": 36092,
+            "hpos": 0,
+            "index": 8,
+            "next": 42832,
+            "sprctl0": 5,
+            "sprctl1": 12,
+            "vpos": 0
+          },
+          {
+            "data": 36092,
+            "hpos": 0,
+            "index": 9,
+            "next": 42843,
+            "sprctl0": 5,
+            "sprctl1": 12,
+            "vpos": 0
+          },
+          {
+            "data": 36092,
+            "hpos": 0,
+            "index": 10,
+            "next": 42854,
+            "sprctl0": 5,
+            "sprctl1": 12,
+            "vpos": 0
+          },
+          {
+            "data": 36092,
+            "hpos": 0,
+            "index": 11,
+            "next": 42865,
+            "sprctl0": 5,
+            "sprctl1": 12,
+            "vpos": 0
+          },
+          {
+            "data": 36092,
+            "hpos": 0,
+            "index": 12,
+            "next": 42876,
+            "sprctl0": 5,
+            "sprctl1": 12,
+            "vpos": 0
+          },
+          {
+            "data": 36092,
+            "hpos": 0,
+            "index": 13,
+            "next": 42887,
+            "sprctl0": 5,
+            "sprctl1": 12,
+            "vpos": 0
+          },
+          {
+            "data": 36092,
+            "hpos": 0,
+            "index": 14,
+            "next": 42898,
+            "sprctl0": 5,
+            "sprctl1": 12,
+            "vpos": 0
+          },
+          {
+            "data": 36092,
+            "hpos": 0,
+            "index": 15,
+            "next": 0,
+            "sprctl0": 5,
+            "sprctl1": 12,
+            "vpos": 0
+          }
+        ],
+        "submit_after": 90,
+        "submit_before": 165,
+        "submit_count": 1,
+        "visible_count": 1
+      },
+      "trace_at_ioctl": {
+        "active_count": 2,
+        "header_penpal0": 6,
+        "latched": 1,
+        "slot_count": 16,
+        "slots": [
+          {
+            "data": 36092,
+            "hpos": 100,
+            "index": 0,
+            "next": 42744,
+            "sprctl0": 5,
+            "sprctl1": 8,
+            "vpos": 40
+          },
+          {
+            "data": 36092,
+            "hpos": 0,
+            "index": 1,
+            "next": 42755,
+            "sprctl0": 5,
+            "sprctl1": 12,
+            "vpos": 0
+          },
+          {
+            "data": 36092,
+            "hpos": 0,
+            "index": 2,
+            "next": 42766,
+            "sprctl0": 5,
+            "sprctl1": 12,
+            "vpos": 0
+          },
+          {
+            "data": 36092,
+            "hpos": 80,
+            "index": 3,
+            "next": 42777,
+            "sprctl0": 5,
+            "sprctl1": 12,
+            "vpos": 9
+          },
+          {
+            "data": 36092,
+            "hpos": 0,
+            "index": 4,
+            "next": 42788,
+            "sprctl0": 5,
+            "sprctl1": 12,
+            "vpos": 0
+          },
+          {
+            "data": 36092,
+            "hpos": 0,
+            "index": 5,
+            "next": 42799,
+            "sprctl0": 5,
+            "sprctl1": 12,
+            "vpos": 0
+          },
+          {
+            "data": 36092,
+            "hpos": 0,
+            "index": 6,
+            "next": 42810,
+            "sprctl0": 5,
+            "sprctl1": 12,
+            "vpos": 0
+          },
+          {
+            "data": 36092,
+            "hpos": 0,
+            "index": 7,
+            "next": 42821,
+            "sprctl0": 5,
+            "sprctl1": 12,
+            "vpos": 0
+          },
+          {
+            "data": 36092,
+            "hpos": 0,
+            "index": 8,
+            "next": 42832,
+            "sprctl0": 5,
+            "sprctl1": 12,
+            "vpos": 0
+          },
+          {
+            "data": 36092,
+            "hpos": 0,
+            "index": 9,
+            "next": 42843,
+            "sprctl0": 5,
+            "sprctl1": 12,
+            "vpos": 0
+          },
+          {
+            "data": 36092,
+            "hpos": 0,
+            "index": 10,
+            "next": 42854,
+            "sprctl0": 5,
+            "sprctl1": 12,
+            "vpos": 0
+          },
+          {
+            "data": 36092,
+            "hpos": 0,
+            "index": 11,
+            "next": 42865,
+            "sprctl0": 5,
+            "sprctl1": 12,
+            "vpos": 0
+          },
+          {
+            "data": 36092,
+            "hpos": 0,
+            "index": 12,
+            "next": 42876,
+            "sprctl0": 5,
+            "sprctl1": 12,
+            "vpos": 0
+          },
+          {
+            "data": 36092,
+            "hpos": 0,
+            "index": 13,
+            "next": 42887,
+            "sprctl0": 5,
+            "sprctl1": 12,
+            "vpos": 0
+          },
+          {
+            "data": 36092,
+            "hpos": 0,
+            "index": 14,
+            "next": 42898,
+            "sprctl0": 5,
+            "sprctl1": 12,
+            "vpos": 0
+          },
+          {
+            "data": 36092,
+            "hpos": 0,
+            "index": 15,
+            "next": 0,
+            "sprctl0": 5,
+            "sprctl1": 12,
+            "vpos": 0
+          }
+        ],
+        "submit_after": 0,
+        "submit_before": 165,
+        "submit_count": 0,
+        "visible_count": 1
+      }
+    }
+  ],
+  "method": {
+    "direct_scb": "real _tgi_ioctl chain readback, 16 enemy-bullet slots",
+    "fixture_boundary": "_game_display_sync_complete read_memory/write_memory",
+    "frame": "post-submit sync get_screenshot and vidbas/dispadr readback",
+    "game_state_offsets": {
+      "enemy_bullets": 69,
+      "phase": 213,
+      "stage": 212
+    },
+    "startup": "separate Gearlynx GUI/MCP and headless/MCP attempts",
+    "trace": "one-shot GameAps056ScbTrace before/after tgi_sprite"
+  },
+  "rom": {
+    "path": "dist/asteroid-patrol-aps056-diagnostic.lnx",
+    "sha256": "94cf7f82efa0a78e00f88adfd4138e8c469a76d7879de66c2add3748f97f5fe7",
+    "size_bytes": 60151
+  },
+  "status": "PASS",
+  "version": "v011"
+}

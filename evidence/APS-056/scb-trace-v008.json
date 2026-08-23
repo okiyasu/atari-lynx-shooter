@@ -1,0 +1,25 @@
+{
+  "aps": "APS-056",
+  "error": "ROM did not reach stable TITLE",
+  "fixtures": [],
+  "method": {
+    "capture": "exported one-shot GameAps056ScbTrace in emulated RAM",
+    "completion": "marker written after tgi_sprite returns",
+    "snapshot": "main.c after enemy-bullet predicate and before tgi_sprite",
+    "trace_size_bytes": 184
+  },
+  "rom": {
+    "path": "dist/asteroid-patrol-aps056-diagnostic.lnx",
+    "sha256": "c75e7d25941de748585162a1edd2f25c37cf4515780267f14b4eb05ee21f754c",
+    "size_bytes": 60141
+  },
+  "status": "blocked",
+  "symbols": {
+    "aps056_scb_trace": 44019,
+    "display_request": 664,
+    "display_sync": 688,
+    "game": 43682,
+    "game_enemies": 43922
+  },
+  "version": "v008"
+}

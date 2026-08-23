@@ -172,6 +172,85 @@ static void aps055_mark_rock(void)
 }
 #endif
 
+#ifdef APS056_DIAGNOSTIC
+GameAps056ScbTrace aps056_scb_trace;
+
+void game_aps056_scb_trace_reset(void)
+{
+    unsigned char* bytes;
+    unsigned int i;
+
+    bytes = (unsigned char*)&aps056_scb_trace;
+    for (i = 0u; i < sizeof(aps056_scb_trace); ++i) {
+        bytes[i] = 0u;
+    }
+}
+
+const GameAps056ScbTrace* game_aps056_scb_trace_get(void)
+{
+    return &aps056_scb_trace;
+}
+
+unsigned char game_aps056_scb_trace_is_latched(void)
+{
+    return aps056_scb_trace.latched;
+}
+
+void game_aps056_scb_trace_begin(unsigned char active_count,
+    unsigned char visible_count, unsigned char header_penpal0)
+{
+    if (aps056_scb_trace.latched != 0u) {
+        return;
+    }
+    aps056_scb_trace.latched = 1u;
+    aps056_scb_trace.active_count = active_count;
+    aps056_scb_trace.visible_count = visible_count;
+    aps056_scb_trace.header_penpal0 = header_penpal0;
+}
+
+void game_aps056_scb_trace_capture_slot(unsigned char slot_index,
+    const unsigned char* scb)
+{
+    GameAps056ScbTraceSlot* slot;
+
+    if (aps056_scb_trace.latched == 0u ||
+        slot_index >= GAME_MAX_ENEMY_BULLETS) {
+        return;
+    }
+    slot = &aps056_scb_trace.slots[slot_index];
+    slot->slot_index = slot_index;
+    slot->sprctl0 = scb[0];
+    slot->sprctl1 = scb[1];
+    slot->hpos[0] = scb[7];
+    slot->hpos[1] = scb[8];
+    slot->vpos[0] = scb[9];
+    slot->vpos[1] = scb[10];
+    slot->data[0] = scb[5];
+    slot->data[1] = scb[6];
+    slot->next[0] = scb[3];
+    slot->next[1] = scb[4];
+    if (aps056_scb_trace.slot_count <= slot_index) {
+        aps056_scb_trace.slot_count = (unsigned char)(slot_index + 1u);
+    }
+}
+
+void game_aps056_scb_trace_submit_before(void)
+{
+    if (aps056_scb_trace.latched != 0u) {
+        aps056_scb_trace.submit_before = GAME_APS056_TRACE_BEFORE_MARKER;
+    }
+}
+
+void game_aps056_scb_trace_submit_after(void)
+{
+    if (aps056_scb_trace.latched != 0u &&
+        aps056_scb_trace.submit_after == 0u) {
+        aps056_scb_trace.submit_after = GAME_APS056_TRACE_AFTER_MARKER;
+        aps056_scb_trace.submit_count = 1u;
+    }
+}
+#endif
+
 typedef struct EnemyMovementConfig {
     unsigned char horizontal_speed;
     unsigned char vertical_interval;

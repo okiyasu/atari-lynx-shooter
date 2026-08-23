@@ -299,7 +299,7 @@ aps056-diagnostic-gearlynx: $(APS056_DIAGNOSTIC_ROM)
 	python3 scripts/verify-aps056-diagnostic-gearlynx.py \
 		--rom $(APS056_DIAGNOSTIC_ROM) \
 		--symbols build/asteroid-patrol-aps056-diagnostic.lbl \
-		--output evidence/APS-056/scb-trace-v002.json
+		--output evidence/APS-056/scb-trace-v011.json
 
 perf-host: build/perf-bench build/perf-bench-legacy build/test-game-legacy
 	./build/test-game-legacy

@@ -410,6 +410,46 @@ void game_aps055_trace_reset(void);
 const GameAps055Trace* game_aps055_trace_get(void);
 #endif
 
+#ifdef APS056_DIAGNOSTIC
+#define GAME_APS056_TRACE_BEFORE_MARKER 0xA5u
+#define GAME_APS056_TRACE_AFTER_MARKER 0x5Au
+
+/* Fixed-width, readback-safe representation of one movable enemy-bullet
+ * SCB. Pointer and signed-coordinate values are serialized little-endian so
+ * the host verifier does not depend on the host compiler's pointer size. */
+typedef struct GameAps056ScbTraceSlot {
+    unsigned char slot_index;
+    unsigned char sprctl0;
+    unsigned char sprctl1;
+    unsigned char hpos[2];
+    unsigned char vpos[2];
+    unsigned char data[2];
+    unsigned char next[2];
+} GameAps056ScbTraceSlot;
+
+typedef struct GameAps056ScbTrace {
+    unsigned char latched;
+    unsigned char active_count;
+    unsigned char visible_count;
+    unsigned char header_penpal0;
+    unsigned char submit_before;
+    unsigned char submit_after;
+    unsigned char submit_count;
+    unsigned char slot_count;
+    GameAps056ScbTraceSlot slots[GAME_MAX_ENEMY_BULLETS];
+} GameAps056ScbTrace;
+
+void game_aps056_scb_trace_reset(void);
+const GameAps056ScbTrace* game_aps056_scb_trace_get(void);
+unsigned char game_aps056_scb_trace_is_latched(void);
+void game_aps056_scb_trace_begin(unsigned char active_count,
+    unsigned char visible_count, unsigned char header_penpal0);
+void game_aps056_scb_trace_capture_slot(unsigned char slot_index,
+    const unsigned char* scb);
+void game_aps056_scb_trace_submit_before(void);
+void game_aps056_scb_trace_submit_after(void);
+#endif
+
 void game_init(GameState* game);
 void game_start(GameState* game);
 void game_title_voice_complete(GameState* game);

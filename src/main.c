@@ -519,20 +519,18 @@ static const unsigned char movable_scb_empty_sprite[1] = { 0x00u };
 const unsigned char* const movable_scb_empty_sprite_debug_export =
     movable_scb_empty_sprite;
 
-/* v046 (see .briefs/APS-053/v046.md, Fable5 review): SCB_RENONE's
- * hpos/vpos are `signed int` (16-bit), but every movable object's
- * rect.x/rect.y is `unsigned char` (0..255, never negative), so the high
- * byte is always zero once written. cc65 compiles a plain `p->hpos =
- * (signed int)obj->rect.x` through a generic 16-bit runtime store helper
- * (staxspidx, ~55 cycles) that zero-extends and stores both bytes every
- * time. These macros instead store only the low byte (the struct's
- * static initializers already zero the high byte once, and it is never
- * written by anything else), which cc65 compiles to a single 8-bit
- * store. Little-endian assumption is safe: this is a 6502 target. */
+/* APS-056 v011: SCB_RENONE's hpos/vpos are `signed int` (16-bit) at byte
+ * offsets 7/9. The prior `&(scb)->hpos/vpos` expressions unexpectedly
+ * compiled to a store at SCB base offset 0 on cc65 2.19, overwriting
+ * SPRCTL0 and leaving both coordinates zero. Use the verified raw SCB
+ * offsets directly. Only the low byte is written because movable object
+ * coordinates are unsigned char values and the static initializers keep
+ * the high bytes zero. Little-endian assumption is safe: this is a 6502
+ * target. */
 #define MOVABLE_SET_HPOS(scb, value) \
-    (((unsigned char*)&(scb)->hpos)[0] = (unsigned char)(value))
+    (((unsigned char*)(scb))[7] = (unsigned char)(value))
 #define MOVABLE_SET_VPOS(scb, value) \
-    (((unsigned char*)&(scb)->vpos)[0] = (unsigned char)(value))
+    (((unsigned char*)(scb))[9] = (unsigned char)(value))
 
 /* v045 addendum (see .briefs/APS-053/v045.md, Fable5 design review): the
  * v044-shaped movable_scb_init that filled every field with sequential
@@ -939,6 +937,7 @@ static void movable_scb_update(const GameState* game,
     unsigned char all_clear;
 #ifdef APS056_DIAGNOSTIC
     unsigned char diagnostic_active_count;
+    unsigned char diagnostic_visible_count;
 #endif
     SCB_RENONE* p;
 
@@ -949,6 +948,7 @@ static void movable_scb_update(const GameState* game,
     all_clear = (unsigned char)(game->phase == GAME_PHASE_ALL_CLEAR);
 #ifdef APS056_DIAGNOSTIC
     diagnostic_active_count = 0u;
+    diagnostic_visible_count = 0u;
 #endif
     movable_scb_on_stage_change(stage_config);
 #ifdef APS056_DIAGNOSTIC
@@ -995,6 +995,9 @@ static void movable_scb_update(const GameState* game,
                     SKIP);
             }
         }
+#ifdef APS056_DIAGNOSTIC
+        aps056_active_bullet_count = 0u;
+#endif
     } else {
         p = movable_scb_env;
         for (i = 0u; i < GAME_MAX_ENVIRONMENT_OBJECTS; ++i, ++p) {
@@ -1026,7 +1029,15 @@ static void movable_scb_update(const GameState* game,
             p->sprctl1 = (unsigned char)(PACKED | RENONE | REUSEPAL | SKIP);
         }
 #ifdef APS056_DIAGNOSTIC
-        aps056_active_bullet_count = 0u;
+        {
+            const GameEnemyBullet* ebullet = game->enemy_bullets;
+
+            for (i = 0u; i < GAME_MAX_ENEMY_BULLETS; ++i, ++ebullet) {
+                if (ebullet->active != 0u) {
+                    ++diagnostic_active_count;
+                }
+            }
+        }
 #endif
     } else {
         /* --- player --- */
@@ -1128,13 +1139,16 @@ static void movable_scb_update(const GameState* game,
 #ifdef APS056_DIAGNOSTIC
                 if (ebullet->active != 0u) {
                     ++diagnostic_active_count;
+                    if (ebullet->rect.y >= GAME_HUD_HEIGHT) {
+                        ++diagnostic_visible_count;
+                    }
                 }
 #endif
-                if (ebullet->active != 0u &&
-                    ebullet->rect.y >= GAME_HUD_HEIGHT) {
-                    p->sprctl1 = (unsigned char)(PACKED | RENONE | REUSEPAL);
+                if (ebullet->active != 0u) {
                     MOVABLE_SET_HPOS(p, ebullet->rect.x);
                     MOVABLE_SET_VPOS(p, ebullet->rect.y);
+                    p->sprctl1 = (unsigned char)(PACKED | RENONE | REUSEPAL |
+                        (ebullet->rect.y < GAME_HUD_HEIGHT ? SKIP : 0u));
                 } else {
                     p->sprctl1 = (unsigned char)(PACKED | RENONE | REUSEPAL |
                         SKIP);
@@ -1146,10 +1160,26 @@ static void movable_scb_update(const GameState* game,
         }
     }
 
+#ifdef APS056_DIAGNOSTIC
+    if (game_aps056_scb_trace_is_latched() == 0u) {
+        game_aps056_scb_trace_begin(diagnostic_active_count,
+            diagnostic_visible_count, movable_scb_ebullet_header.penpal[0]);
+        p = movable_scb_ebullet;
+        for (i = 0u; i < GAME_MAX_ENEMY_BULLETS; ++i, ++p) {
+            game_aps056_scb_trace_capture_slot(i,
+                (const unsigned char*)p);
+        }
+        game_aps056_scb_trace_submit_before();
+    }
+#endif
+
 #ifdef CADENCE_PROBE
     scb_split_marker_finish_enter();
 #endif
     tgi_sprite((char*)&movable_scb_env_header);
+#ifdef APS056_DIAGNOSTIC
+    game_aps056_scb_trace_submit_after();
+#endif
 #ifdef CADENCE_PROBE
     scb_split_marker_finish_exit();
 #endif
@@ -1365,6 +1395,9 @@ void main(void)
     sound_backend_init();
     title_voice_init();
     game_timing_init();
+#ifdef APS056_DIAGNOSTIC
+    game_aps056_scb_trace_reset();
+#endif
     game.enemies = game_enemies;
     game_init(&game);
     active_palette_stage = 0u;
