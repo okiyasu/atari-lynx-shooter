@@ -4,7 +4,7 @@
 
 ### APS-056 v019 左端到達敵despawn・版表示0.53.21（2026-08-23）
 
-- 状態: **実装・host/strict・release ROM・diagnostic ROM・Gearlynx GUI/headless PASS、commit/push済み**。開始HEAD=`d7cece29fe66341caedf7a35cf37de0f27e4fe2a`（origin/main同値）。commit=`af128dc`（push前）。v018/v019ブリーフは既知の意図的未追跡差分として保全。検証時終了HEAD=`af128dc`。
+- 状態: **実装・host/strict・release ROM・diagnostic ROM・Gearlynx GUI/headless PASS、commit/push済み**。開始HEAD=`d7cece29fe66341caedf7a35cf37de0f27e4fe2a`（origin/main同値）。実装commit=`281457e`、記録修正commitは後続。v018/v019ブリーフは既知の意図的未追跡差分として保全。実装検証時終了HEAD=`281457e`。
 - 実装: `src/game.c`の通常敵更新で`update_enemy_movement()`後に`enemy->rect.x == 0u`なら`active=0u`としてtick終了。x=1→0到達とx=0開始を対象化し、同tickのfire counter更新・敵弾発射・敵本体collision・描画対象から除外。右側entry、player bullet再出現、ボス、公開SCB/APIは変更なし。
 - テスト: `tests/test_aps056_diagnostic.c`へx=1→0、x=0開始のactive=0、非発射、非ダメージ、描画停止相当を追加。x=0接触の旧期待値を新仕様へ更新。APS-056 diagnostic=`39 checks`。
 - 版表示: `include/version.h`の`GAME_VERSION_STRING`を`0.53.20`から`0.53.21`へ更新。重複版情報源の追加なし。
