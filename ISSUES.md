@@ -4,7 +4,7 @@
 
 ### APS-056 v016 版表示0.53.20への更新（2026-08-23）
 
-- 状態: **実装・host/strict・release ROM・diagnostic ROM・Gearlynx GUI/headless PASS、commit/push済み**。開始HEAD=`81324d3dca4be30345627284f06cf0a77ed8b2ff`（origin/main同値）。検証時終了HEAD=`81324d3dca4be30345627284f06cf0a77ed8b2ff`。productionのAPS-056修正ロジックは変更なし。
+- 状態: **実装・host/strict・release ROM・diagnostic ROM・Gearlynx GUI/headless PASS、commit/push済み**。開始HEAD=`81324d3dca4be30345627284f06cf0a77ed8b2ff`（origin/main同値）。検証時終了HEAD=`534aeb2591b331af00bcd3174ba2f76a3f3c81de`（origin/mainへpush済み、作業ツリーclean、HEAD=origin/main）。productionのAPS-056修正ロジックは変更なし。
 - 変更: `include/version.h`の`GAME_VERSION_STRING`を`0.53.19`から`0.53.20`へ更新。`ISSUES.md`、`.briefs/APS-056/v016.md`を記録。重複版情報源の追加なし。
 - artifacts: release `dist/asteroid-patrol.lnx`=`61161 bytes`、SHA-256=`c24f08e3205b270996e1f5350047f08ed7cdb6309a18d2d262510fc35d14480a`、MAIN使用=`46391B`/余剰=`385B`。diagnostic `dist/asteroid-patrol-aps056-diagnostic.lnx`=`60176 bytes`、SHA-256=`275ba2c797ecbfbc5dea2127f41261f3b391e3946750a5f1913fe65590a69f1e`、MAIN使用=`45686B`/余剰=`1426B`。両ROMの`strings`で`V0.53.20`を確認。両LNX=`magic=LYNX version=1 bank0_page=1024 bank1_page=0`。
 - 検証: `make aps056-diagnostic-host`相当を含む`make test smoke-host lint`（0、stage155/game652/sound351/IMA14949/sprite197/APS-055 14/APS-056 35/smoke19、strict cc65、voice、shell lint）、`make clean && ./scripts/verify.sh`（0、release LNX/voice/cart全PASS）、`make aps056-diagnostic-gearlynx`（0、LNX PASS、headless PASS、GUI PASS）、`python3 -m py_compile scripts/verify-aps056-diagnostic-gearlynx.py`（0）、`git diff --check`（0）。証跡`evidence/APS-056/scb-trace-v011.json`更新。
