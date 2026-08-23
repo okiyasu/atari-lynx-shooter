@@ -145,6 +145,87 @@ static void test_hud_boundary_and_catchup(void)
         "active bullet above HUD is the only predicate-driven SKIP case");
 }
 
+static void test_collision_boundaries_and_hidden_bullets(void)
+{
+    GameState game;
+
+    init_normal(&game);
+    game.player.y = GAME_HUD_HEIGHT;
+    game.enemy_bullets[0].active = 1u;
+    game.enemy_bullets[0].rect.x = (unsigned char)(game.player.x + 2u);
+    game.enemy_bullets[0].rect.y = (unsigned char)(GAME_HUD_HEIGHT - 2u);
+    game.enemy_bullets[0].velocity_x = 0;
+    game.enemy_bullets[0].velocity_y = 0;
+    game_update_logic(&game, 0u);
+    expect(game.enemy_bullets[0].active != 0u && game.dying == 0u,
+        "enemy bullet at y=8 is hidden and excluded from damage");
+
+    init_normal(&game);
+    game.player.y = GAME_HUD_HEIGHT;
+    game.enemy_bullets[0].active = 1u;
+    game.enemy_bullets[0].rect.x = (unsigned char)(game.player.x + 2u);
+    game.enemy_bullets[0].rect.y = (unsigned char)(GAME_HUD_HEIGHT - 1u);
+    game.enemy_bullets[0].velocity_x = 0;
+    game.enemy_bullets[0].velocity_y = 0;
+    game_update_logic(&game, 0u);
+    expect(game.enemy_bullets[0].active != 0u && game.dying == 0u,
+        "enemy bullet at y=9 is hidden and excluded from damage");
+
+    init_normal(&game);
+    game.player.y = GAME_HUD_HEIGHT;
+    game.enemy_bullets[0].active = 1u;
+    game.enemy_bullets[0].rect.x = (unsigned char)(game.player.x + 2u);
+    game.enemy_bullets[0].rect.y = GAME_HUD_HEIGHT;
+    game.enemy_bullets[0].velocity_x = 0;
+    game.enemy_bullets[0].velocity_y = 0;
+    game_update_logic(&game, 0u);
+    expect(game.enemy_bullets[0].active == 0u && game.dying != 0u,
+        "enemy bullet at y=10 retains in-play damage");
+
+    init_normal(&game);
+    game_enemy_at(&game, 0u)->active = 1u;
+    game_enemy_at(&game, 0u)->rect.x = 0u;
+    game_enemy_at(&game, 0u)->rect.y = 20u;
+    game_enemy_at(&game, 0u)->base_y = 20u;
+    game_enemy_at(&game, 0u)->pattern = GAME_ENEMY_PATTERN_STRAIGHT;
+    game_update_logic(&game, 0u);
+    expect(game.dying == 0u,
+        "non-contact enemy body at x=0 does not cause damage");
+
+    init_normal(&game);
+    game.player.x = 0u;
+    game_enemy_at(&game, 0u)->active = 1u;
+    game_enemy_at(&game, 0u)->rect.x = 0u;
+    game_enemy_at(&game, 0u)->rect.y = game.player.y;
+    game_enemy_at(&game, 0u)->base_y = game.player.y;
+    game_enemy_at(&game, 0u)->pattern = GAME_ENEMY_PATTERN_STRAIGHT;
+    game_update_logic(&game, 0u);
+    expect(game.dying != 0u,
+        "contacting enemy body at x=0 retains damage");
+
+    init_normal(&game);
+    game.enemy_bullets[0].active = 1u;
+    game.enemy_bullets[0].rect.x = (unsigned char)(game.player.x +
+        GAME_PLAYER_WIDTH);
+    game.enemy_bullets[0].rect.y = game.player.y;
+    game.enemy_bullets[0].velocity_x = 0;
+    game.enemy_bullets[0].velocity_y = 0;
+    game_update_logic(&game, 0u);
+    expect(game.enemy_bullets[0].active != 0u && game.dying == 0u,
+        "enemy bullet at x right boundary remains non-contact");
+
+    init_normal(&game);
+    game.enemy_bullets[0].active = 1u;
+    game.enemy_bullets[0].rect.x = (unsigned char)(game.player.x +
+        GAME_PLAYER_WIDTH - 1u);
+    game.enemy_bullets[0].rect.y = game.player.y;
+    game.enemy_bullets[0].velocity_x = 0;
+    game.enemy_bullets[0].velocity_y = 0;
+    game_update_logic(&game, 0u);
+    expect(game.enemy_bullets[0].active == 0u && game.dying != 0u,
+        "enemy bullet at x right overlap boundary retains damage");
+}
+
 #ifdef APS056_DIAGNOSTIC
 static void test_controls_active_count_and_damage_sources(void)
 {
@@ -380,6 +461,7 @@ int main(void)
     test_active_slot_values();
     test_collision_slot_is_skipped_after_consumption();
     test_hud_boundary_and_catchup();
+    test_collision_boundaries_and_hidden_bullets();
 #ifdef APS056_DIAGNOSTIC
     test_controls_active_count_and_damage_sources();
     test_one_shot_scb_trace();

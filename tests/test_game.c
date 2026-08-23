@@ -1542,8 +1542,8 @@ static void test_damage_and_priority(void)
     game.enemies[0].rect.y = 80u;
     game.enemies[0].base_y = 80u;
     game_update(&game, 0u);
-    expect(game.lives == GAME_INITIAL_LIVES - 1u && game.dying != 0u,
-        "left edge alone starts one death");
+    expect(game.lives == GAME_INITIAL_LIVES && game.dying == 0u,
+        "non-contact enemy at left edge causes no damage");
 
     init_normal(&game);
     disable_enemies_except(&game, 0u);
@@ -1771,8 +1771,9 @@ static void test_game_over_and_restart(void)
     game.power_item.move_counter = 1u;
     game.planet_offset = 90u;
     game.planet_counter = 7u;
-    game.enemies[0].rect.x = 1u;
-    game.enemies[0].rect.y = 80u;
+    game.enemies[0].rect.x = (unsigned char)(game.player.x + 1u);
+    game.enemies[0].rect.y = game.player.y;
+    game.enemies[0].base_y = game.player.y;
     game.enemy_bullets[0].active = 1u;
     game.enemy_bullets[0].rect.x = 80u;
     game.enemy_bullets[0].rect.y = 80u;

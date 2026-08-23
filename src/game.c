@@ -1669,9 +1669,8 @@ static void update_normal(GameState* game, unsigned char input,
         enemy = game_enemy_at(game, i);
         if (enemy->active != 0u && hit_enemies[i] == 0u &&
             enemy->rect.x < GAME_SCREEN_WIDTH &&
-            (enemy->rect.x == 0u ||
             game_aabb_intersects(&game->player,
-                &enemy->rect) != 0u)) {
+                &enemy->rect) != 0u) {
             damage = 1u;
 #ifdef APS056_DIAGNOSTIC
             diagnostic_source = GAME_DIAGNOSTIC_DAMAGE_ENEMY_BODY;
@@ -1684,6 +1683,7 @@ static void update_normal(GameState* game, unsigned char input,
     for (i = 0u; i < GAME_MAX_ENEMY_BULLETS; ++i) {
         GAME_PERF_COUNT(enemy_bullet_slots);
         if (game->enemy_bullets[i].active != 0u &&
+            game->enemy_bullets[i].rect.y >= GAME_HUD_HEIGHT &&
             rect_intersects_position(&game->player,
                 &game->enemy_bullets[i].rect,
                 GAME_ENEMY_BULLET_WIDTH,

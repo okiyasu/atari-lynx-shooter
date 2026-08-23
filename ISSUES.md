@@ -1,6 +1,28 @@
 # ISSUES
 
-最終更新: 2026-08-23(APS-056 v011 MOVABLE_SET_HPOS/VPOS修正、GUI/headless PASS。)
+最終更新: 2026-08-23(APS-056 v014 y=9非表示敵弾collision除外・敵本体x=0短絡削除、GUI/headless PASS。)
+
+### APS-056 v014 敵弾HUD境界・敵本体x=0短絡修正（2026-08-23）
+
+- 状態: **実装・host/strict・release ROM・Gearlynx GUI/headless PASS、commit/push前**。開始HEAD=`ae42873572b1505de4f6c56fc3b644561f879e25`（origin/main同値）。既知差分`ISSUES.md`、`.briefs/APS-056/v012.md`、`.briefs/APS-056/v013.md`、`.briefs/APS-056/v014.md`のみを保全。
+- 実装: `src/game.c`の通常敵弾collisionに`rect.y >= GAME_HUD_HEIGHT`条件を追加し、y=8/9のSCB非表示弾をdamage対象外化、y=10以上の2x2半開区間AABBを維持。通常敵本体collisionの`enemy->rect.x == 0u`短絡を削除し、`game_aabb_intersects()`のみへ変更。SCB描画座標、移動順序、damage source、ボス経路、公開API、既存データ形式は非変更。
+- テスト追加・更新: `tests/test_aps056_diagnostic.c`へy=8/9/10、敵本体x=0非接触/接触、敵弾x境界接触/非接触を追加（35 checks）。`tests/test_game.c`の旧x=0短絡期待を非damageへ更新し、final damage fixtureを実接触へ更新。
+- artifacts: release `dist/asteroid-patrol.lnx`=`61161 bytes`、SHA-256=`ce53fd183028383268da68222757dcd19b2e09a801b31e339b4901656079d5b3`、MAIN使用=`46391B`/余剰=`385B`。diagnostic `dist/asteroid-patrol-aps056-diagnostic.lnx`=`60176 bytes`、SHA-256=`cecc517d963c61221ca34ad13be1d1d0e598ee6c7f617ac387c455e1f6bfc908`、MAIN使用=`45686B`/余剰=`1426B`。両LNX=`magic=LYNX version=1 bank0_page=1024 bank1_page=0`。
+- 検証: `make aps056-diagnostic-host`（0、35 checks）、`make test smoke-host lint`（0、stage155/game652/sound351/IMA14949/sprite197/APS-055 14/APS-056 35/smoke19、cc65 strict、voice、shell lint）、`make clean && ./scripts/verify.sh`（0、release LNX/voice/cart全PASS）、`make aps056-diagnostic-gearlynx`（0、LNX PASS、headless PASS、GUI PASS）、`python3 -m py_compile scripts/verify-aps056-diagnostic-gearlynx.py`（0）、`git diff --check`（0）。証跡`evidence/APS-056/scb-trace-v011.json`更新。
+- 設計差分: なし。未確認: 実機Suzy/LCD/OPT入力、実機実プレイ視認性。commit/push後に作業ツリーcleanおよびHEAD/origin一致を確認予定。
+
+### APS-056 v012 敵弾GameState/SCB座標・衝突時系列診断（2026-08-23）
+
+- 状態: **変更なしの診断完了**。開始HEAD=`a0fe46d7b99296667c4e1c20a6fe69d41878b14f`、診断中のソース/API/production ROM/既存データ/実機/commit/push変更なし。指定ブリーフ`.briefs/APS-056/v012.md`のみ開始時点から未追跡で存在し、作業対象として確認済み。
+- 座標源の確定: `GameState.player`は`src/game.c:1074-1077`で`x/y/width=8/height=6`、移動範囲は`src/game.c:614-622`でx=`0..152`、y=`10..96`。敵弾は`GameEnemyBullet.rect`の`x/y`（`include/game.h:167-172`）を`src/main.c:1135-1155`でそのまま`MOVABLE_SET_HPOS/VPOS`へ書く。v011のraw offset修正後、Gearlynx GUI/headlessの実SCB slot0=`hpos=100,vpos=40`、slot3=`hpos=80,vpos=9`がGameStateと一致しており、現行の敵弾GameState→SCB座標ラグ/別座標源は否定。
+- 時系列の確定（通常フェーズ）: `main()`が`src/main.c:1409-1429`でelapsed VBlank分のlogic updateを全て先に実行し、`game_update_logic()`が`src/game.c:1972-1981`で`update_normal()`を呼ぶ。`update_normal()`内はプレイヤー移動・敵弾移動`src/game.c:1584-1632`→敵弾衝突判定`src/game.c:1684-1700`→環境衝突`src/game.c:1701-1731`→`apply_damage()`/死亡開始`src/game.c:1732-1738`→draw呼出し`src/main.c:1444-1445`の順。したがって衝突は描画より常に先で、collision後にactive=0となった敵弾は同一drawでSCB SKIPになる。elapsed=1時の4 logic update中に当たった場合、最終drawに当たりフレームが見えないのは更新順による仕様であり、座標不整合ではない。
+- 矩形/境界の確定: 敵弾描画はSCB sprite shape 2x2、原点`rect.x/y`、collisionも`GAME_ENEMY_BULLET_WIDTH/HEIGHT=2/2`（`include/game.h:17-18`、`src/game.c:1687-1690`）で同一。`rect_intersects_position()`（`src/game.c:718-725`）は`[x,x+w)`/`[y,y+h)`の半開区間で、境界接触のみは非接触。プレイヤーは8x6で、例えばplayer=`(100,40)`・bullet=`(102,40)`はx境界が接触するだけでなく移動後bullet=`(100,40)`となって衝突する。画面外敵弾はoriginがx/y `<0`または`>=160/102`になった時点でactive=0（`src/game.c:827-837`）。
+- **確定した「見えない位置で被弾」候補**: playerの最小yは10だが、敵弾のSCB表示 predicateは`rect.y < GAME_HUD_HEIGHT(10)`ならSKIP（`src/main.c:1148-1150`）。敵弾origin=`y=9`の2x2矩形は`[9,11)`で、playerのy=`10`以上と1px重なるため、SCBでは非表示のままcollisionは成立し得る。y=`8`は`[8,10)`でplayer上端との接触のみとなり非成立、y=`9`だけがHUD境界上の実被弾窓。v011のslot3=`y=9,SKIP`はこの挙動と整合し、座標ラグではなく描画可視条件とcollision矩形の境界不一致。
+- **確定した別damage source候補**: 通常フェーズの敵本体判定`src/game.c:1666-1682`は、敵`rect.x==0`の場合にy方向を含むAABB判定を短絡してdamage=1にする。画面左端に到達した敵本体がプレイヤーと重なっていなくても死亡し得る。APS-056診断source=1（enemy body）で敵弾source=2と分離可能。ボス経路`src/game.c:1812-1819`にはこのx==0短絡なし。
+- 確度分類: `confirmed`=`GameState.rect`と敵弾SCB hpos/vposの同一tick座標一致（v011 Gearlynx実測）、移動後→collision→damage→draw順、2x2対2x2・半開区間、y=9のSKIPかつplayer y=10との衝突可能性、通常敵本体x=0短絡。`ruled_out`=v011修正後の敵弾SCB座標ラグ/SCB書込先不良、collision後の古いSCB描画による死亡。`not determinable locally`=実機LCD上の視認性、実プレイ中のdamage source/座標ログ（現行ROMの実機入力未取得）。
+- 既存テストの保証範囲: `tests/test_aps055_diagnostic.c`はcollision前後・敵弾sourceのみ・collision後SKIP・HUD y=8 SKIP/y=40 visible・catch-up・75Hz移動を保証するが、y=9の「SKIPなのにplayer y=10と衝突」、半開区間の境界接触、非接触敵弾で非死亡、複数damage source同tickの優先順位は未保証。`tests/test_aps056_diagnostic.c`はGameState→SCB projection（x/y=100/40）、collision後SKIP、HUD y=10/y=9の描画predicate、source 1〜4を保証するが、y=9 collision実測と敵本体x=0短絡の非接触死亡を未保証。v011 Gearlynx診断はSCB/fb整合を保証するが、collisionのy=9ケースは未計測。
+- 検証: `make aps056-diagnostic-host`（終了コード0、28 checks）、`make test smoke-host lint`（終了コード0、stage155/game652/sound351/IMA14949/sprite197/APS-055 14/APS-056 28/smoke19、strict cc65、shell lint）、`git diff --check`（終了コード0）。
+- 次段計測（実装修正ではない）: APS056診断またはhostへ、(1) player y=10、敵弾y=8/9/10でcollision・SCB SKIP・sourceを同時記録、(2) x/y各境界接触ケース、(3) active非接触敵弾のみで非死亡、(4) 敵本体x=0でy非接触のsource=1再現、(5) elapsed=1/3の中間tick collisionを追加する。y=9を「被弾可能なゲームプレイ領域」と扱わない仕様なら、表示predicateではなくcollision側の境界仕様を別ブリーフで裁定する必要あり。
 
 ### APS-056 v011 MOVABLE_SET_HPOS/VPOS修正・Gearlynx GUI/headless検証（2026-08-23）
 
