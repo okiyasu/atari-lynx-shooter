@@ -4,14 +4,14 @@
 
 ### APS-057 v002 Stage2/Stage3 TGI後のSPRVSIZ残留修正・版表示0.53.22（2026-08-23）
 
-- 状態: **実装・host/strict・lint・release/diagnostic ROM・Gearlynx GUI/headless直接readback PASS、commit/push前**。開始HEAD=`16f4348d59b037324b9b975c479e5b47092128f4`。開始時の既知差分は`ISSUES.md`のAPS-057 v001追記、`.briefs/APS-057/v001.md`、依頼ブリーフ`.briefs/APS-057/v002.md`のみ。終了HEADはcommit前の開始HEAD同値。
+- 状態: **実装・host/strict・lint・release/diagnostic ROM・Gearlynx GUI/headless直接readback・commit/push PASS**。開始HEAD=`16f4348d59b037324b9b975c479e5b47092128f4`。開始時の既知差分は`ISSUES.md`のAPS-057 v001追記、`.briefs/APS-057/v001.md`、依頼ブリーフ`.briefs/APS-057/v002.md`のみ。実装commit=`61f08275814870231a000da50e7205500279c8c6`、`origin/main`へpush済み。
 - 原因と設計: `SCB_RENONE(_PAL)`はHSIZE/VSIZEを持たず、TGI `line/bar`後のSuzy共有`SPRHSIZ=$FC18`/`SPRVSIZ=$FC1A`を継承する。`src/main.c`の`draw_environment()`（Stage2 WIND、Stage3 ROCKFALL warning/impact）と爆発TGI描画の直後、`movable_scb_update()`呼出し直前に共有scaleを`0x0100`（8.8固定小数1x）へ戻す`movable_scb_reset_scale()`を追加。既存11/19-byte SCB chain、公開API、描画データ、RAM形式は変更なし。
 - 方式選定理由: 全movable SCBを`SCB_REHV(_PAL)`へ拡張すると各entryへ8-byteのHSIZE/VSIZEが増え、APS-053 v045で確定した既存RAM制約を圧迫する。共有レジスタの直前resetはRAM増加ゼロでSuzy/cc65 2.19のSCBフィールド代入を使わず、生成asmで`stz $FC18; stx $FC18+1; stz $FC1A; stx $FC1A+1`を確認。
 - 変更: `src/main.c`（共有SPRHSIZ/SPRVSIZ 1x reset）、`include/version.h`（`GAME_VERSION_STRING=0.53.22`）、`scripts/verify-aps057-sprite-scale-gearlynx.py`（診断ROMのStage1/Stage2 active WIND/Stage3 warning・impact readback）、`Makefile`（`aps057-scale-gearlynx` target）、`evidence/APS-057/sprite-scale-v001.json`、本ブリーフ。
 - Gearlynx直接検証: `make aps057-scale-gearlynx`（exit 0、LNX header PASS、headless 4/4・GUI 4/4 PASS）。全ケースでmovable`tgi_sprite`提出時の`SPRHSIZ=0x0100`、`SPRVSIZ=0x0100`。Stage2 active WIND、Stage3 ROCKFALL warning/impactのTGI後も1xを直接readback。実機Suzy/LCD/OPT入力は未確認。
 - artifacts: release `dist/asteroid-patrol.lnx`=`61212 bytes`、SHA-256=`43de8d0df0ec9f9bde05298bdf097d90ff1fd0e812858fa94f6dbaf84a82041c`、`V0.53.22`、map`__MAIN_SIZE__=0xB6B8`。diagnostic `dist/asteroid-patrol-aps056-diagnostic.lnx`=`60227 bytes`、SHA-256=`46c09c495c67f9f74e06487bdf81c9449ef62620e18884fc9c9097fe0597502c`、`V0.53.22`、map`__MAIN_SIZE__=0xB808`。両LNX=`magic=LYNX version=1 bank0_page=1024 bank1_page=0`。
 - 検証: `make test smoke-host lint`（0、stage155/game652/sound351/IMA14949/sprite197/APS-055 14/APS-056 39、cc65 strict`-W error`、voice、shell lint）、`make clean && ./scripts/verify.sh`（0、release LNX/voice/cart全PASS）、`make aps057-scale-gearlynx`（0、上記GUI/headless readback）、`python3 -m py_compile scripts/verify-aps057-sprite-scale-gearlynx.py`（0）、cc65生成asm（0）、`git diff --check`（0）。
-- 設計差分: なし。未実施: 実機Suzy/LCD/OPT入力。commit/pushおよびpush後`git status --short -uall` clean、`HEAD=origin/main`確認はこの記録後に実施。
+- 設計差分: なし。未実施: 実機Suzy/LCD/OPT入力。記録修正commit・push後に`git status --short -uall` clean、`HEAD=origin/main`を確認する。
 
 ### APS-057 v001 Stage 2 wind TGI後の自機縦長表示原因調査（2026-08-23）
 
