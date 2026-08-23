@@ -1,0 +1,168 @@
+{
+  "aps": "APS-057",
+  "method": "get_suzy_registers readback of SPRHSIZ=$FC18 and SPRVSIZ=$FC1A at the second real-pointer _tgi_ioctl hit, the movable tgi_sprite submission",
+  "passed": true,
+  "results": [
+    {
+      "cases": [
+        {
+          "environment": "none",
+          "label": "stage1-baseline",
+          "movable_scale": {
+            "registers": {
+              "SPRHSIZ": "0100",
+              "SPRVSIZ": "0100"
+            },
+            "sprhsiz": 256,
+            "sprvsiz": 256
+          },
+          "passed": true,
+          "real_tgi_ioctl_hits": [
+            "0xAD01",
+            "0xA94D"
+          ],
+          "stage": 1
+        },
+        {
+          "environment": "wind-active",
+          "label": "stage2-wind-active",
+          "movable_scale": {
+            "registers": {
+              "SPRHSIZ": "0100",
+              "SPRVSIZ": "0100"
+            },
+            "sprhsiz": 256,
+            "sprvsiz": 256
+          },
+          "passed": true,
+          "real_tgi_ioctl_hits": [
+            "0xAD01",
+            "0xA94D"
+          ],
+          "stage": 2
+        },
+        {
+          "environment": "rock-warning",
+          "label": "stage3-rock-warning",
+          "movable_scale": {
+            "registers": {
+              "SPRHSIZ": "0100",
+              "SPRVSIZ": "0100"
+            },
+            "sprhsiz": 256,
+            "sprvsiz": 256
+          },
+          "passed": true,
+          "real_tgi_ioctl_hits": [
+            "0xAD01",
+            "0xA94D"
+          ],
+          "stage": 3
+        },
+        {
+          "environment": "rock-impact",
+          "label": "stage3-rock-impact",
+          "movable_scale": {
+            "registers": {
+              "SPRHSIZ": "0100",
+              "SPRVSIZ": "0100"
+            },
+            "sprhsiz": 256,
+            "sprvsiz": 256
+          },
+          "passed": true,
+          "real_tgi_ioctl_hits": [
+            "0xAD01",
+            "0xA94D"
+          ],
+          "stage": 3
+        }
+      ],
+      "mode": "headless",
+      "passed": true
+    },
+    {
+      "cases": [
+        {
+          "environment": "none",
+          "label": "stage1-baseline",
+          "movable_scale": {
+            "registers": {
+              "SPRHSIZ": "0100",
+              "SPRVSIZ": "0100"
+            },
+            "sprhsiz": 256,
+            "sprvsiz": 256
+          },
+          "passed": true,
+          "real_tgi_ioctl_hits": [
+            "0xAD01",
+            "0xA94D"
+          ],
+          "stage": 1
+        },
+        {
+          "environment": "wind-active",
+          "label": "stage2-wind-active",
+          "movable_scale": {
+            "registers": {
+              "SPRHSIZ": "0100",
+              "SPRVSIZ": "0100"
+            },
+            "sprhsiz": 256,
+            "sprvsiz": 256
+          },
+          "passed": true,
+          "real_tgi_ioctl_hits": [
+            "0xAD01",
+            "0xA94D"
+          ],
+          "stage": 2
+        },
+        {
+          "environment": "rock-warning",
+          "label": "stage3-rock-warning",
+          "movable_scale": {
+            "registers": {
+              "SPRHSIZ": "0100",
+              "SPRVSIZ": "0100"
+            },
+            "sprhsiz": 256,
+            "sprvsiz": 256
+          },
+          "passed": true,
+          "real_tgi_ioctl_hits": [
+            "0xAD01",
+            "0xA94D"
+          ],
+          "stage": 3
+        },
+        {
+          "environment": "rock-impact",
+          "label": "stage3-rock-impact",
+          "movable_scale": {
+            "registers": {
+              "SPRHSIZ": "0100",
+              "SPRVSIZ": "0100"
+            },
+            "sprhsiz": 256,
+            "sprvsiz": 256
+          },
+          "passed": true,
+          "real_tgi_ioctl_hits": [
+            "0xAD01",
+            "0xA94D"
+          ],
+          "stage": 3
+        }
+      ],
+      "mode": "gui",
+      "passed": true
+    }
+  ],
+  "rom": {
+    "path": "dist/asteroid-patrol-aps056-diagnostic.lnx",
+    "sha256": "46c09c495c67f9f74e06487bdf81c9449ef62620e18884fc9c9097fe0597502c",
+    "size_bytes": 60227
+  }
+}

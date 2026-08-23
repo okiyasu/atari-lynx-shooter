@@ -73,6 +73,7 @@ PERF_PAIR_COUNT := 7
 	phase-2r-display-profile-no-reinject-gearlynx \
 	phase-2r-catchup-causality-gearlynx \
 	phase-2r-bounded-catchup-gearlynx aps053-diagnostic-rom-gearlynx \
+	aps057-scale-gearlynx \
 	phase-3r-tick-calibration-gearlynx phase-3r-gate-a-gearlynx
 
 all: verify
@@ -300,6 +301,13 @@ aps056-diagnostic-gearlynx: $(APS056_DIAGNOSTIC_ROM)
 		--rom $(APS056_DIAGNOSTIC_ROM) \
 		--symbols build/asteroid-patrol-aps056-diagnostic.lbl \
 		--output evidence/APS-056/scb-trace-v011.json
+
+aps057-scale-gearlynx: $(APS056_DIAGNOSTIC_ROM)
+	./scripts/inspect-lnx.sh $(APS056_DIAGNOSTIC_ROM)
+	python3 scripts/verify-aps057-sprite-scale-gearlynx.py \
+		--rom $(APS056_DIAGNOSTIC_ROM) \
+		--symbols build/asteroid-patrol-aps056-diagnostic.lbl \
+		--output evidence/APS-057/sprite-scale-v001.json
 
 perf-host: build/perf-bench build/perf-bench-legacy build/test-game-legacy
 	./build/test-game-legacy

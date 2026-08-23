@@ -532,6 +532,20 @@ const unsigned char* const movable_scb_empty_sprite_debug_export =
 #define MOVABLE_SET_VPOS(scb, value) \
     (((unsigned char*)(scb))[9] = (unsigned char)(value))
 
+/* APS-057: SCB_RENONE deliberately omits hsize/vsize, so Suzy keeps the
+ * previous sprite scale after a TGI primitive.  Reset the shared 8.8 scale
+ * registers immediately before submitting the movable chain.  This preserves
+ * the existing 11/19-byte SCB layout and avoids the cc65 2.19 SCB field
+ * assignment issue; 0x0100 is the Lynx 1x scale. */
+#define MOVABLE_SPRITE_HSIZE (*(volatile unsigned int*)0xfc18u)
+#define MOVABLE_SPRITE_VSIZE (*(volatile unsigned int*)0xfc1au)
+
+static void movable_scb_reset_scale(void)
+{
+    MOVABLE_SPRITE_HSIZE = 0x0100u;
+    MOVABLE_SPRITE_VSIZE = 0x0100u;
+}
+
 /* v045 addendum (see .briefs/APS-053/v045.md, Fable5 design review): the
  * v044-shaped movable_scb_init that filled every field with sequential
  * runtime assignments compiled to ~1.1KB of CODE (41 slots x several
@@ -1350,6 +1364,7 @@ static void draw_game(const GameState* game)
                 GAME_EXPLOSION_STAGE_FRAMES],
             GAME_COLOR_EXPLOSION);
     }
+    movable_scb_reset_scale();
     movable_scb_update(game, stage_config);
     if (game->game_over != 0u) {
         static_layer_text(48, 40, "GAME OVER", GAME_COLOR_WHITE);

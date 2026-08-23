@@ -2,6 +2,27 @@
 
 最終更新: 2026-08-23(APS-056 v019 GAME_VERSION_STRING=0.53.21、release/diagnostic ROM再生成、GUI/headless PASS、commit/push済み。)
 
+### APS-057 v002 Stage2/Stage3 TGI後のSPRVSIZ残留修正・版表示0.53.22（2026-08-23）
+
+- 状態: **実装・host/strict・lint・release/diagnostic ROM・Gearlynx GUI/headless直接readback PASS、commit/push前**。開始HEAD=`16f4348d59b037324b9b975c479e5b47092128f4`。開始時の既知差分は`ISSUES.md`のAPS-057 v001追記、`.briefs/APS-057/v001.md`、依頼ブリーフ`.briefs/APS-057/v002.md`のみ。終了HEADはcommit前の開始HEAD同値。
+- 原因と設計: `SCB_RENONE(_PAL)`はHSIZE/VSIZEを持たず、TGI `line/bar`後のSuzy共有`SPRHSIZ=$FC18`/`SPRVSIZ=$FC1A`を継承する。`src/main.c`の`draw_environment()`（Stage2 WIND、Stage3 ROCKFALL warning/impact）と爆発TGI描画の直後、`movable_scb_update()`呼出し直前に共有scaleを`0x0100`（8.8固定小数1x）へ戻す`movable_scb_reset_scale()`を追加。既存11/19-byte SCB chain、公開API、描画データ、RAM形式は変更なし。
+- 方式選定理由: 全movable SCBを`SCB_REHV(_PAL)`へ拡張すると各entryへ8-byteのHSIZE/VSIZEが増え、APS-053 v045で確定した既存RAM制約を圧迫する。共有レジスタの直前resetはRAM増加ゼロでSuzy/cc65 2.19のSCBフィールド代入を使わず、生成asmで`stz $FC18; stx $FC18+1; stz $FC1A; stx $FC1A+1`を確認。
+- 変更: `src/main.c`（共有SPRHSIZ/SPRVSIZ 1x reset）、`include/version.h`（`GAME_VERSION_STRING=0.53.22`）、`scripts/verify-aps057-sprite-scale-gearlynx.py`（診断ROMのStage1/Stage2 active WIND/Stage3 warning・impact readback）、`Makefile`（`aps057-scale-gearlynx` target）、`evidence/APS-057/sprite-scale-v001.json`、本ブリーフ。
+- Gearlynx直接検証: `make aps057-scale-gearlynx`（exit 0、LNX header PASS、headless 4/4・GUI 4/4 PASS）。全ケースでmovable`tgi_sprite`提出時の`SPRHSIZ=0x0100`、`SPRVSIZ=0x0100`。Stage2 active WIND、Stage3 ROCKFALL warning/impactのTGI後も1xを直接readback。実機Suzy/LCD/OPT入力は未確認。
+- artifacts: release `dist/asteroid-patrol.lnx`=`61212 bytes`、SHA-256=`43de8d0df0ec9f9bde05298bdf097d90ff1fd0e812858fa94f6dbaf84a82041c`、`V0.53.22`、map`__MAIN_SIZE__=0xB6B8`。diagnostic `dist/asteroid-patrol-aps056-diagnostic.lnx`=`60227 bytes`、SHA-256=`46c09c495c67f9f74e06487bdf81c9449ef62620e18884fc9c9097fe0597502c`、`V0.53.22`、map`__MAIN_SIZE__=0xB808`。両LNX=`magic=LYNX version=1 bank0_page=1024 bank1_page=0`。
+- 検証: `make test smoke-host lint`（0、stage155/game652/sound351/IMA14949/sprite197/APS-055 14/APS-056 39、cc65 strict`-W error`、voice、shell lint）、`make clean && ./scripts/verify.sh`（0、release LNX/voice/cart全PASS）、`make aps057-scale-gearlynx`（0、上記GUI/headless readback）、`python3 -m py_compile scripts/verify-aps057-sprite-scale-gearlynx.py`（0）、cc65生成asm（0）、`git diff --check`（0）。
+- 設計差分: なし。未実施: 実機Suzy/LCD/OPT入力。commit/pushおよびpush後`git status --short -uall` clean、`HEAD=origin/main`確認はこの記録後に実施。
+
+### APS-057 v001 Stage 2 wind TGI後の自機縦長表示原因調査（2026-08-23）
+
+- 状態: **原因調査完了・ソース/テスト/ROM/evidence/既存データ/commit/push変更なし**。開始HEAD=`16f4348d59b037324b9b975c479e5b47092128f4`、終了HEAD同値。開始時の未追跡は指定ブリーフ`.briefs/APS-057/`のみ。
+- 確定原因: Stage 2は`assets/stages/stages.json:100-103,111-114`および`build/gen/stage_data.c:73-77`で`environment=WIND`。`src/main.c:1303-1363`の順序は`static_layer_draw()`→`draw_environment()`→`movable_scb_update()`。`src/main.c:1200-1242`のwind pathは`tgi_line()`を実行し、最後の矢印斜線（`abs(dy)=3`）後、cc65 Lynx TGI driver`.cache/cc65-2.19/source/libsrc/lynx/tgi/lynx-160-102-16.s:651-767`の`line_sy+1=abs(dy)+1`によりSuzy V-size registerを`0x0400`（4x）へ残す。playerは`SCB_RENONE_PAL`で`.cache/cc65-2.19/source/include/_suzy.h:186-195`の通りHSIZE/VSIZEを持たず、`src/main.c:740-744,1043-1059`ではsprctl1/data/hpos/vposのみ更新して`src/main.c:1179`でsubmitするため、前段TGI lineの`SPRVSIZ=0x0400`を継承し縦長になる。最初のwind開始イベントはstage2 frame150（`assets/stages/stages.json:100-103`）。
+- stage差分: Stage1=`ASTEROIDS`は`src/main.c:1249-1259`で`draw_environment()`がreturnし、movable env SCBを`src/main.c:966-981`で更新。Stage2=`WIND`は`src/main.c:982-1005`でenv SCBをSKIPにし、`src/main.c:1260-1264`でTGI windを描画する。Stage2 overlayは`src/static_layer.c:567-575,590-597`→`src/static_layer_overlay.c:23-37`のstage2 file4/664Bで背景データのみ。既存`evidence/APS-053/phase-2r-v031.json`のstage2 readbackは9 SCB、clear=`0xA000/0x6600`、非clear全`0x0100/0x0100`でoverlay/静的SCB不良を否定。
+- player SCB/生成値: cc65 generated `/tmp/aps057-main.s`（`cc65 -t lynx -Oirs --standard cc65 -W error -Iinclude -Ibuild/gen -DCADENCE_PROBE -DAPS056_DIAGNOSTIC -T -o /tmp/aps057-main.s src/main.c`、exit 0）でsprctl0 offset0、sprctl1=`+1`、data=`+5/+6`、hpos=`+7/+8`、vpos=`+9/+10`、penpal=`+11..13`を確認。`movable_scb_init`は固定player定義からsprctl0/penpalを設定し、frameは`animation_frame`のみ、player data/anchor pointerは固定（`src/main.c:815-818,841-847,1046-1055`）。stage進行によるplayer frame/anchor/data変更なし。既存`evidence/APS-053/movable-sprite-gate-b-v049.json`のplayer frame0/1 stage1 PASSは、stage2 wind後のscale継承を未検査。
+- 確定/未検証: ソース順序、TGI driverの最終`line_sy=0x0400`、player SCBのHSIZE/VSIZE省略、stage2 static SCBの1x、player data/anchorのstage非依存はソース/生成asm/既存readbackで確定。Gearlynx既存player gateはstage1のみで、stage2 wind後のplayer直前`SPRVSIZ` readbackおよび実機Suzy/LCD表示再現は未確認。Stage3 rockfallのTGI path（`src/main.c:1266-1288`）にも同種のscale汚染リスクがあるが未検証。
+- 検証: `./build/test-aps056-diagnostic`（0、39 checks）、`./tests/test_stage_data.py`（0、155 checks）、`./scripts/inspect-lnx.sh dist/asteroid-patrol.lnx`（0、LNX header OK、61194 bytes）、cc65生成asm（0）、`git diff --check`（0）。ROM再生成なし。
+- 設計差分: なし。次段は実機またはGearlynx診断でstage2 wind開始後の`SPRVSIZ=0x0400`とplayer表示を直接確認し、修正判断は別ブリーフで実施。
+
 ### APS-056 v019 左端到達敵despawn・版表示0.53.21（2026-08-23）
 
 - 状態: **実装・host/strict・release ROM・diagnostic ROM・Gearlynx GUI/headless PASS、commit/push済み**。開始HEAD=`d7cece29fe66341caedf7a35cf37de0f27e4fe2a`（origin/main同値）。実装commit=`281457e`、記録修正commitは後続。v018/v019ブリーフは既知の意図的未追跡差分として保全。実装検証時終了HEAD=`281457e`。
