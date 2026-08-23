@@ -1,6 +1,6 @@
 # ISSUES
 
-最終更新: 2026-08-23(APS-056 v019 GAME_VERSION_STRING=0.53.21、release/diagnostic ROM再生成、GUI/headless PASS、commit/push済み。)
+最終更新: 2026-08-23(APS-057 v002 GAME_VERSION_STRING=0.53.22、release/diagnostic ROM再生成、Gearlynx GUI/headless PASS、commit/push済み。)
 
 ### APS-057 v002 Stage2/Stage3 TGI後のSPRVSIZ残留修正・版表示0.53.22（2026-08-23）
 
