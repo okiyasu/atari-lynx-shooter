@@ -4,7 +4,7 @@
 
 ### APS-056 v004 実機判別ROM（2026-08-23）
 
-- 状態: **実装・host/strict clean検証・診断ROM生成完了、Gearlynx起動前BLOCKED**。開始HEAD=`68d68fdfa6f561d3ed1b4e83bf0bf99acee8af0c`、終了HEAD=`68d68fdfa6f561d3ed1b4e83bf0bf99acee8af0c`（commit前の記録）。APS-056 v002既知差分、`.briefs/APS-056/v001..v004.md`、`evidence/APS-056/`は保全。
+- 状態: **実装・host/strict clean検証・診断ROM生成完了、Gearlynx起動前BLOCKED**。開始HEAD=`68d68fdfa6f561d3ed1b4e83bf0bf99acee8af0c`、終了HEAD=`ec9449fc4d7e790bcd901765993890e399cfabd8`（APS-056 v004実装commit/push済み）。APS-056 v002既知差分、`.briefs/APS-056/v001..v004.md`、`evidence/APS-056/`は保全。
 - 実装: `APS056_DIAGNOSTIC`限定でOPT1（raw `$FCB0` Option 1）押下中のlogic freeze/draw継続、OPT2 rising-edgeによる敵弾penpal `GAME_COLOR_ENEMY_BULLET=6`/`GAME_COLOR_WHITE=15`切替、damage source `1=enemy body / 2=enemy bullet / 3=asteroid / 4=falling rock`、HUD `E00`（active数）/死亡時`D0N`（N=source code）表示。active数は既存movable enemy-bullet walkの観測値を使用。release productionは既存オブジェクト・表示・挙動を維持し、診断game.oのみサイズ最適化`-O`。
 - 変更ファイル: `Makefile`、`include/game.h`、`src/game.c`、`src/main.c`、`src/static_layer.c`、`tests/test_aps056_diagnostic.c`、本記録。既知保全ファイルとして`tests/test_aps056_diagnostic.c`、`scripts/verify-aps056-diagnostic-gearlynx.py`、`evidence/APS-056/scb-trace-v002.json`、`.briefs/APS-056/v001..v004.md`を含む。
 - 診断ROM: `/Users/mammycloud-m4/Documents/develop-m4/atari-lynx-shooter/dist/asteroid-patrol-aps056-diagnostic.lnx`、`59526 bytes`、SHA-256=`beff923c1e980c4bfc8c3796b69cf0e402374c65c64b22346c4dbc5f5f392b5f`、`GAME_VERSION_STRING=0.53.19`、LNX `magic=LYNX version=1 bank0_page=1024 bank1_page=0`。map Segment STARTUP/LOWCODE/ONCE/CODE/RODATA/DATA/BSS=`109/16/27/34479/6965/946/2310`、使用=`44852B`、CADENCE MAIN上限=`0xBA08`、MAIN余剰=`2260B`。
