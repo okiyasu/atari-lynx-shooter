@@ -4,7 +4,7 @@
 
 ### APS-055 v002 敵弾移動速度の75Hz正規化（2026-08-23）
 
-- 状態: **実装・host/strict ROM検証完了、実機確認待ち**。開始HEAD=`12096120d2a4f822f314e16fd076eb93ba21cbe2`。APS-055 v001の既知未コミット診断差分（`ISSUES.md`、`Makefile`、`include/game.h`、`src/game.c`、`tests/test_aps055_diagnostic.c`、`.briefs/APS-055/`）を保全したまま実装。終了HEADは実装commit確定後に更新。
+- 状態: **実装・host/strict ROM検証完了、実機確認待ち**。開始HEAD=`12096120d2a4f822f314e16fd076eb93ba21cbe2`、終了HEAD（実装commit）=`6745b07`。APS-055 v001の既知未コミット診断差分（`ISSUES.md`、`Makefile`、`include/game.h`、`src/game.c`、`tests/test_aps055_diagnostic.c`、`.briefs/APS-055/`）を保全したまま実装。
 - 原因/対策: `velocity_x=-2`等を300Hz logic毎に適用していたため、通常4 logic updates/drawで敵弾が8px/draw（600px/s）移動。`GameState`へ共有1Bの`enemy_bullet_move_phase`を追加し、4 logic updatesに1回だけ全敵弾へ既存velocityを適用。4更新で`(-2,+1)`、12更新で`(-6,+3)`を確認。敵弾ごとの状態追加なし。
 - 保全: `update_enemy_bullets()`の既存順序、collisionのlogic毎判定、被弾時のactive消費、`src/main.c`のSCB描画条件、発射間隔・boss cadence・当たり判定・APS-054自機移動は変更なし。combat object clear時に共有phaseを0へリセット。生成logic更新では弾を移動せず、次のphaseに従う既存発射順序を維持。
 - 変更ファイル: `src/game.c`、`include/game.h`、`include/version.h`（`GAME_VERSION_STRING=0.53.19`）、`tests/test_game.c`（75Hz移動期待値）、`tests/test_aps055_diagnostic.c`（4/12 logic更新速度診断）、`Makefile`（診断ターゲットはv001から保全）、本記録。
