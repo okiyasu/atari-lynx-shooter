@@ -1,15 +1,15 @@
 # ISSUES
 
-最終更新: 2026-08-23(APS-056 v014 y=9非表示敵弾collision除外・敵本体x=0短絡削除、GUI/headless PASS。)
+最終更新: 2026-08-23(APS-056 v014 y=9非表示敵弾collision除外・敵本体x=0短絡削除、GUI/headless PASS、commit/push済み。)
 
 ### APS-056 v014 敵弾HUD境界・敵本体x=0短絡修正（2026-08-23）
 
-- 状態: **実装・host/strict・release ROM・Gearlynx GUI/headless PASS、commit/push前**。開始HEAD=`ae42873572b1505de4f6c56fc3b644561f879e25`（origin/main同値）。既知差分`ISSUES.md`、`.briefs/APS-056/v012.md`、`.briefs/APS-056/v013.md`、`.briefs/APS-056/v014.md`のみを保全。
+- 状態: **実装・host/strict・release ROM・Gearlynx GUI/headless PASS、commit/push済み**。開始HEAD=`ae42873572b1505de4f6c56fc3b644561f879e25`（origin/main同値）。commit=`683649c0af348236e4748d31603c21b9f013df0e`、push済み、作業ツリーclean。既知差分`ISSUES.md`、`.briefs/APS-056/v012.md`、`.briefs/APS-056/v013.md`、`.briefs/APS-056/v014.md`のみを保全。
 - 実装: `src/game.c`の通常敵弾collisionに`rect.y >= GAME_HUD_HEIGHT`条件を追加し、y=8/9のSCB非表示弾をdamage対象外化、y=10以上の2x2半開区間AABBを維持。通常敵本体collisionの`enemy->rect.x == 0u`短絡を削除し、`game_aabb_intersects()`のみへ変更。SCB描画座標、移動順序、damage source、ボス経路、公開API、既存データ形式は非変更。
 - テスト追加・更新: `tests/test_aps056_diagnostic.c`へy=8/9/10、敵本体x=0非接触/接触、敵弾x境界接触/非接触を追加（35 checks）。`tests/test_game.c`の旧x=0短絡期待を非damageへ更新し、final damage fixtureを実接触へ更新。
 - artifacts: release `dist/asteroid-patrol.lnx`=`61161 bytes`、SHA-256=`ce53fd183028383268da68222757dcd19b2e09a801b31e339b4901656079d5b3`、MAIN使用=`46391B`/余剰=`385B`。diagnostic `dist/asteroid-patrol-aps056-diagnostic.lnx`=`60176 bytes`、SHA-256=`cecc517d963c61221ca34ad13be1d1d0e598ee6c7f617ac387c455e1f6bfc908`、MAIN使用=`45686B`/余剰=`1426B`。両LNX=`magic=LYNX version=1 bank0_page=1024 bank1_page=0`。
 - 検証: `make aps056-diagnostic-host`（0、35 checks）、`make test smoke-host lint`（0、stage155/game652/sound351/IMA14949/sprite197/APS-055 14/APS-056 35/smoke19、cc65 strict、voice、shell lint）、`make clean && ./scripts/verify.sh`（0、release LNX/voice/cart全PASS）、`make aps056-diagnostic-gearlynx`（0、LNX PASS、headless PASS、GUI PASS）、`python3 -m py_compile scripts/verify-aps056-diagnostic-gearlynx.py`（0）、`git diff --check`（0）。証跡`evidence/APS-056/scb-trace-v011.json`更新。
-- 設計差分: なし。未確認: 実機Suzy/LCD/OPT入力、実機実プレイ視認性。commit/push後に作業ツリーcleanおよびHEAD/origin一致を確認予定。
+- 設計差分: なし。未確認: 実機Suzy/LCD/OPT入力、実機実プレイ視認性。commit/push後に作業ツリーcleanおよびHEAD/origin一致を確認済み。
 
 ### APS-056 v012 敵弾GameState/SCB座標・衝突時系列診断（2026-08-23）
 
