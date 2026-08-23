@@ -10,7 +10,7 @@
 - 変更ファイル: `src/game.c`、`include/game.h`、`include/version.h`（`GAME_VERSION_STRING=0.53.19`）、`tests/test_game.c`（75Hz移動期待値）、`tests/test_aps055_diagnostic.c`（4/12 logic更新速度診断）、`Makefile`（診断ターゲットはv001から保全）、本記録。
 - ROM/map: release LNX=`61,124` bytes、SHA-256=`1d70db9c91eda9c14a92cc475382e9bc02dd7f37c2c22299f93d7e078dadd9bc`、Segment STARTUP/LOWCODE/ONCE/CODE/RODATA/DATA/BSS=`109/16/27/36081/6963/944/2214`、使用=`46,354B`、MAIN余剰=`422B`。cadence LNX=`61,503` bytes、SHA-256=`a7f5817a9ba05640eb383d477fb143195e5f9c33d291c55654316930e65f45bc`、Segment=`109/16/27/36456/6965/946/2307`、使用=`46,826B`、MAIN余剰=`286B`。APS-054 v003比で両構成とも使用量`+112B`（CODE`+111B`、BSS`+1B`）、余剰はrelease`534→422B`／cadence`398→286B`。両方`magic=LYNX version=1`。
 - 検証: `make aps055-diagnostic-host`（終了コード0、14 checks）、`make test`（終了コード0、stage155/game652/sound351/IMA14949/sprite197/APS-055 14）、`make smoke-host lint`（終了コード0、smoke19、cc65 strict compile、shell lint）、`make clean && ./scripts/verify.sh`（終了コード0、host回帰、strict cc65、LNX、voice/cart検査PASS）、`make dist/asteroid-patrol-cadence.lnx && ./scripts/inspect-lnx.sh dist/asteroid-patrol-cadence.lnx`（終了コード0、LNX PASS）、`git diff --check`（終了コード0）。
-- 設計差分/リスク: 4 logic更新周期は共有phaseで管理するため、弾ごとの16B以上の状態増加を回避。phaseはcombat clearでリセットし、collisionは移動tick以外も毎logic判定するため、不可視被弾のactive消費順序は変わらない。実機LCDでの敵弾速度、入力タイミング、実機Suzy最終画素は未確認。commit/push前。
+- 設計差分/リスク: 4 logic更新周期は共有phaseで管理するため、弾ごとの16B以上の状態増加を回避。phaseはcombat clearでリセットし、collisionは移動tick以外も毎logic判定するため、不可視被弾のactive消費順序は変わらない。実機LCDでの敵弾速度、入力タイミング、実機Suzy最終画素は未確認。実装commit=`6745b07491a21f9a52ec5bab255ac6effe38d3b9`、commit/push済み。
 
 ### APS-055 v001 敵弾不可視被弾の診断（2026-08-23）
 
