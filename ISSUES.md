@@ -1,6 +1,27 @@
 # ISSUES
 
-最終更新: 2026-08-23(APS-055 v002実装・host/strict ROM検証完了、実機確認待ち。)
+最終更新: 2026-08-23(APS-056 v004実機判別ROM実装・host/strict検証完了、実機確認待ち。)
+
+### APS-056 v004 実機判別ROM（2026-08-23）
+
+- 状態: **実装・host/strict clean検証・診断ROM生成完了、Gearlynx起動前BLOCKED**。開始HEAD=`68d68fdfa6f561d3ed1b4e83bf0bf99acee8af0c`、終了HEAD=`68d68fdfa6f561d3ed1b4e83bf0bf99acee8af0c`（commit前の記録）。APS-056 v002既知差分、`.briefs/APS-056/v001..v004.md`、`evidence/APS-056/`は保全。
+- 実装: `APS056_DIAGNOSTIC`限定でOPT1（raw `$FCB0` Option 1）押下中のlogic freeze/draw継続、OPT2 rising-edgeによる敵弾penpal `GAME_COLOR_ENEMY_BULLET=6`/`GAME_COLOR_WHITE=15`切替、damage source `1=enemy body / 2=enemy bullet / 3=asteroid / 4=falling rock`、HUD `E00`（active数）/死亡時`D0N`（N=source code）表示。active数は既存movable enemy-bullet walkの観測値を使用。release productionは既存オブジェクト・表示・挙動を維持し、診断game.oのみサイズ最適化`-O`。
+- 変更ファイル: `Makefile`、`include/game.h`、`src/game.c`、`src/main.c`、`src/static_layer.c`、`tests/test_aps056_diagnostic.c`、本記録。既知保全ファイルとして`tests/test_aps056_diagnostic.c`、`scripts/verify-aps056-diagnostic-gearlynx.py`、`evidence/APS-056/scb-trace-v002.json`、`.briefs/APS-056/v001..v004.md`を含む。
+- 診断ROM: `/Users/mammycloud-m4/Documents/develop-m4/atari-lynx-shooter/dist/asteroid-patrol-aps056-diagnostic.lnx`、`59526 bytes`、SHA-256=`beff923c1e980c4bfc8c3796b69cf0e402374c65c64b22346c4dbc5f5f392b5f`、`GAME_VERSION_STRING=0.53.19`、LNX `magic=LYNX version=1 bank0_page=1024 bank1_page=0`。map Segment STARTUP/LOWCODE/ONCE/CODE/RODATA/DATA/BSS=`109/16/27/34479/6965/946/2310`、使用=`44852B`、CADENCE MAIN上限=`0xBA08`、MAIN余剰=`2260B`。
+- production保全確認: `dist/asteroid-patrol.lnx`=`61124 bytes`、SHA-256=`1d70db9c91eda9c14a92cc475382e9bc02dd7f37c2c22299f93d7e078dadd9bc`、release map使用=`46354B`、MAIN余剰=`422B`。
+- 検証: `make aps056-diagnostic-host`（0、19 checks）、`make test smoke-host lint`（0、stage155/game652/sound351/IMA14949/sprite197/APS-055 14/APS-056 19/smoke19、strict cc65、shell lint）、`make clean && ./scripts/verify.sh`（0、release LNX/voice cart全PASS）、`make dist/asteroid-patrol-aps056-diagnostic.lnx && ./scripts/inspect-lnx.sh dist/asteroid-patrol-aps056-diagnostic.lnx`（0、LNX PASS）、`python3 -m py_compile scripts/verify-aps056-diagnostic-gearlynx.py`（0）、`git diff --check`（0）。`make aps056-diagnostic-gearlynx`は終了コード2、安定TITLE未到達でBLOCKED。
+- 設計差分/未確認: v004仕様からの機能差分なし。HUDは既存20セル経路の末尾3セルを診断時のみ`E00`/`D0N`へ置換。Gearlynxでの実SCB chain値・実機LCD視認性・OPT入力・Suzy最終画素は未確認。敵弾のproduction色/形状/SCB/collision/fire cadenceは変更なし。`evidence/APS-056/scb-trace-v002.json`は`status=blocked`を維持し、実SCB値をPASS扱いしていない。
+
+### APS-056 v002 敵弾SCB実経路の再検証（2026-08-23）
+
+- 状態: **host診断・release/CADENCE strict compile/link・回帰検証完了、Gearlynx実行は起動前停止でBLOCKED**。開始HEAD=`68d68fdfa6f561d3ed1b4e83bf0bf99acee8af0c`、終了HEAD=`68d68fdfa6f561d3ed1b4e83bf0bf99acee8af0c`。未追跡`.briefs/APS-056/`はv002ブリーフとして保全。commit/pushなし。
+- 変更: `tests/test_aps056_diagnostic.c`（host 7 checks: active source→SCB non-SKIP/hpos/vpos、collision後active=0→同一slot SKIP、slot mapping/data pointer、4 logic catch-up、HUD境界）、`scripts/verify-aps056-diagnostic-gearlynx.py`（実`tgi_ioctl` movable chainの45エントリを捕捉し、敵弾16 slotのSPRCTL1/hpos/vpos/next/data pointerとGameState sourceを突合）、`Makefile`（`aps056-diagnostic-host`/`aps056-diagnostic-gearlynx`、専用CADENCE ROM target）、本記録、`evidence/APS-056/scb-trace-v002.json`。
+- host再現: 敵弾slot 0を`x=102,y=40,vx=-2`、自機を`x=100,y=40`へ置くと、敵弾移動後`x=100`でcollisionが成立し、draw boundary前に`active=0`。実SCB predicate相当はslotを同じmapping/data pointerのまま`SPRCTL1=0x0C(REUSEPAL|SKIP)`へする。敵弾本体/asteroid/rockの誤認ではなく、enemy-bullet damageのみで再現。
+- host反証: activeかつ`y=40`の敵弾は`SPRCTL1=0x08(REUSEPAL)`、hpos/vpos=`x/y`で可視。activeかつ`y=GAME_HUD_HEIGHT(10)`も可視、`y=9`のみpredicateでSKIP。4 logic updatesのcatch-upでもslot mapping/data pointerと可視条件は崩れず。
+- CADENCE経路: 専用ROM `dist/asteroid-patrol-aps056-diagnostic.lnx` をstrict link、LNX=`61503` bytes、SHA-256=`a7f5817a9ba05640eb383d477fb143195e5f9c33d291c55654316930e65f45bc`、`magic=LYNX version=1`まで確認。Gearlynxはrelease/CADENCE双方でreset後に`_game_init`へ到達せず、`tgi_busy()`起動前後のランタイムで停止。`evidence/APS-056/scb-trace-v002.json`は`status=blocked`で、実SCB値をPASS扱いしていない。実機Suzy/LCDの最終画素は未確認。
+- APS-055再検証結論: **collision前に表示される可能性のあるactive/in-play経路、slot mapping/data pointer破損、activeなのにSCB SKIPとなる別経路はhostで再現せず**。確認できた不可視被弾経路はAPS-055 v001同様、collisionが同一logic update内で敵弾を消費してからdrawする既存順序。APS-055 v002の75Hz移動phaseは本症状の直接原因ではない。
+- 検証: `make aps056-diagnostic-host`（0、7 checks）、`make aps056-diagnostic-gearlynx`（strict compile/link・LNX PASS、Gearlynx起動前BLOCKED）、`make test smoke-host lint`（0、stage155/game652/sound351/IMA14949/sprite197/smoke19、C89 warning-as-error・shell lint PASS）、`make clean && ./scripts/verify.sh`（0、release LNX=`61124` bytes、strict cc65/LNX/voice cart全PASS）、`python3 -m py_compile scripts/verify-aps056-diagnostic-gearlynx.py`（0）、`git diff --check`（0）。
+- 診断範囲外: `src/main.c`のproduction SCB構築、`src/game.c`、`include/game.h`、`include/version.h`、速度・collision・描画順・scheduler、公開API、commit/pushは変更なし。対策実装はFable5裁定・別版ブリーフ待ち。
 
 ### APS-055 v002 敵弾移動速度の75Hz正規化（2026-08-23）
 

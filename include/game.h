@@ -134,6 +134,18 @@
 #define GAME_INPUT_LEFT 0x04u
 #define GAME_INPUT_RIGHT 0x08u
 #define GAME_INPUT_FIRE 0x10u
+#ifdef APS056_DIAGNOSTIC
+#define GAME_INPUT_DIAGNOSTIC_OPT1 0x20u
+#define GAME_INPUT_DIAGNOSTIC_OPT2 0x40u
+#define GAME_DIAGNOSTIC_DAMAGE_NONE 0u
+#define GAME_DIAGNOSTIC_DAMAGE_ENEMY_BODY 1u
+#define GAME_DIAGNOSTIC_DAMAGE_ENEMY_BULLET 2u
+#define GAME_DIAGNOSTIC_DAMAGE_ASTEROID 3u
+#define GAME_DIAGNOSTIC_DAMAGE_FALLING_ROCK 4u
+#define GAME_DIAGNOSTIC_CONTROL_LOGIC_FROZEN 0x01u
+#define GAME_DIAGNOSTIC_CONTROL_BULLET_WHITE 0x02u
+#define GAME_DIAGNOSTIC_CONTROL_OPT2_HELD 0x04u
+#endif
 
 typedef struct GameRect {
     unsigned char x;
@@ -332,6 +344,10 @@ typedef struct GameState {
     GameEnemy capacity_enemies[
         GAME_MAX_ENEMIES - GAME_STAGE_ACTIVE_ENEMIES];
 #endif
+#ifdef APS056_DIAGNOSTIC
+    unsigned char diagnostic_controls;
+    unsigned char diagnostic_damage_source;
+#endif
 } GameState;
 
 #ifdef __CC65__
@@ -416,6 +432,10 @@ unsigned char game_active_combatant_count(const GameState* game);
 unsigned char game_enemy_fire_interval(unsigned char type);
 unsigned char game_enemy_drops_power(unsigned char type);
 unsigned char game_player_is_visible(const GameState* game);
+#ifdef APS056_DIAGNOSTIC
+void game_diagnostic_update_controls(GameState* game, unsigned char input);
+unsigned char game_enemy_bullet_active_count(const GameState* game);
+#endif
 const GameStageConfig* game_get_stage_config(unsigned char stage);
 const GameEnemyFormationSlot* game_get_enemy_formation_slot(
     unsigned char formation_id, unsigned char slot);

@@ -222,6 +222,10 @@ static void clear_game_state(GameState* game)
         bytes[i] = 0u;
     }
 #endif
+#ifdef APS056_DIAGNOSTIC
+    game->diagnostic_controls = 0u;
+    game->diagnostic_damage_source = GAME_DIAGNOSTIC_DAMAGE_NONE;
+#endif
 }
 
 const GameStageConfig* game_get_stage_config(unsigned char stage)
@@ -1123,6 +1127,45 @@ unsigned char game_player_is_visible(const GameState* game)
     return (unsigned char)(((elapsed / 4u) % 2u) == 0u);
 }
 
+#ifdef APS056_DIAGNOSTIC
+void game_diagnostic_update_controls(GameState* game, unsigned char input)
+{
+    unsigned char controls;
+
+    controls = game->diagnostic_controls;
+    if ((input & GAME_INPUT_DIAGNOSTIC_OPT1) != 0u) {
+        controls |= GAME_DIAGNOSTIC_CONTROL_LOGIC_FROZEN;
+    } else {
+        controls &= (unsigned char)~GAME_DIAGNOSTIC_CONTROL_LOGIC_FROZEN;
+    }
+    if ((input & GAME_INPUT_DIAGNOSTIC_OPT2) != 0u) {
+        if ((controls & GAME_DIAGNOSTIC_CONTROL_OPT2_HELD) == 0u) {
+            controls ^= GAME_DIAGNOSTIC_CONTROL_BULLET_WHITE;
+        }
+        controls |= GAME_DIAGNOSTIC_CONTROL_OPT2_HELD;
+    } else {
+        controls &= (unsigned char)~GAME_DIAGNOSTIC_CONTROL_OPT2_HELD;
+    }
+    game->diagnostic_controls = controls;
+}
+
+#ifndef __CC65__
+unsigned char game_enemy_bullet_active_count(const GameState* game)
+{
+    unsigned char count;
+    unsigned char i;
+
+    count = 0u;
+    for (i = 0u; i < GAME_MAX_ENEMY_BULLETS; ++i) {
+        if (game->enemy_bullets[i].active != 0u) {
+            ++count;
+        }
+    }
+    return count;
+}
+#endif
+#endif
+
 /* Moves one active player bullet one step to the right, deactivating it
  * at the screen edge (APS-021): shared by the normal and boss bullet
  * updates, which previously repeated this advance verbatim. Returns 0
@@ -1447,8 +1490,11 @@ static void update_normal(GameState* game, unsigned char input,
     unsigned char new_environment_slot;
     unsigned char enemy_destroyed;
     unsigned char power_item_collected;
-#ifdef GAME_APS055_DIAGNOSTIC
+#if defined(GAME_APS055_DIAGNOSTIC) || defined(APS056_DIAGNOSTIC)
     unsigned char damage_before_environment;
+#endif
+#ifdef APS056_DIAGNOSTIC
+    unsigned char diagnostic_source;
 #endif
     const GameStageConfig* stage_config;
 
@@ -1535,6 +1581,9 @@ static void update_normal(GameState* game, unsigned char input,
     }
 
     damage = 0u;
+#ifdef APS056_DIAGNOSTIC
+    diagnostic_source = GAME_DIAGNOSTIC_DAMAGE_NONE;
+#endif
     for (i = 0u; i < GAME_MAX_ENEMIES; ++i) {
         GameEnemy* enemy;
 
@@ -1545,6 +1594,9 @@ static void update_normal(GameState* game, unsigned char input,
             game_aabb_intersects(&game->player,
                 &enemy->rect) != 0u)) {
             damage = 1u;
+#ifdef APS056_DIAGNOSTIC
+            diagnostic_source = GAME_DIAGNOSTIC_DAMAGE_ENEMY_BODY;
+#endif
 #ifdef GAME_APS055_DIAGNOSTIC
             aps055_mark_body();
 #endif
@@ -1559,26 +1611,39 @@ static void update_normal(GameState* game, unsigned char input,
                 GAME_ENEMY_BULLET_HEIGHT) != 0u) {
             game->enemy_bullets[i].active = 0u;
             damage = 1u;
+#ifdef APS056_DIAGNOSTIC
+            diagnostic_source = GAME_DIAGNOSTIC_DAMAGE_ENEMY_BULLET;
+#endif
 #ifdef GAME_APS055_DIAGNOSTIC
             aps055_mark_enemy_bullet();
 #endif
         }
     }
     if (stage_config->environment_id == GAME_ENVIRONMENT_ASTEROIDS) {
-#ifdef GAME_APS055_DIAGNOSTIC
+#if defined(GAME_APS055_DIAGNOSTIC) || defined(APS056_DIAGNOSTIC)
         damage_before_environment = damage;
 #endif
         update_asteroids(game, new_environment_slot, &damage);
+#ifdef APS056_DIAGNOSTIC
+        if (damage_before_environment == 0u && damage != 0u) {
+            diagnostic_source = GAME_DIAGNOSTIC_DAMAGE_ASTEROID;
+        }
+#endif
 #ifdef GAME_APS055_DIAGNOSTIC
         if (damage_before_environment == 0u && damage != 0u) {
             aps055_mark_asteroid();
         }
 #endif
     } else if (stage_config->environment_id == GAME_ENVIRONMENT_ROCKFALL) {
-#ifdef GAME_APS055_DIAGNOSTIC
+#if defined(GAME_APS055_DIAGNOSTIC) || defined(APS056_DIAGNOSTIC)
         damage_before_environment = damage;
 #endif
         update_falling_rocks(game, new_environment_slot, &damage);
+#ifdef APS056_DIAGNOSTIC
+        if (damage_before_environment == 0u && damage != 0u) {
+            diagnostic_source = GAME_DIAGNOSTIC_DAMAGE_FALLING_ROCK;
+        }
+#endif
 #ifdef GAME_APS055_DIAGNOSTIC
         if (damage_before_environment == 0u && damage != 0u) {
             aps055_mark_rock();
@@ -1587,6 +1652,9 @@ static void update_normal(GameState* game, unsigned char input,
     }
 #ifdef GAME_APS055_DIAGNOSTIC
     aps055_after_collision(game);
+#endif
+#ifdef APS056_DIAGNOSTIC
+    game->diagnostic_damage_source = diagnostic_source;
 #endif
     apply_damage(game, damage, was_invincible);
 #ifdef GAME_APS055_DIAGNOSTIC
@@ -1636,6 +1704,9 @@ static void update_boss(GameState* game, unsigned char input,
 {
     unsigned char i;
     unsigned char damage;
+#ifdef APS056_DIAGNOSTIC
+    unsigned char diagnostic_source;
+#endif
 
 #ifdef GAME_APS055_DIAGNOSTIC
     aps055_begin(game);
@@ -1661,6 +1732,12 @@ static void update_boss(GameState* game, unsigned char input,
 
     damage = (unsigned char)(game->boss.active != 0u &&
         game_aabb_intersects(&game->player, &game->boss.rect) != 0u);
+#ifdef APS056_DIAGNOSTIC
+    diagnostic_source = GAME_DIAGNOSTIC_DAMAGE_NONE;
+    if (damage != 0u) {
+        diagnostic_source = GAME_DIAGNOSTIC_DAMAGE_ENEMY_BODY;
+    }
+#endif
 #ifdef GAME_APS055_DIAGNOSTIC
     if (damage != 0u) {
         aps055_mark_body();
@@ -1674,6 +1751,9 @@ static void update_boss(GameState* game, unsigned char input,
                 GAME_ENEMY_BULLET_HEIGHT) != 0u) {
             game->enemy_bullets[i].active = 0u;
             damage = 1u;
+#ifdef APS056_DIAGNOSTIC
+            diagnostic_source = GAME_DIAGNOSTIC_DAMAGE_ENEMY_BULLET;
+#endif
 #ifdef GAME_APS055_DIAGNOSTIC
             aps055_mark_enemy_bullet();
 #endif
@@ -1681,6 +1761,9 @@ static void update_boss(GameState* game, unsigned char input,
     }
 #ifdef GAME_APS055_DIAGNOSTIC
     aps055_after_collision(game);
+#endif
+#ifdef APS056_DIAGNOSTIC
+    game->diagnostic_damage_source = diagnostic_source;
 #endif
     apply_damage(game, damage, was_invincible);
 #ifdef GAME_APS055_DIAGNOSTIC
@@ -1730,6 +1813,13 @@ void game_update_logic(GameState* game, unsigned char input)
     unsigned char was_invincible;
 
     GAME_PERF_COUNT(logic_updates);
+#ifdef APS056_DIAGNOSTIC
+    game_diagnostic_update_controls(game, input);
+    if ((game->diagnostic_controls & GAME_DIAGNOSTIC_CONTROL_LOGIC_FROZEN) !=
+        0u) {
+        return;
+    }
+#endif
     if (game->phase == GAME_PHASE_TITLE) {
         if (game->title_voice_pending != 0u) {
             return;

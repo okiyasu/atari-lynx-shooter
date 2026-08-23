@@ -52,6 +52,12 @@
 #define VOICE_CREDIT_ASCII_X 12u
 #define VOICE_CREDIT_SUFFIX_X 116u
 #define VOICE_CREDIT_Y 82u
+#ifdef APS056_DIAGNOSTIC
+#define LYNX_OPTION_BUTTONS (*(volatile unsigned char*)0xfcb0u)
+#define LYNX_OPT1_MASK 0x04u
+#define LYNX_OPT2_MASK 0x08u
+unsigned char aps056_active_bullet_count;
+#endif
 
 /* MIKEY audio channel register blocks (include/_mikey.h layout): eight
  * registers per channel starting at 0xFD20 (channel A), 0xFD28
@@ -388,6 +394,14 @@ unsigned char game_input_poll(void)
     if ((joy & (JOY_BTN_1_MASK | JOY_BTN_2_MASK)) != 0u) {
         input |= GAME_INPUT_FIRE;
     }
+#ifdef APS056_DIAGNOSTIC
+    if ((LYNX_OPTION_BUTTONS & LYNX_OPT1_MASK) != 0u) {
+        input |= GAME_INPUT_DIAGNOSTIC_OPT1;
+    }
+    if ((LYNX_OPTION_BUTTONS & LYNX_OPT2_MASK) != 0u) {
+        input |= GAME_INPUT_DIAGNOSTIC_OPT2;
+    }
+#endif
     return input;
 }
 
@@ -923,6 +937,9 @@ static void movable_scb_update(const GameState* game,
     unsigned char i;
     unsigned char frame;
     unsigned char all_clear;
+#ifdef APS056_DIAGNOSTIC
+    unsigned char diagnostic_active_count;
+#endif
     SCB_RENONE* p;
 
 #ifdef CADENCE_PROBE
@@ -930,7 +947,15 @@ static void movable_scb_update(const GameState* game,
 #endif
     frame = game->animation_frame;
     all_clear = (unsigned char)(game->phase == GAME_PHASE_ALL_CLEAR);
+#ifdef APS056_DIAGNOSTIC
+    diagnostic_active_count = 0u;
+#endif
     movable_scb_on_stage_change(stage_config);
+#ifdef APS056_DIAGNOSTIC
+    movable_scb_ebullet_header.penpal[0] = (game->diagnostic_controls &
+        GAME_DIAGNOSTIC_CONTROL_BULLET_WHITE) != 0u ?
+        GAME_COLOR_WHITE : GAME_COLOR_ENEMY_BULLET;
+#endif
 
     /* --- environment hazards: asteroids/falling rocks are mutually
      * exclusive per stage (GameStageConfig.environment_id) and share this
@@ -1000,6 +1025,9 @@ static void movable_scb_update(const GameState* game,
         for (i = 0u; i < GAME_MAX_ENEMY_BULLETS; ++i, ++p) {
             p->sprctl1 = (unsigned char)(PACKED | RENONE | REUSEPAL | SKIP);
         }
+#ifdef APS056_DIAGNOSTIC
+        aps056_active_bullet_count = 0u;
+#endif
     } else {
         /* --- player --- */
         if (game->dying == 0u && game_player_is_visible(game) != 0u) {
@@ -1097,6 +1125,11 @@ static void movable_scb_update(const GameState* game,
 
             p = movable_scb_ebullet;
             for (i = 0u; i < GAME_MAX_ENEMY_BULLETS; ++i, ++p, ++ebullet) {
+#ifdef APS056_DIAGNOSTIC
+                if (ebullet->active != 0u) {
+                    ++diagnostic_active_count;
+                }
+#endif
                 if (ebullet->active != 0u &&
                     ebullet->rect.y >= GAME_HUD_HEIGHT) {
                     p->sprctl1 = (unsigned char)(PACKED | RENONE | REUSEPAL);
@@ -1107,6 +1140,9 @@ static void movable_scb_update(const GameState* game,
                         SKIP);
                 }
             }
+#ifdef APS056_DIAGNOSTIC
+            aps056_active_bullet_count = diagnostic_active_count;
+#endif
         }
     }
 
@@ -1343,6 +1379,11 @@ void main(void)
 #endif
         logic_updates = game_logic_updates_for_draw_frame(elapsed_vblanks,
             0);
+#ifdef APS056_DIAGNOSTIC
+        if (logic_updates == 0u) {
+            game_diagnostic_update_controls(&game, input);
+        }
+#endif
         while (logic_updates != 0u) {
 #ifdef CADENCE_PROBE
             cadence_probe_hold_fixture();

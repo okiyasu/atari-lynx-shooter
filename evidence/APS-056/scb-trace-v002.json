@@ -1,0 +1,27 @@
+{
+  "aps": "APS-056",
+  "error": "ROM did not reach stable TITLE",
+  "fixtures": [],
+  "method": {
+    "capture": "real _tgi_ioctl movable-chain submission",
+    "chain_layout": "env header/2 env/player/enemy header/8 enemy/boss/power/pbullet header/12 pbullet/ebullet header/16 ebullet",
+    "production_sprctl1": {
+      "REUSEPAL": 8,
+      "SKIP": 4
+    },
+    "snapshot": "main.c after enemy-bullet SCB predicate and before tgi_sprite"
+  },
+  "rom": {
+    "path": "dist/asteroid-patrol-aps056-diagnostic.lnx",
+    "sha256": "beff923c1e980c4bfc8c3796b69cf0e402374c65c64b22346c4dbc5f5f392b5f",
+    "size_bytes": 59526
+  },
+  "status": "blocked",
+  "symbols": {
+    "display_sync": 688,
+    "game": 43067,
+    "game_enemies": 43307,
+    "tgi_ioctl": 33710
+  },
+  "version": "v002"
+}

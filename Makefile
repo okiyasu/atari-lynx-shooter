@@ -13,6 +13,7 @@ ROM_CFLAGS := -t lynx -Oirs --standard cc65 -W error -Iinclude -I$(GEN_DIR)
 COMPACT_ROM_CFLAGS := -t lynx -O --standard cc65 -W error -Iinclude -I$(GEN_DIR)
 ROM := dist/asteroid-patrol.lnx
 CADENCE_ROM := dist/asteroid-patrol-cadence.lnx
+APS056_DIAGNOSTIC_ROM := dist/asteroid-patrol-aps056-diagnostic.lnx
 CADENCE_VARIANT_A_ROM := dist/asteroid-patrol-cadence-v-a.lnx
 CADENCE_VARIANT_B_ROM := dist/asteroid-patrol-cadence-v-b.lnx
 CADENCE_VARIANT_C_ROM := dist/asteroid-patrol-cadence-v-c.lnx
@@ -31,6 +32,15 @@ CADENCE_OBJECTS := build/cart_directory.o build/main-cadence.o $(COMMON_ROM_OBJE
 	build/scb_split_probe.o \
 	build/static_layer_split_probe.o
 CADENCE_VARIANT_COMMON_OBJECTS := $(filter-out build/main-cadence.o,$(CADENCE_OBJECTS))
+APS056_DIAGNOSTIC_OBJECTS := build/cart_directory.o \
+	build/main-aps056-diagnostic.o build/game-aps056-diagnostic.o \
+	build/sound.o build/title_voice.o build/title_voice_stream.o \
+	build/music_data.o build/stage_data.o build/sprite_data.o \
+	build/static_layer_data.o build/static_layer_overlay.o \
+	build/static_layer_overlay_asset.o build/title_voice_asset.o \
+	build/game_timing.o build/static_layer-aps056-diagnostic.o \
+	build/cadence_probe.o build/scb_split_probe.o \
+	build/static_layer_split_probe.o
 MUSIC_DATA := $(GEN_DIR)/music_data.c
 STAGE_INPUT := assets/stages/stages.json
 STAGE_GENERATOR := scripts/generate-stage-data.py
@@ -52,7 +62,7 @@ PERF_WORKLOAD_FRAMES := 5000000
 PERF_PAIR_COUNT := 7
 
 .PHONY: all toolchain rom debug-contract clean test stage-check smoke-host smoke-gearlynx \
-	aps055-diagnostic-host \
+	aps055-diagnostic-host aps056-diagnostic-host aps056-diagnostic-gearlynx \
 	perf-host frame-cadence-gearlynx lint verify inspect voice-generate \
 	voice-generate-game-over voice-check static-layer-readback-gearlynx \
 	title-game-over-readback-gearlynx \
@@ -91,6 +101,13 @@ $(CADENCE_ROM): $(CADENCE_OBJECTS) $(CADENCE_CFG) | toolchain
 	$(CL65) -t lynx -C $(CADENCE_CFG) -m build/asteroid-patrol-cadence.map \
 		-Ln build/asteroid-patrol-cadence.lbl -o $@ $(CADENCE_OBJECTS)
 
+$(APS056_DIAGNOSTIC_ROM): $(APS056_DIAGNOSTIC_OBJECTS) $(CADENCE_CFG) | toolchain
+	mkdir -p dist build
+	$(CL65) -t lynx -C $(CADENCE_CFG) \
+		-m build/asteroid-patrol-aps056-diagnostic.map \
+		-Ln build/asteroid-patrol-aps056-diagnostic.lbl \
+		-o $@ $(APS056_DIAGNOSTIC_OBJECTS)
+
 build/cart_directory.o: src/cart_directory.s cfg/lynx-voice.cfg | toolchain
 	mkdir -p build
 	$(CL65) -t lynx -c -o $@ src/cart_directory.s
@@ -109,6 +126,15 @@ build/main-cadence.o: src/main.c include/game.h include/sound.h \
 		$(GEN_DIR)/stage_data.h $(GEN_DIR)/sprite_data.h | toolchain
 	mkdir -p build
 	$(CL65) $(COMPACT_ROM_CFLAGS) -DCADENCE_PROBE -c -o $@ src/main.c
+
+build/main-aps056-diagnostic.o: src/main.c include/game.h include/sound.h \
+		include/title_voice.h include/version.h include/game_timing.h \
+		include/static_layer.h include/static_layer_data.h \
+		include/cadence_probe.h include/scb_split_probe.h \
+		$(GEN_DIR)/stage_data.h $(GEN_DIR)/sprite_data.h | toolchain
+	mkdir -p build
+	$(CL65) $(COMPACT_ROM_CFLAGS) -DCADENCE_PROBE -DAPS056_DIAGNOSTIC \
+		-c -o $@ src/main.c
 
 build/cadence_probe.o: src/cadence_probe.s | toolchain
 	mkdir -p build
@@ -140,6 +166,14 @@ build/static_layer-cadence.o: src/static_layer.c include/static_layer.h \
 	mkdir -p build
 	$(CL65) $(COMPACT_ROM_CFLAGS) -DCADENCE_PROBE -c -o $@ src/static_layer.c
 
+build/static_layer-aps056-diagnostic.o: src/static_layer.c \
+		include/static_layer.h include/static_layer_data.h \
+		include/static_layer_overlay.h include/static_layer_overlay_data.h \
+		include/game.h include/title_voice.h include/static_layer_split_probe.h | toolchain
+	mkdir -p build
+	$(CL65) $(COMPACT_ROM_CFLAGS) -DCADENCE_PROBE -DAPS056_DIAGNOSTIC \
+		-c -o $@ src/static_layer.c
+
 build/static_layer_data.o: src/static_layer_data.c include/static_layer_data.h | toolchain
 	mkdir -p build
 	$(CL65) $(ROM_CFLAGS) -c -o $@ src/static_layer_data.c
@@ -160,6 +194,11 @@ build/game.o: src/game.c include/game.h include/sound.h \
 		$(GEN_DIR)/stage_data.h | toolchain
 	mkdir -p build
 	$(CL65) $(ROM_CFLAGS) -c -o $@ src/game.c
+
+build/game-aps056-diagnostic.o: src/game.c include/game.h include/sound.h \
+		$(GEN_DIR)/stage_data.h | toolchain
+	mkdir -p build
+	$(CL65) $(COMPACT_ROM_CFLAGS) -DAPS056_DIAGNOSTIC -c -o $@ src/game.c
 
 build/sound.o: src/sound.c include/sound.h $(MUSIC_DATA) | toolchain
 	mkdir -p build
@@ -221,12 +260,14 @@ $(STAGE_STAMP): $(STAGE_INPUT) $(STAGE_GENERATOR) $(STAGE_GOLDEN) $(SPRITE_GOLDE
 $(STAGE_DATA): $(STAGE_STAMP)
 
 test: stage-check build/test-game build/test-sound build/test-ima-adpcm \
-		build/test-sprite-data build/test-aps055-diagnostic
+		build/test-sprite-data build/test-aps055-diagnostic \
+		build/test-aps056-diagnostic
 	./build/test-game
 	./build/test-sound
 	./build/test-ima-adpcm
 	./build/test-sprite-data
 	./build/test-aps055-diagnostic
+	./build/test-aps056-diagnostic
 
 stage-check:
 	./tests/test_stage_data.py
@@ -249,6 +290,16 @@ smoke-host: build/test-smoke
 
 aps055-diagnostic-host: build/test-aps055-diagnostic
 	./build/test-aps055-diagnostic
+
+aps056-diagnostic-host: build/test-aps056-diagnostic
+	./build/test-aps056-diagnostic
+
+aps056-diagnostic-gearlynx: $(APS056_DIAGNOSTIC_ROM)
+	./scripts/inspect-lnx.sh $(APS056_DIAGNOSTIC_ROM)
+	python3 scripts/verify-aps056-diagnostic-gearlynx.py \
+		--rom $(APS056_DIAGNOSTIC_ROM) \
+		--symbols build/asteroid-patrol-aps056-diagnostic.lbl \
+		--output evidence/APS-056/scb-trace-v002.json
 
 perf-host: build/perf-bench build/perf-bench-legacy build/test-game-legacy
 	./build/test-game-legacy
@@ -557,6 +608,15 @@ build/test-aps055-diagnostic: tests/test_aps055_diagnostic.c src/game.c \
 		tests/test_aps055_diagnostic.c src/game.c src/sound.c \
 		$(GEN_DIR)/stage_data.c $(MUSIC_DATA)
 
+build/test-aps056-diagnostic: tests/test_aps056_diagnostic.c src/game.c \
+		src/sound.c $(MUSIC_DATA) $(GEN_DIR)/stage_data.c \
+		$(GEN_DIR)/stage_data.h include/game.h include/sound.h
+	mkdir -p build
+	$(HOST_CC) $(HOST_CFLAGS) -DGAME_APS055_DIAGNOSTIC \
+		-DAPS056_DIAGNOSTIC -o $@ \
+		tests/test_aps056_diagnostic.c src/game.c src/sound.c \
+		$(GEN_DIR)/stage_data.c $(MUSIC_DATA)
+
 build/perf-bench: tests/perf_bench.c src/game.c src/sound.c $(MUSIC_DATA) \
 		$(GEN_DIR)/stage_data.c $(GEN_DIR)/stage_data.h include/game.h include/sound.h
 	mkdir -p build
@@ -576,7 +636,8 @@ lint: $(ROM_OBJECTS) voice-check | toolchain
 		src/ima_adpcm.c src/title_voice.c $(MUSIC_DATA) \
 		$(GEN_DIR)/stage_data.c $(GEN_DIR)/sprite_data.c tools/mml2c.c \
 		tests/test_game.c tests/test_sound.c tests/test_ima_adpcm.c \
-		tests/test_sprite_data.c tests/test_smoke.c
+		tests/test_sprite_data.c tests/test_smoke.c \
+		tests/test_aps056_diagnostic.c
 	sh -n scripts/*.sh
 
 inspect: $(ROM)

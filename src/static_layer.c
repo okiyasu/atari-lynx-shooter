@@ -14,6 +14,9 @@
 #ifdef CADENCE_PROBE
 #include "static_layer_split_probe.h"
 #endif
+#ifdef APS056_DIAGNOSTIC
+extern unsigned char aps056_active_bullet_count;
+#endif
 
 #define BLACK 0u
 #define WHITE 15u
@@ -336,7 +339,12 @@ static void build_text_line(const char* text)
  * is gone entirely -- hud_text already still holds last frame's score
  * digits because nothing local resets it. The initializer's layout must
  * match append_hud's field assignments exactly (see that function). */
-static char hud_text[HUD_TEXT_LENGTH + 1u] = "S0 N0000 00000 L0 W0";
+static char hud_text[HUD_TEXT_LENGTH + 1u] =
+#ifdef APS056_DIAGNOSTIC
+    "S0 N0000 00000 L0E00";
+#else
+    "S0 N0000 00000 L0 W0";
+#endif
 static char hud_prev_text[HUD_TEXT_LENGTH + 1u];
 /* 0 forces a full rebuild on the next append_hud call: startup, and any
  * frame where static_layer_draw's voice-idle guard skipped drawing (the
@@ -417,7 +425,20 @@ static void append_hud(const GameState* game)
     hud_text[1] = (char)('0' + game->stage);
     hud_text[3] = hud_phase_char[game->phase];
     hud_text[16] = (char)('0' + game->lives);
+#ifdef APS056_DIAGNOSTIC
+    if (game->dying != 0u && game->diagnostic_damage_source !=
+        GAME_DIAGNOSTIC_DAMAGE_NONE) {
+        hud_text[17] = 'D';
+        hud_text[18] = '0';
+        hud_text[19] = (char)('0' + game->diagnostic_damage_source);
+    } else {
+        hud_text[17] = 'E';
+        hud_text[18] = (char)('0' + aps056_active_bullet_count / 10u);
+        hud_text[19] = (char)('0' + aps056_active_bullet_count % 10u);
+    }
+#else
     hud_text[19] = (char)('0' + game->weapon_level);
+#endif
 
     if (hud_prev_valid == 0u) {
         hud_rebuild_skeleton();
